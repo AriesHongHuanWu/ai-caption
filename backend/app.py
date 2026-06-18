@@ -199,6 +199,9 @@ class JobParams(BaseModel):
     separate: bool = True
     device: str = "auto"  # "auto" | "cuda" | "cpu"
     engine: str = "whisper"
+    # Precision options (forced-align mode)
+    refine: bool = True  # snap word boundaries to nearest vocal onset
+    demucsModel: str = "htdemucs"  # "htdemucs" | "htdemucs_ft"
 
 
 class ExportBody(BaseModel):
@@ -250,6 +253,8 @@ def _run_job(job_id: str, audio_path: str, params: JobParams) -> None:
             separate=params.separate,
             device=params.device,
             engine=params.engine,
+            refine=params.refine,
+            demucs_model=params.demucsModel,
             progress=progress,
         )
         with _JOBS_LOCK:
@@ -442,15 +447,40 @@ def _is_whisper_installed(model_size: str) -> tuple[bool, float]:
     return True, _dir_size_mb(d)
 
 
-def _is_demucs_installed() -> tuple[bool, float]:
-    """Demucs htdemucs 模型偵測。"""
+def _demucs_checkpoint_files() -> list[Path]:
+    """Demucs 權重以 .th checkpoint 存在 torch.hub/checkpoints/ 下(每個 .th 為一個子模型)。
+
+    舊版本可能改放 facebookresearch_demucs_* 目錄;兩處都納入。
+    """
     torch_hub = _demucs_cache_dir()
-    # torch.hub 下會有 demucs_audio_sep_local 或 facebookresearch_demucs_* 目錄
-    candidates = list(torch_hub.glob("facebookresearch_demucs_*")) if torch_hub.exists() else []
-    if not candidates:
+    files: list[Path] = []
+    if torch_hub.exists():
+        ckpt_dir = torch_hub / "checkpoints"
+        if ckpt_dir.exists():
+            files += [p for p in ckpt_dir.glob("*.th") if p.is_file()]
+        # 舊佈局:facebookresearch_demucs_* 目錄內的 .th
+        for d in torch_hub.glob("facebookresearch_demucs_*"):
+            files += [p for p in d.rglob("*.th") if p.is_file()]
+    return files
+
+
+def _is_demucs_installed(ft: bool = False) -> tuple[bool, float]:
+    """Demucs 模型偵測,回傳 (是否已安裝, 磁碟用量 MB)。
+
+    ft=False(標準 htdemucs):只要有任一 .th checkpoint 即視為已安裝。
+    ft=True(htdemucs_ft 微調 bag):需 ≥4 個 .th(該 bag 由 4 個子模型組成),否則回報
+    未安裝 —— 否則使用者選「高品質」會在首次執行靜默下載 ~1.5 GB 而 UI 毫無提示。
+    """
+    files = _demucs_checkpoint_files()
+    if not files:
         return False, 0.0
-    size = sum(_dir_size_mb(c) for c in candidates)
-    return True, size
+    total = sum(_dir_size_mb(p) for p in files)
+    if ft:
+        # htdemucs_ft = bag-of-4;少於 4 個 .th 代表微調權重尚未下載完整。
+        if len(files) < 4:
+            return False, total
+        return True, total
+    return True, total
 
 
 def _is_aligner_installed() -> tuple[bool, float]:
@@ -524,6 +554,7 @@ _MODEL_DEFS = [
     {
         "id": "demucs-htdemucs",
         "kind": "demucs",
+        "demucsModel": "htdemucs",
         "label": "Demucs htdemucs",
         "description": "人聲分離模型。讓辨識在乾淨人聲上運作，大幅提升準確度。Vocal separator — greatly improves transcription accuracy.",
         "sizeMB": 310,
@@ -531,6 +562,18 @@ _MODEL_DEFS = [
         "vramHint": "~2 GB VRAM",
         "whisperSize": None,
         "required": True,
+    },
+    {
+        "id": "demucs-htdemucs-ft",
+        "kind": "demucs",
+        "demucsModel": "htdemucs_ft",
+        "label": "Demucs htdemucs_ft",
+        "description": "高品質微調人聲分離(bag-of-4，~4× 慢、需 8GB+)。首次選用「高品質」會額外下載此權重。High-quality fine-tuned separator — extra download on first use.",
+        "sizeMB": 1500,
+        "recommended": False,
+        "vramHint": "~4 GB VRAM",
+        "whisperSize": None,
+        "required": False,
     },
     {
         "id": "aligner-mms",
@@ -559,7 +602,8 @@ def _build_model_info(defn: dict) -> dict:
     if defn["kind"] == "whisper":
         installed, on_disk = _is_whisper_installed(defn["whisperSize"])
     elif defn["kind"] == "demucs":
-        installed, on_disk = _is_demucs_installed()
+        # demucsModel 標記區分標準 htdemucs 與微調 bag htdemucs_ft(後者需 4 個子權重)。
+        installed, on_disk = _is_demucs_installed(ft=defn.get("demucsModel") == "htdemucs_ft")
     else:  # aligner
         installed, on_disk = _is_aligner_installed()
     return {
@@ -572,11 +616,16 @@ def _build_model_info(defn: dict) -> dict:
 def _disk_used_mb() -> float:
     """所有 AutoLyrics 相關模型快取的總磁碟用量 (MB)。"""
     total = 0.0
+    counted_demucs = False
     for d in _MODEL_DEFS:
         if d["kind"] == "whisper":
             _, mb = _is_whisper_installed(d["whisperSize"])
         elif d["kind"] == "demucs":
+            # htdemucs 與 htdemucs_ft 共用同一個 checkpoints/ 目錄;只計一次避免重複加總。
+            if counted_demucs:
+                continue
             _, mb = _is_demucs_installed()
+            counted_demucs = True
         else:
             _, mb = _is_aligner_installed()
         total += mb

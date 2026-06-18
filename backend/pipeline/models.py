@@ -49,6 +49,14 @@ class ModelDeleteGuardError(RuntimeError):
 
 # htdemucs 4-stem 單檔權重雜湊 (demucs 4.0.1 pretrained "htdemucs")。
 _HTDEMUCS_CKPT = "955717e8-8726e21a.th"
+# htdemucs_ft = 微調 bag-of-4;其 4 個子模型權重雜湊 (demucs 4.0 htdemucs_ft.yaml,穩定常數)。
+# 偵測時以「存在幾個 .th」為主、雜湊比對為輔,對 demucs 版本差異更耐受。
+_HTDEMUCS_FT_CKPTS = (
+    "f7e0c4bc-11d21bba.th",
+    "d12395a8-e57c48e6.th",
+    "92cfc3b6-ef3bcb9c.th",
+    "04573f0d-f3cf25b2.th",
+)
 # MMS_FA 對齊模型下載後的本地檔名 (torch.hub 以 URL basename 命名)。
 # ⚠️ 碰撞風險:'model.pt' 是泛用名,任何其他 torch.hub 模型也可能寫到
 # checkpoints/model.pt。因此偵測與刪除不能只看檔名 — 額外用「大小帶」把關
@@ -137,6 +145,7 @@ REGISTRY: list[dict[str, Any]] = [
     {
         "id": "demucs-htdemucs",
         "kind": "demucs",
+        "demucsModel": "htdemucs",
         "label": "Demucs htdemucs",
         "description": "人聲／伴奏分離模型 · Vocal/instrument separation",
         "sizeMB": 80,
@@ -144,6 +153,19 @@ REGISTRY: list[dict[str, Any]] = [
         "vramHint": "~3GB VRAM",
         "whisperSize": None,
         "required": True,
+    },
+    {
+        "id": "demucs-htdemucs-ft",
+        "kind": "demucs",
+        "demucsModel": "htdemucs_ft",
+        "label": "Demucs htdemucs_ft",
+        # 高品質微調 bag-of-4:~4× 慢、~1.5GB,首次選「高品質」分離時下載。
+        "description": "高品質微調人聲分離 (較慢，首用需額外下載) · High-quality fine-tuned separator (slower, extra download)",
+        "sizeMB": 1500,
+        "recommended": False,
+        "vramHint": "~4GB VRAM",
+        "whisperSize": None,
+        "required": False,
     },
     # ── 強制對齊器 (必需) ─────────────────────────────────────────────────
     {
@@ -318,12 +340,37 @@ def _demucs_ckpt_path() -> Optional[str]:
     return os.path.join(ck, _HTDEMUCS_CKPT)
 
 
+def _demucs_ft_ckpt_paths() -> list[str]:
+    """htdemucs_ft bag 的 4 個子模型權重檔路徑 (可能尚未全部存在)。"""
+    ck = _checkpoints_dir()
+    if not ck:
+        return []
+    return [os.path.join(ck, name) for name in _HTDEMUCS_FT_CKPTS]
+
+
 def _demucs_status() -> tuple[bool, float]:
     p = _demucs_ckpt_path()
     sz = _file_size_bytes(p)
     if sz > 1_000_000:
         return True, _bytes_to_mb(sz)
     return False, 0.0
+
+
+def _demucs_ft_status() -> tuple[bool, float]:
+    """htdemucs_ft 偵測:4 個子模型權重需全部存在 (各 >1MB) 才算裝好。
+
+    缺任一個都回未安裝 —— 否則使用者選「高品質」會在首次執行靜默下載 ~1.5GB
+    而 UI 完全無提示 (這正是 ModelManager 要避免的 first-run 黑箱下載)。
+    """
+    paths = _demucs_ft_ckpt_paths()
+    if not paths:
+        return False, 0.0
+    sizes = [_file_size_bytes(p) for p in paths]
+    total = sum(sizes)
+    if all(sz > 1_000_000 for sz in sizes):
+        return True, _bytes_to_mb(total)
+    # 尚未齊全:仍回報已佔磁碟量 (供 UI 顯示下載進度),但 installed=False。
+    return False, _bytes_to_mb(total)
 
 
 def _mms_ckpt_path() -> Optional[str]:
@@ -361,6 +408,8 @@ def _status_for(meta: dict[str, Any]) -> tuple[bool, float]:
     if kind == "whisper":
         return _whisper_status(str(meta.get("whisperSize") or ""))
     if kind == "demucs":
+        if meta.get("demucsModel") == "htdemucs_ft":
+            return _demucs_ft_status()
         return _demucs_status()
     if kind == "aligner":
         return _mms_status()
@@ -420,6 +469,9 @@ def disk_used_mb() -> float:
 
     # demucs htdemucs 單檔
     total_bytes += _file_size_bytes(_demucs_ckpt_path())
+    # demucs htdemucs_ft bag 的 4 個子權重檔 (與標準 htdemucs 不同檔,不會重複計)
+    for p in _demucs_ft_ckpt_paths():
+        total_bytes += _file_size_bytes(p)
     # mms 對齊模型單檔
     total_bytes += _file_size_bytes(_mms_ckpt_path())
 
@@ -560,6 +612,30 @@ def _download_demucs(progress: Optional[ProgressFn], size_mb: float) -> None:
     )
 
 
+def _download_demucs_ft(progress: Optional[ProgressFn], size_mb: float) -> None:
+    try:
+        from demucs.pretrained import get_model  # type: ignore
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"demucs 不可用,無法下載 htdemucs_ft: {exc}") from exc
+
+    # 量測 scope 到 ft bag 的 4 個子權重檔總和 (含 in-progress 暫存),而非整個
+    # 共享 checkpoints/ 目錄 — 避免並行的 demucs/MMS 下載污染進度。
+    ckpts = _demucs_ft_ckpt_paths()
+
+    def _measure() -> int:
+        return sum(_target_file_bytes(p) for p in ckpts)
+
+    start_bytes = _measure()
+
+    worker, holder = _spawn_worker(lambda: get_model("htdemucs_ft"))
+    worker.start()
+    _poll_progress_until_done(
+        worker, holder, _measure,
+        size_mb=size_mb, start_bytes=start_bytes,
+        message="下載 Demucs htdemucs_ft (高品質)…", progress=progress,
+    )
+
+
 def _download_mms(progress: Optional[ProgressFn], size_mb: float) -> None:
     try:
         from torchaudio.pipelines import MMS_FA  # type: ignore
@@ -596,7 +672,10 @@ def download(model_id: str, progress: Optional[ProgressFn] = None) -> None:
             if kind == "whisper":
                 _download_whisper(str(meta.get("whisperSize") or ""), progress, size_mb)
             elif kind == "demucs":
-                _download_demucs(progress, size_mb)
+                if meta.get("demucsModel") == "htdemucs_ft":
+                    _download_demucs_ft(progress, size_mb)
+                else:
+                    _download_demucs(progress, size_mb)
             elif kind == "aligner":
                 _download_mms(progress, size_mb)
             else:
@@ -690,7 +769,14 @@ def delete(model_id: str) -> dict[str, float]:
     if kind == "whisper":
         freed = _delete_whisper(str(meta.get("whisperSize") or ""))
     elif kind == "demucs":
-        freed = _delete_file(_demucs_ckpt_path(), "Demucs htdemucs")
+        if meta.get("demucsModel") == "htdemucs_ft":
+            # 刪掉 bag 的 4 個子權重檔;只計已存在者,不因缺檔而中止。
+            freed = 0.0
+            for p in _demucs_ft_ckpt_paths():
+                if p and os.path.isfile(p):
+                    freed += _delete_file(p, "Demucs htdemucs_ft")
+        else:
+            freed = _delete_file(_demucs_ckpt_path(), "Demucs htdemucs")
     elif kind == "aligner":
         # content-aware:刪前再確認 checkpoints/model.pt 落在 MMS 大小帶,
         # 避免同名 model.pt 碰撞時誤刪無關模型權重 (見 _MMS_FILE 註解)。

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Play, RotateCcw, Scissors, Sparkles } from 'lucide-react';
+import { AlignPrecision } from './AlignPrecision';
 import './transcribe.css';
 import { Button, Eyebrow, Pill, SelectField } from '../../components/primitives';
 import { Dropzone } from './Dropzone';
@@ -63,6 +64,8 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
   const [modelSize, setModelSize] = useState<ModelSize>(meta.modelSizes[0] ?? 'large-v3');
   const [device, setDevice] = useState<Device>('auto');
   const [separate, setSeparate] = useState(meta.demucs);
+  const [refine, setRefine] = useState(true);
+  const [demucsModel, setDemucsModel] = useState('htdemucs');
 
   // keep model default valid if meta resolves after first paint
   useEffect(() => {
@@ -144,6 +147,8 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
       separate: meta.demucs ? separate : false,
       device,
       engine: 'whisper',
+      refine: mode === 'align' ? refine : true,
+      demucsModel,
     };
     void submit(file, params);
   }, [
@@ -159,6 +164,8 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
     separate,
     device,
     meta.demucs,
+    refine,
+    demucsModel,
     submit,
   ]);
 
@@ -222,7 +229,17 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
           <section className="al-section al-section--reveal">
             <Eyebrow num={3}>{t('transcribe.section.reference')}</Eyebrow>
             {mode === 'align' ? (
-              <ReferenceEditor value={referenceLyrics} onChange={setReferenceLyrics} mode="align" />
+              <>
+                <ReferenceEditor value={referenceLyrics} onChange={setReferenceLyrics} mode="align" />
+                <AlignPrecision
+                  refine={refine}
+                  onRefineChange={setRefine}
+                  demucsModel={demucsModel}
+                  onDemucsModelChange={setDemucsModel}
+                  separateEnabled={separate}
+                  demucsAvailable={meta.demucs}
+                />
+              </>
             ) : (
               <>
                 <ReferenceEditor

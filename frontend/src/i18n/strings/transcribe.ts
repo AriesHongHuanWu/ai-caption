@@ -178,6 +178,26 @@ export const transcribe: Record<string, Entry> = {
     en: 'Demucs unavailable on this machine',
   },
 
+  // ── Alignment precision controls ──
+  'transcribe.precision.onsetSnapLabel': { zh: '吸附聲音起點', en: 'Snap to vocal onsets' },
+  'transcribe.precision.onsetSnapTitle': {
+    zh: '把每個詞的開頭吸附到最近的人聲起點 — 對快節奏說唱和快速發音特別有效。',
+    en: 'Snaps each word boundary to the nearest detected vocal onset — especially effective for fast rap and rapid articulation.',
+  },
+  'transcribe.precision.demucsModelLabel': { zh: '分離品質', en: 'Separation quality' },
+  'transcribe.precision.demucsModelStandard': { zh: '標準 (htdemucs)', en: 'Standard (htdemucs)' },
+  'transcribe.precision.demucsModelFt': { zh: '高品質 · 較慢 (htdemucs_ft)', en: 'High-quality · slower (htdemucs_ft)' },
+  'transcribe.precision.demucsModelHint': {
+    zh: '高品質模式針對人聲做了微調，精準度更好但速度較慢；首次選用會額外下載約 1.5 GB 權重。',
+    en: 'High-quality is fine-tuned on vocals — more precise but slower; first use downloads ~1.5 GB of extra weights.',
+  },
+
+  // ── Forced-align helper line (shown inside the reference editor in align mode) ──
+  'transcribe.ref.alignHelperLine': {
+    zh: '貼上完整歌詞以獲得近乎完美的逐字時間軸（英文、中文、粵語均支援）。',
+    en: 'Paste the exact full lyrics for near-perfect word-by-word timing — English, Mandarin, and Cantonese supported.',
+  },
+
   // ── Run row ──
   'transcribe.run.running': { zh: '執行中…', en: 'Running…' },
   'transcribe.run.start': { zh: '開始辨識', en: 'Run' },

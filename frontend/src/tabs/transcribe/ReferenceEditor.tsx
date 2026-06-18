@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { AlignLeft, Crosshair, Info } from 'lucide-react';
+import { AlignLeft, Crosshair, Info, Lightbulb } from 'lucide-react';
 import { TextAreaField } from '../../components/primitives';
 import { useT } from '../../i18n';
 
@@ -62,6 +62,14 @@ export function ReferenceEditor({ value, onChange, mode }: ReferenceEditorProps)
         spellCheck={false}
         aria-label={align ? t('transcribe.ref.ariaAlign') : t('transcribe.ref.ariaFragments')}
       />
+
+      {/* Forced-align helper line — describes what the input does in plain language */}
+      {align && (
+        <div className="al-refeditor__helper" role="note">
+          <Lightbulb size={11} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>{t('transcribe.ref.alignHelperLine')}</span>
+        </div>
+      )}
 
       {showFullLyricsNudge && (
         <div className="al-refeditor__nudge" role="status">

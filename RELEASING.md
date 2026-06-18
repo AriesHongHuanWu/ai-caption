@@ -11,9 +11,115 @@ sentinel in the WORK backend dir no longer matches) and **re-copies the bundled
 Python backend source** into the writable WORK dir, preserving `.venv`, `models`,
 and outputs — so the backend code updates together with the shell.
 
-> Platform note: these steps describe the **Windows** release (NSIS `*-setup.exe`
-> for the updater, plus the `*.msi` for manual installs). The updater target key
-> is `windows-x86_64`.
+---
+
+## TL;DR — the canonical flow (CI multi-platform)
+
+The **only** way to produce macOS + Linux packages is the GitHub Actions release
+workflow (`.github/workflows/release.yml`): Tauri cannot cross-compile a
+macOS/Linux bundle from Windows. The workflow builds + minisign-signs the app on
+native Windows, macOS, and Linux runners and publishes **one** GitHub Release
+with every platform's installers plus a single, merged multi-platform
+`latest.json`.
+
+> **⚠️ Critical — the tag MUST equal the config version.** The git tag
+> `vX.Y.Z` MUST match `tauri.conf.json` `version` `X.Y.Z` (without the `v`).
+> tauri-action derives `latest.json`'s `version` and the installer FILENAMES
+> from `tauri.conf.json` `version`, **not** from the tag — the tag only names
+> the release and the download URL. If you tag `v0.2.0` but forget to bump the
+> config off `0.1.0`, CI stays green and a release publishes, but `latest.json`
+> says `0.1.0` and the updater offers **no update** (silently). The workflow now
+> guards this: the **"Verify tag matches tauri.conf.json version"** step fails
+> the build fast if they differ, so do step 1 before step 3.
+
+```bash
+# 0. (one-time) set the signing secrets — see "GitHub secrets" below.
+# 1. Bump version in tauri.conf.json + package.json (+ Cargo.toml). Write NOTES.md.
+#    The tag in step 3 MUST equal this version (the CI guard enforces it).
+# 2. Commit.
+git commit -am "release: v0.2.0"
+# 3. Tag with a leading v and push the tag — this triggers the workflow.
+#    tag v0.2.0  ==  tauri.conf.json version 0.2.0  (must match exactly).
+git tag v0.2.0
+git push origin v0.2.0
+# 4. Watch Actions → Release. When all legs are green, open Releases, review the
+#    DRAFT "AutoLyrics v0.2.0", confirm latest.json has all platform keys, and
+#    PUBLISH it (which flips it to "Latest" → the updater starts serving it).
+#    (The "Draft ready — review + PUBLISH" job posts this reminder to the
+#    Actions run summary.)
+```
+
+Each runner uploads to the **same release keyed by the tag** and merges its
+platform entry into `latest.json`, so the published manifest covers
+`windows-x86_64`, `darwin-aarch64`, `darwin-x86_64`, and `linux-x86_64`.
+
+You can also re-run a release for an existing tag manually: Actions → **Release**
+→ **Run workflow** → enter the tag (e.g. `v0.2.0`).
+
+> Platform keys in `latest.json`: Windows updater = NSIS `*-setup.exe`
+> (`windows-x86_64`), macOS = `*.app.tar.gz` (`darwin-aarch64` / `darwin-x86_64`),
+> Linux = `*.AppImage` (`linux-x86_64`). DMG/MSI/deb are convenient manual
+> installers, not updater targets.
+
+> **Runners.** macOS arm64 builds on `macos-latest` (Apple Silicon); macOS
+> x86_64 builds on `macos-13`, which is an **Intel (x86_64-native)** runner —
+> `macos-latest` is now Apple Silicon, so building x86_64 there would be a
+> cross-compile that yields an unvalidated `.app`. Even so, the x86_64 macOS leg
+> is the most likely to break first; `fail-fast: false` isolates it, so the
+> other platforms still publish. If it keeps failing, you can drop the x86_64
+> mac leg (ship arm64-only + Rosetta) without affecting the rest.
+
+---
+
+## GitHub secrets
+
+Set these on the repo (`AriesHongHuanWu/LocalAiLyrics`) once. The signing
+secrets are **required** for the updater `.sig` files; the Apple ones are
+optional (see §6).
+
+| Secret | Value | Required |
+| ------ | ----- | -------- |
+| `TAURI_SIGNING_PRIVATE_KEY` | the **contents** of `frontend/.tauri-keys/autolyrics.key` (the whole `untrusted comment:…\nRWRT…` text) | ✅ yes |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | empty string (the key has no passphrase — but the secret must still exist) | ✅ yes |
+
+```bash
+# from the repo root, with gh authenticated:
+gh secret set TAURI_SIGNING_PRIVATE_KEY < frontend/.tauri-keys/autolyrics.key
+# empty password — the secret must exist even though it's blank:
+printf '' | gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+```
+
+> `gh secret set NAME < file` stores the file's contents. The action accepts the
+> key *contents* in `TAURI_SIGNING_PRIVATE_KEY` (locally you may also pass a path
+> — see the fallback build). Same key as your local builds → existing installs
+> keep auto-updating.
+
+**Optional — macOS notarization** (only if you have a paid Apple Developer ID).
+Without these, the macOS `.app`/`.dmg` is **ad-hoc signed**: it installs, but
+Gatekeeper shows "unidentified developer" (right-click → Open, or
+`xattr -dr com.apple.quarantine`). The **minisign updater `.sig` still works**,
+so auto-update is unaffected — only the first-install OS trust prompt differs.
+Uncomment the matching block in `release.yml` and set the secrets:
+
+- Cert import: `APPLE_CERTIFICATE` (base64 of the `.p12`),
+  `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`
+  (`Developer ID Application: Name (TEAMID)`), `KEYCHAIN_PASSWORD`.
+- Notarize via Apple ID: `APPLE_ID`, `APPLE_PASSWORD` (app-specific password),
+  `APPLE_TEAM_ID`.
+- **OR** via App Store Connect API: `APPLE_API_ISSUER`, `APPLE_API_KEY` (key id),
+  `APPLE_API_KEY_PATH` (path to the `.p8`).
+
+Windows Authenticode signing of the NSIS/MSI is a separate, optional concern
+(SmartScreen warning without it); it does **not** affect the updater `.sig`.
+
+---
+
+## Fallback — local single-platform (Windows) build
+
+The sections below build + release **Windows only** by hand. Use this for dev
+testing or if CI is unavailable. It does **not** produce macOS/Linux packages,
+and it overwrites a single-platform `latest.json` (so don't mix it with a CI
+release for the same version). The updater target key here is `windows-x86_64`.
 
 ---
 
@@ -207,6 +313,20 @@ If the banner never appears, check (in order):
 ---
 
 ## Quick checklist
+
+### Canonical (CI multi-platform)
+
+- [ ] Repo secrets `TAURI_SIGNING_PRIVATE_KEY` (contents of `.tauri-keys/autolyrics.key`) + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (empty) are set.
+- [ ] Bumped `version` in `tauri.conf.json` **and** `package.json` (and `Cargo.toml`).
+- [ ] **Tag `v<version>` equals `tauri.conf.json` version `<version>` exactly** (the CI guard fails the build otherwise; latest.json + installer names come from the config, not the tag).
+- [ ] Wrote `NOTES.md` (the in-app banner notes).
+- [ ] Committed, then `git tag v<version>` and `git push origin v<version>`.
+- [ ] Actions → **Release**: all 4 legs (mac arm64, mac x86_64, Linux, Windows) green.
+- [ ] Reviewed the **draft** release; `latest.json` has `windows-x86_64`, `darwin-aarch64`, `darwin-x86_64`, `linux-x86_64` keys, each with a non-empty `signature`.
+- [ ] **Published** the draft (so it becomes **Latest**).
+- [ ] Verified an old install auto-updates.
+
+### Fallback (local Windows-only)
 
 - [ ] Bumped `version` in `tauri.conf.json` **and** `package.json` (and `Cargo.toml`).
 - [ ] Wrote `NOTES.md`.

@@ -15,8 +15,16 @@ mp3 等格式的解碼不依賴系統 ffmpeg:優先用 torchaudio,失敗則用 P
 
 對外契約:
   - is_available() -> bool
-  - separate_vocals(audio_path, out_dir, model_name="htdemucs", device="cuda", progress=None) -> str
+  - separate_vocals(audio_path, out_dir, model_name="htdemucs", device="cuda", shifts=0, progress=None) -> str
   - progress(stage, pct, msg):本步驟內部 0..100,由上層 pipeline 映射到 0-40 進度帶。
+
+支援的 model_name
+-----------------
+  - "htdemucs"(預設,快、品質好,8GB VRAM 友善)
+  - "htdemucs_ft"(微調版 bag-of-4,人聲略乾淨但 ~4× 慢、8GB 可能在長曲 OOM)
+get_model 回傳的可能是單一模型或 BagOfModels(htdemucs_ft);兩者都暴露
+.samplerate / .audio_channels / .sources,apply_model 也都支援,故下游無需特判。
+shifts>0 啟用測試時擴增(更乾淨但更慢),僅建議在「最佳品質」模式開啟。
 """
 
 from __future__ import annotations
@@ -176,9 +184,14 @@ def separate_vocals(
     out_dir: str,
     model_name: str = "htdemucs",
     device: str = "cuda",
+    shifts: int = 0,
     progress: Optional[ProgressFn] = None,
 ) -> str:
-    """以 Demucs 分離人聲,回傳人聲 .wav 路徑;任何失敗都優雅降級回原始 audio_path。"""
+    """以 Demucs 分離人聲,回傳人聲 .wav 路徑;任何失敗都優雅降級回原始 audio_path。
+
+    model_name 接受 "htdemucs" 或 "htdemucs_ft"(微調 bag,較慢較乾淨)。
+    shifts>0 啟用測試時擴增(更乾淨但更慢);僅建議「最佳品質」模式使用。
+    """
     if not audio_path or not os.path.isfile(audio_path):
         logger.warning("人聲分離輸入檔不存在:%r，直接回傳原始路徑", audio_path)
         _emit(progress, 100.0, "找不到音檔，跳過人聲分離")
@@ -198,14 +211,26 @@ def separate_vocals(
             logger.warning("無法建立輸出資料夾 %r", out_dir, exc_info=True)
 
         # ---- 載入模型 ---------------------------------------------------- #
+        # 未知 model_name 時退回預設 htdemucs(避免 get_model 直接拋而中斷)。
+        req_model = (model_name or "htdemucs").strip() or "htdemucs"
         try:
-            model = _get_model(model_name)
+            model = _get_model(req_model)
             model.to(dev)
         except Exception as exc:
-            logger.warning("Demucs 模型載入失敗(model=%s):%s;改用原始音檔",
-                           model_name, exc, exc_info=True)
-            _emit(progress, 100.0, "Demucs 載入失敗，跳過人聲分離")
-            return audio_path
+            logger.warning("Demucs 模型載入失敗(model=%s):%s", req_model, exc, exc_info=True)
+            if req_model != "htdemucs":
+                logger.info("改試預設模型 htdemucs")
+                try:
+                    model = _get_model("htdemucs")
+                    model.to(dev)
+                except Exception as exc2:
+                    logger.warning("預設模型 htdemucs 也載入失敗:%s;改用原始音檔",
+                                   exc2, exc_info=True)
+                    _emit(progress, 100.0, "Demucs 載入失敗，跳過人聲分離")
+                    return audio_path
+            else:
+                _emit(progress, 100.0, "Demucs 載入失敗，跳過人聲分離")
+                return audio_path
 
         sr = int(model.samplerate)
         ch = int(model.audio_channels)
@@ -225,7 +250,8 @@ def separate_vocals(
         try:
             with torch.no_grad():  # type: ignore[union-attr]
                 sources = apply_model(  # type: ignore[misc]
-                    model, wav_n[None], device=dev, split=True, overlap=0.25, progress=False
+                    model, wav_n[None], device=dev, split=True, overlap=0.25,
+                    shifts=max(0, int(shifts)), progress=False,
                 )[0]
             sources = sources * std + ref.mean()
         except Exception as exc:

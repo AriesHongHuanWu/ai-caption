@@ -56,9 +56,11 @@ STYLE_PRESETS: dict[str, dict] = {
         "lang": "zh",
     },
     "cantopop": {
+        # lang='yue':讓羅馬化器走 jyutping(粵語發音),而非國語 pinyin。Whisper 無原生
+        # 粵語,辨識仍以 zh 進行,但對齊/羅馬化端需要 yue 才能選對音節。
         "label": "粵語流行 Cantopop",
         "prompt": "一首粵語流行歌曲,歌詞以正體中文書寫",
-        "lang": "zh",
+        "lang": "yue",
     },
     "jpop": {
         "label": "日本流行 J-Pop",
@@ -103,8 +105,15 @@ DEFAULTS: dict = {
     "language": None,
     "beamSize": 5,
     "demucsModel": "htdemucs",
+    "alignRefine": True,   # 強制對齊後做 onset 吸附精修(把 start 吸附到真實人聲起音點)
     "version": "0.1.0",
 }
+
+# 可選的 Demucs 模型(UI 下拉用)。htdemucs_ft 較乾淨但 ~4× 慢、8GB VRAM 長曲可能 OOM。
+DEMUCS_MODELS: list[dict] = [
+    {"name": "htdemucs", "label": "標準 htdemucs(快、推薦)"},
+    {"name": "htdemucs_ft", "label": "最佳品質 htdemucs_ft(較慢、需 8GB+)"},
+]
 
 # Whisper initial_prompt 上限約 224 tokens;CJK 一字常 1~2 tokens,
 # 取保守 ~200 字元上限避免超出而被截斷。
@@ -143,6 +152,18 @@ def to_iso3(whisper_code: str | None) -> str:
     if not whisper_code:
         return "zho"
     return _ISO3_MAP.get(whisper_code.strip().lower(), "zho")
+
+
+def normalize_align_lang(whisper_code: str | None) -> str | None:
+    """正規化要傳給羅馬化器的「原始 whisper 語言碼」。
+
+    ★ 與 to_iso3 不同:to_iso3 把 zh 與 yue 都壓成 'zho',會讓對齊器無法分辨國語/粵語
+    而選錯羅馬化器(pinyin vs jyutping)。本函式**保留** zh/yue 的差異,供 align(lang_code=...)
+    選正確羅馬化器。None(自動偵測)回 None,讓 align 退回 iso3(預設 pinyin)。
+    """
+    if not whisper_code:
+        return None
+    return whisper_code.strip().lower() or None
 
 
 def build_bias_prompt(

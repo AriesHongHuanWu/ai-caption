@@ -247,6 +247,8 @@ def run(
     separate: bool = True,
     device: str = "auto",
     engine: str = "whisper",
+    refine: bool = True,
+    demucs_model: str = "htdemucs",
     progress: Optional[ProgressFn] = None,
 ) -> dict:
     """跑完整辨識/對齊管線,回傳符合 API_CONTRACT 的 Result dict。
@@ -266,6 +268,8 @@ def run(
     separate: 是否先跑 Demucs 人聲分離。
     device: "auto" | "cuda" | "cpu"。
     engine: 目前僅 "whisper"。
+    refine: 是否在強制對齊後把每個詞的邊界吸附到最近的人聲起點(預設 True)。
+    demucs_model: Demucs 模型名稱 — "htdemucs"(標準)或 "htdemucs_ft"(高品質微調版,較慢)。
     progress: progress(stage, pct, msg) 全域進度回報。
 
     回傳
@@ -301,9 +305,12 @@ def run(
             if _separate.is_available():
                 _safe_progress(progress, "separate", 1.0, "分離人聲 · Separating vocals")
                 sep_progress = _band_progress(progress, 0.0, 40.0, "separate")
+                # Validate demucs_model; fall back to htdemucs for unknown values.
+                safe_demucs = demucs_model if demucs_model in ("htdemucs", "htdemucs_ft") else "htdemucs"
                 result_path = _separate.separate_vocals(
                     audio_path,
                     out_dir=_sep_out_dir(audio_path),
+                    model_name=safe_demucs,
                     device=resolved_device,
                     progress=sep_progress,
                 )
@@ -347,12 +354,16 @@ def run(
         if aligner_ok:
             try:
                 iso3 = config.to_iso3(language)
+                # 原始 whisper 碼(保留 zh vs yue)→ 讓 align 選對羅馬化器(pinyin/jyutping)。
+                lang_code = config.normalize_align_lang(language)
                 _safe_progress(progress, "align", 41.0, "強制對齊 · Forced alignment")
                 recog = _align.align(
                     vocals_path,
                     reference_lyrics,
                     language=iso3,
                     device=resolved_device,
+                    refine=bool(refine),
+                    lang_code=lang_code,
                     progress=recog_progress,
                 )
                 mode_used = "align"

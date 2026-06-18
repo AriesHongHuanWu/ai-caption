@@ -62,15 +62,13 @@ except Exception as exc:  # pragma: no cover - 取決於環境
     _IMPORT_ERROR = f"{type(exc).__name__}: {exc}"
     logger.warning("torchaudio 對齊不可用(已降級):%s", _IMPORT_ERROR)
 
-# 選用:uroman 羅馬化器(CJK → 拉丁),純 Python、免編譯。沒有也能跑(僅 CJK 不對齊)。
-_UROMAN: Any = None
+# 語言感知羅馬化器(粵語→jyutping / 國語→pinyin / 其他→uroman)。
+# romanize 模組自帶 import-time 偵測 + 全程 try/except,缺套件僅降級不崩潰。
 try:  # pragma: no cover - 取決於環境
-    from uroman import Uroman as _Uroman  # type: ignore
-
-    _UROMAN = _Uroman()
-    logger.info("uroman 可用 → CJK 將先羅馬化再逐字對齊。")
-except Exception:
-    _UROMAN = None
+    from . import romanize as _romanize  # type: ignore
+except Exception:  # noqa: BLE001
+    _romanize = None  # type: ignore
+    logger.warning("romanize 模組載入失敗,CJK 將退回不羅馬化(僅英文可對齊)")
 
 
 # 進度回呼型別:progress(stage: str, pct: float, msg: str)
@@ -78,10 +76,13 @@ ProgressFn = Callable[[str, float, str], None]
 
 
 # --------------------------------------------------------------------------- #
-# 模型快取(MMS_FA 與單一語言無關,依 device 快取即可)
+# 模型快取(MMS_FA 與單一語言無關,依 (device, with_star) 快取即可)
 # --------------------------------------------------------------------------- #
-_MODEL_CACHE: dict[str, tuple[Any, dict, int]] = {}
+_MODEL_CACHE: dict[tuple[str, bool], tuple[Any, dict, int, Optional[int]]] = {}
 _MODEL_LOCK = threading.Lock()
+
+# 星號 token 的字典字元;插在「行與行之間」讓對齊器可吸收前奏/間奏/未貼上的 ad-lib。
+_STAR_CHAR = "*"
 
 
 def is_available() -> bool:
@@ -101,22 +102,29 @@ def _resolve_device(device: str) -> str:
     return device
 
 
-def _get_model(device: str) -> tuple[Any, dict, int]:
-    """載入並快取 (model, dictionary, sample_rate)。MMS_FA = 多語 wav2vec2-CTC。"""
-    cached = _MODEL_CACHE.get(device)
+def _get_model(device: str, with_star: bool = False) -> tuple[Any, dict, int, Optional[int]]:
+    """載入並快取 (model, dictionary, sample_rate, star_index)。MMS_FA = 多語 wav2vec2-CTC。
+
+    with_star=True 時載入含星號 token 的模型/字典,並回傳星號的字典索引(供行間插入,
+    讓前奏/間奏/未貼上的 ad-lib 被 `*` 吸收而非污染真正歌詞的時間)。star_index 在
+    with_star=False 時為 None。
+    """
+    key = (device, with_star)
+    cached = _MODEL_CACHE.get(key)
     if cached is not None:
         return cached
     with _MODEL_LOCK:
-        cached = _MODEL_CACHE.get(device)
+        cached = _MODEL_CACHE.get(key)
         if cached is not None:
             return cached
-        logger.info("載入 MMS_FA 對齊模型 device=%s(首次會下載權重)", device)
-        # with_star=False:用乾淨的拉丁字典 + blank=0 對齊
-        model = _BUNDLE.get_model(with_star=False).to(device).eval()  # type: ignore[union-attr]
-        dictionary = _BUNDLE.get_dict(star=None)  # type: ignore[union-attr]  # char -> index
+        logger.info("載入 MMS_FA 對齊模型 device=%s with_star=%s(首次會下載權重)", device, with_star)
+        model = _BUNDLE.get_model(with_star=with_star).to(device).eval()  # type: ignore[union-attr]
+        star_arg = _STAR_CHAR if with_star else None
+        dictionary = _BUNDLE.get_dict(star=star_arg)  # type: ignore[union-attr]  # char -> index
         sample_rate = int(_BUNDLE.sample_rate)  # type: ignore[union-attr]  # 16000
-        _MODEL_CACHE[device] = (model, dictionary, sample_rate)
-        return _MODEL_CACHE[device]
+        star_index = dictionary.get(_STAR_CHAR) if with_star else None
+        _MODEL_CACHE[key] = (model, dictionary, sample_rate, star_index)
+        return _MODEL_CACHE[key]
 
 
 # --------------------------------------------------------------------------- #
@@ -173,7 +181,36 @@ def _tokenize_line(line: str) -> list[str]:
     return tokens
 
 
-def _build_token_plan(transcript_text: str) -> tuple[list[str], list[int], list[str]]:
+def _tokenize_line_with_offsets(line: str) -> list[tuple[str, int]]:
+    """同 _tokenize_line,但每個 token 附帶它在原行中的起始字元 index(供 per-line 羅馬化對映)。"""
+    tokens: list[tuple[str, int]] = []
+    buf: list[str] = []
+    buf_start = 0
+
+    def flush() -> None:
+        nonlocal buf_start
+        if buf:
+            tokens.append(("".join(buf), buf_start))
+            buf.clear()
+
+    for i, ch in enumerate(line):
+        if ch.isspace():
+            flush()
+        elif _is_cjk(ch):
+            flush()
+            tokens.append((ch, i))
+        else:
+            if not buf:
+                buf_start = i
+            buf.append(ch)
+    flush()
+    return tokens
+
+
+def _build_token_plan(
+    transcript_text: str,
+    lang: Optional[str] = None,
+) -> tuple[list[str], list[int], list[str], list[Optional[str]]]:
     """
     從原始多行歌詞建立 token plan。
 
@@ -181,41 +218,72 @@ def _build_token_plan(transcript_text: str) -> tuple[list[str], list[int], list[
       tokens        — 扁平 token 列表
       token_line_idx— 與 tokens 等長,記錄每個 token 屬於第幾個「輸出行」
       line_texts    — 每個輸出行的原始文字(保留原斷行,trim 兩端空白)
+      token_roman   — 與 tokens 等長,CJK token 的預羅馬化拉丁音節(整行 map 取得,保留詞
+                      context);非 CJK 或無 map 時為 None(交給 _normalize_token 後援)。
     """
     tokens: list[str] = []
     token_line_idx: list[int] = []
     line_texts: list[str] = []
+    token_roman: list[Optional[str]] = []
 
     for raw_line in transcript_text.splitlines():
-        line_tokens = _tokenize_line(raw_line)
-        if not line_tokens:
+        toks_off = _tokenize_line_with_offsets(raw_line)
+        if not toks_off:
             continue
+
+        # 整行一次羅馬化(保留詞context消歧),建 {字元index: 音節} map。
+        line_map: dict = {}
+        if _romanize is not None and any(_is_cjk(c) for c in raw_line):
+            try:
+                line_map = _romanize.romanize_line_map(raw_line, lang)
+            except Exception:  # noqa: BLE001
+                line_map = {}
+
         out_idx = len(line_texts)
         line_texts.append(raw_line.strip())
-        for tok in line_tokens:
+        for tok, off in toks_off:
             tokens.append(tok)
             token_line_idx.append(out_idx)
+            # 單一 CJK 字 token → 直接查 map;多字 latin token → None。
+            if len(tok) == 1 and _is_cjk(tok) and off in line_map:
+                token_roman.append(line_map[off])
+            else:
+                token_roman.append(None)
 
-    return tokens, token_line_idx, line_texts
+    return tokens, token_line_idx, line_texts, token_roman
 
 
 # --------------------------------------------------------------------------- #
 # Token 正規化:把一個顯示 token 變成 MMS_FA 字典可接受的「字元索引序列」
 # --------------------------------------------------------------------------- #
-def _normalize_token(tok: str, dictionary: dict) -> list[int]:
+def _normalize_token(
+    tok: str,
+    dictionary: dict,
+    lang: Optional[str] = None,
+    pre_roman: Optional[str] = None,
+) -> list[int]:
     """
     把單一 token 正規化成字典索引序列:
-      1. CJK 先用 uroman 羅馬化(若可用),否則保持原樣(多半取不到索引)。
-      2. 轉小寫、把非字母換成空白後去除。
+      1. CJK 先羅馬化:優先用 `pre_roman`(由整行 romanize_line_map 取得,保留詞context消歧),
+         否則呼叫 romanize.romanize_token(依語言走 jyutping/pinyin/uroman)。
+      2. 轉小寫、把非 a-z' 字元去除(同時剝掉 jyutping/pinyin 的聲調數字)。
       3. 逐字元查字典;不在字典中的字元(數字、標點…)直接略過。
     取不到任何索引時回傳空 list(該 token 不參與對齊,regroup 會補時間)。
     """
-    text = tok
-    if _UROMAN is not None and any(_is_cjk(c) for c in tok):
-        try:
-            text = _UROMAN.romanize_string(tok)
-        except Exception:
+    has_cjk = any(_is_cjk(c) for c in tok)
+    if has_cjk:
+        if pre_roman:
+            text = pre_roman
+        elif _romanize is not None:
+            try:
+                text = _romanize.romanize_token(tok, lang)
+            except Exception:  # noqa: BLE001
+                text = tok
+        else:
             text = tok
+    else:
+        # 英文/拉丁:原樣(apostrophe 是字典 token,don't / we'll 原生對齊)
+        text = tok
     text = text.lower()
     text = re.sub(r"[^a-z']", "", text)  # MMS_FA 拉丁字典:a-z 與省略號
     return [dictionary[c] for c in text if c in dictionary]
@@ -265,6 +333,146 @@ def _load_waveform(path: str, target_sr: int) -> Any:
 
 
 # --------------------------------------------------------------------------- #
+# Onset 精修:把 token / 行的「起點」吸附到人聲的真實能量起音點
+# --------------------------------------------------------------------------- #
+# forced_align 給的是 frame 量化邊界(MMS_FA frame ≈ 20ms)。對卡拉OK / 饒舌而言,
+# 把每個 token 的 start 吸附到最近的真實人聲起音點能明顯收緊時間。純 numpy、只跑一次
+# O(N),相對模型前向可忽略。整段包 try/except —— 失敗就回傳「未吸附」的時間(降級契約)。
+
+def _compute_onsets(wav_np: Any, sr: int, hop: int = 160, win: int = 400) -> Any:
+    """從(單聲道 16k)人聲波形算出起音時間點陣列(秒)。能量 flux 半波整流 + 自適應峰選。
+
+    回傳 numpy 1D array(可能為空)。任何失敗回空陣列。
+    """
+    try:
+        import numpy as np  # type: ignore
+    except Exception:  # noqa: BLE001
+        return None
+    try:
+        wav_np = np.asarray(wav_np, dtype=np.float32).reshape(-1)
+        if wav_np.size < win + hop:
+            return np.array([], dtype=np.float32)
+        # 切窗(stride view),逐窗 RMS 能量
+        frames = np.lib.stride_tricks.sliding_window_view(wav_np, win)[::hop]
+        if frames.shape[0] < 3:
+            return np.array([], dtype=np.float32)
+        rms = np.sqrt(np.mean(frames.astype(np.float32) ** 2, axis=1) + 1e-12)
+        le = np.log(rms + 1e-6)
+        # 3-frame 移動平均去噪
+        le = np.convolve(le, np.ones(3, dtype=np.float32) / 3.0, mode="same")
+        # 能量 flux(正向一階差、半波整流)
+        flux = np.maximum(0.0, np.diff(le, prepend=le[:1]))
+        thr = float(np.median(flux) + 0.5 * np.std(flux))
+        # ±1 frame 局部極大 + 自適應門檻
+        onsets = []
+        for k in range(1, len(flux) - 1):
+            fk = flux[k]
+            if fk >= flux[k - 1] and fk > flux[k + 1] and fk > thr:
+                onsets.append(k * hop / float(sr))
+        return np.array(onsets, dtype=np.float32)
+    except Exception:  # noqa: BLE001
+        logger.debug("onset 偵測失敗,跳過吸附", exc_info=True)
+        try:
+            import numpy as np  # type: ignore
+
+            return np.array([], dtype=np.float32)
+        except Exception:  # noqa: BLE001
+            return None
+
+
+def _snap_starts(word_ts: list[dict], onsets: Any, delta: float = 0.08) -> None:
+    """就地把每個 token 的 start 吸附到 ±delta 內最近的起音點,且:
+      - 不可早於上一個 token 的(已吸附)start(維持單調)
+      - 不可越過自己的 end
+    end 一律保持原樣(對饒舌只吸附 start 最安全)。失敗則完全不動。
+    """
+    try:
+        import numpy as np  # type: ignore
+    except Exception:  # noqa: BLE001
+        return
+    if onsets is None or getattr(onsets, "size", 0) == 0 or not word_ts:
+        return
+    try:
+        prev_start = 0.0
+        for w in word_ts:
+            t_s = float(w.get("start", 0.0))
+            t_e = float(w.get("end", t_s))
+            i = int(np.argmin(np.abs(onsets - t_s)))
+            o = float(onsets[i])
+            # 在窗內、不越過自己的 end、不早於前一個 start → 吸附
+            if abs(o - t_s) <= delta and prev_start <= o <= t_e:
+                w["start"] = o
+                if w.get("end", o) < o:
+                    w["end"] = o
+            prev_start = float(w.get("start", t_s))
+    except Exception:  # noqa: BLE001
+        logger.debug("start 吸附失敗,保留原時間", exc_info=True)
+
+
+# --------------------------------------------------------------------------- #
+# merge_tokens 反展開:把「被併的相鄰相同 token」還原成「每個目標一個 span」
+# --------------------------------------------------------------------------- #
+class _Span:
+    """輕量 TokenSpan 替身,攜帶下游用到的 start/end/score/token。"""
+
+    __slots__ = ("token", "start", "end", "score")
+
+    def __init__(self, token: int, start: float, end: float, score: float) -> None:
+        self.token = token
+        self.start = start
+        self.end = end
+        self.score = score
+
+
+def _expand_spans_to_targets(all_spans: list, flat_targets: list[int]) -> list:
+    """把 merge_tokens 的 spans 對映回「每個 flat_target 一個 span」。
+
+    `torchaudio.functional.merge_tokens` 走 frame-level `aligned` 序列,**每段連續相同
+    token id** 只發出一個 `TokenSpan`(帶 .token/.start/.end/.score)。因此只要 flat_targets
+    裡有相鄰相同的字典索引(英文雙字母、CJK 音節邊界重複字母…),spans 數就會 < targets 數,
+    破壞「一 span 一 target」不變式。
+
+    本函式以 span.token 對齊 flat_targets 的順序:逐一吃掉一個 span,看它對應 flat_targets
+    裡接下來「連續幾個相同 id」(K 個),把這個 span 的 frame 範圍**按等分**切成 K 個子 span
+    分配回去。任一處 token 對不上(理論上不該發生)→ 回傳原 spans(由呼叫端走 star 過濾降級)。
+    """
+    out: list = []
+    ti = 0  # flat_targets 游標
+    n_targets = len(flat_targets)
+    for sp in all_spans:
+        tok = getattr(sp, "token", None)
+        if ti >= n_targets or tok != flat_targets[ti]:
+            # 對不上:放棄展開,讓呼叫端走降級分支。
+            logger.debug(
+                "span.token=%r 與 flat_targets[%d]=%r 不符,放棄展開",
+                tok, ti, flat_targets[ti] if ti < n_targets else None,
+            )
+            return list(all_spans)
+        # 這個 span 對應 flat_targets[ti:] 中連續相同 id 的數量 K
+        k = 1
+        while ti + k < n_targets and flat_targets[ti + k] == tok:
+            k += 1
+        sp_start = float(getattr(sp, "start", 0.0))
+        sp_end = float(getattr(sp, "end", sp_start))
+        sp_score = float(getattr(sp, "score", 0.0))
+        if k == 1:
+            out.append(_Span(tok, sp_start, sp_end, sp_score))
+        else:
+            # 等分這個被併的 run(無逐幀資訊可用,等分是最中性的拆法)。
+            span_len = sp_end - sp_start
+            for j in range(k):
+                s = sp_start + span_len * (j / k)
+                e = sp_start + span_len * ((j + 1) / k)
+                out.append(_Span(tok, s, e, sp_score))
+        ti += k
+    if ti != n_targets:
+        # spans 用完但 targets 還有剩 → 對不齊,降級。
+        logger.debug("展開後游標 %d ≠ 目標數 %d,放棄展開", ti, n_targets)
+        return list(all_spans)
+    return out
+
+
+# --------------------------------------------------------------------------- #
 # 主入口
 # --------------------------------------------------------------------------- #
 def align(
@@ -273,6 +481,8 @@ def align(
     language: str = "zho",
     device: str = "cuda",
     progress: Optional[ProgressFn] = None,
+    refine: bool = True,
+    lang_code: Optional[str] = None,
 ) -> dict:
     """
     對既有歌詞做強制對齊,回傳逐行(內含逐 token / 逐字)時間軸。
@@ -281,12 +491,18 @@ def align(
     ----
     audio_path : 音訊路徑(理想為已分離的人聲 wav,任何可解碼音訊皆可)。
     transcript_text : 使用者貼上的完整歌詞;**斷行有意義**,會被保留為各 segment。
-    language : ISO-639-3 語言碼(zho / eng / jpn / kor …),目前僅作標記用途。
+    language : ISO-639-3 語言碼(zho / eng / jpn / kor …),回傳結果的標記。
     device : "cuda" | "cpu" | "auto"。
     progress : progress(stage, pct, msg) 進度回呼(可選)。
+    refine : 是否做 onset 吸附精修(把每個 token / 行的 start 吸附到真實人聲起音點)。
+    lang_code : **原始 whisper 語言碼**(zh / yue / ja …),用來選羅馬化器(jyutping vs
+                pinyin)。因 iso3 把 zh/yue 都壓成 zho,務必傳這個才能正確選粵語 jyutping;
+                未傳則退回用 `language`(iso3)猜,zho 預設走國語 pinyin。
 
     失敗策略:相依缺失或無可對齊文字 → RuntimeError(由上層改走 transcribe)。
     """
+    # 羅馬化選擇用「原始 whisper 碼」優先(zh vs yue),否則退回 iso3(語意較粗)。
+    roman_lang = lang_code or language
 
     def _emit(stage: str, pct: float, msg: str) -> None:
         if progress is not None:
@@ -301,9 +517,9 @@ def align(
             + (f"({_IMPORT_ERROR})" if _IMPORT_ERROR else "")
         )
 
-    # --- 1) 建立 token plan(保留斷行 + CJK 逐字) -------------------------- #
+    # --- 1) 建立 token plan(保留斷行 + CJK 逐字 + 整行羅馬化 map) ---------- #
     _emit("align", 41.0, "準備歌詞對齊…")
-    tokens, token_line_idx, line_texts = _build_token_plan(transcript_text)
+    tokens, token_line_idx, line_texts, token_roman = _build_token_plan(transcript_text, roman_lang)
     if not tokens:
         logger.warning("歌詞為空或無可對齊內容,回傳空結果")
         return _empty_result(language)
@@ -312,20 +528,54 @@ def align(
 
     try:
         # --- 2) 載入模型 + 音訊(重採樣到 16k 單聲道) -------------------- #
+        # with_star=True:行間插入 `*` 讓前奏/間奏/未貼上的 ad-lib 被吸收,不污染真詞時間。
         _emit("align", 45.0, "載入對齊模型…")
-        model, dictionary, sr = _get_model(dev)
+        model, dictionary, sr, star_index = _get_model(dev, with_star=True)
+        use_star = star_index is not None
 
         _emit("align", 55.0, "讀取音訊…")
         waveform = _load_waveform(audio_path, sr).to(dev)
 
-        # --- 3) 把每個 token 正規化成字典索引序列 ------------------------ #
-        per_token_ids: list[list[int]] = [_normalize_token(t, dictionary) for t in tokens]
-        flat_targets = [idx for ids in per_token_ids for idx in ids]
-        if not flat_targets:
+        # --- 3) 把每個 token 正規化成字典索引序列(語言感知羅馬化) -------- #
+        per_token_ids: list[list[int]] = [
+            _normalize_token(t, dictionary, lang=roman_lang, pre_roman=pr)
+            for t, pr in zip(tokens, token_roman)
+        ]
+        if not any(per_token_ids):
             raise RuntimeError(
-                "歌詞無可對齊字元(CJK 需安裝 uroman 才能羅馬化對齊;"
+                "歌詞無可對齊字元(CJK 需安裝 pypinyin/pycantonese/uroman 才能羅馬化對齊;"
                 "或文字全為數字/標點)。"
             )
+
+        # 組 flat_targets,並在「每一行的結尾與下一行之間」插入一個 star token。
+        # 同時記錄每個目標索引是否為 star(事後過濾 char_spans 用)。
+        # ★ 關鍵:merge_tokens 會把「連續相同 token」併成一個 span,所以**絕不**讓兩個
+        #   star 相鄰(否則 span 數對不上 flat_targets,過濾退化)。用 _emit_star 保證:
+        #   只有在「上一個寫入的不是 star」時才寫 star。
+        flat_targets: list[int] = []
+        is_star_flag: list[bool] = []
+
+        def _emit_star() -> None:
+            if is_star_flag and is_star_flag[-1]:
+                return  # 上一個已是 star → 不重複(避免 merge_tokens 併 span)
+            flat_targets.append(int(star_index))
+            is_star_flag.append(True)
+
+        if use_star:
+            _emit_star()  # 開頭 star 吸收前奏(否則第一個字的 start 被拉向 t=0)
+        prev_line = token_line_idx[0] if token_line_idx else 0
+        for ids, line_idx in zip(per_token_ids, token_line_idx):
+            if use_star and line_idx != prev_line:
+                _emit_star()
+                prev_line = line_idx
+            for idx in ids:
+                flat_targets.append(idx)
+                is_star_flag.append(False)
+        if use_star:
+            _emit_star()  # 結尾 star 吸收尾奏
+
+        if not any(not s for s in is_star_flag):
+            raise RuntimeError("歌詞無可對齊字元(全為標點/數字或羅馬化失敗)。")
 
         # --- 4) 推論 emissions + 強制對齊 -------------------------------- #
         _emit("align", 65.0, "計算聲學機率…")
@@ -336,15 +586,35 @@ def align(
 
         _emit("align", 80.0, "對齊文字與音訊…")
         targets = torch.tensor([flat_targets], dtype=torch.int32, device=emission.device)  # type: ignore[union-attr]
+        # 含 star 時 blank 仍為 0;star 是字典裡的另一個 token,forced_align 照常處理。
         aligned, scores = AF.forced_align(emission, targets, blank=0)  # type: ignore[union-attr]
         aligned, scores = aligned[0], scores[0].exp()  # log → prob
-        char_spans = AF.merge_tokens(aligned, scores)  # type: ignore[union-attr]
-        # char_spans:長度 == len(flat_targets),每個有 .start/.end(frame)/.score
+        all_spans = AF.merge_tokens(aligned, scores)  # type: ignore[union-attr]
+        # ★ merge_tokens 會把「frame-level 連續相同 token id」併成一個 span,所以只要有
+        #   兩個相鄰 target 的字典索引相同(英文雙字母 hello/coffee… 或 CJK 音節邊界
+        #   重複的字母),all_spans 會比 flat_targets 少 → 不能假設一對一。先把 spans
+        #   依 flat_targets 重新展開回「每個目標一個 span」(被併的 run 按比例切),
+        #   再依 is_star_flag 過濾掉 star。
+        per_target_spans = _expand_spans_to_targets(all_spans, flat_targets)
+        if len(per_target_spans) == len(flat_targets):
+            n_star = sum(1 for st in is_star_flag if st)
+            char_spans = [sp for sp, st in zip(per_target_spans, is_star_flag) if not st]
+            logger.debug("展開後 span 數=%d,丟棄 star span %d 個", len(per_target_spans), n_star)
+        else:
+            # 仍對不上(極端情況)→ 至少不能保留 star span(否則整首位移 num_star 個)。
+            # 以 span.token == star_index 過濾掉 star,降級但不污染真詞時間。
+            n_star = sum(1 for sp in all_spans if getattr(sp, "token", None) == star_index)
+            char_spans = [sp for sp in all_spans if getattr(sp, "token", None) != star_index]
+            logger.warning(
+                "span 重新展開仍不符(展開後 %d ≠ 目標 %d);改以 token==star 過濾,丟棄 %d 個 star span",
+                len(per_target_spans), len(flat_targets), n_star,
+            )
 
-        if len(char_spans) != len(flat_targets):
+        flat_char_count = sum(len(ids) for ids in per_token_ids)
+        if len(char_spans) != flat_char_count:
             logger.warning(
                 "對齊字元 span 數(%d)≠ 目標字元數(%d),仍盡量分組",
-                len(char_spans), len(flat_targets),
+                len(char_spans), flat_char_count,
             )
     except RuntimeError:
         raise
@@ -380,6 +650,16 @@ def align(
         score = sum(float(getattr(s, "score", 0.0)) for s in group) / len(group)
         last_end = end
         word_ts.append({"text": tok, "start": start, "end": end, "score": score})
+
+    # --- 6) Onset 精修:把 token start 吸附到人聲真實起音點(可選、優雅降級)----- #
+    if refine:
+        try:
+            _emit("align", 90.0, "精修起音時間…")
+            wav_np = waveform.squeeze(0).detach().to("cpu").numpy()
+            onsets = _compute_onsets(wav_np, sr)
+            _snap_starts(word_ts, onsets)
+        except Exception:  # noqa: BLE001
+            logger.debug("onset 精修整體失敗,保留原時間(降級)", exc_info=True)
 
     segments = _regroup(word_ts, tokens, token_line_idx, line_texts)
     _emit("align", 95.0, f"對齊完成({len(segments)} 行)")

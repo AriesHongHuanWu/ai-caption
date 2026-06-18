@@ -45,6 +45,10 @@ export interface JobParams {
   separate: boolean; // run Demucs vocal separation first
   device: Device;
   engine: Engine;
+  /** Snap each word boundary to the nearest detected vocal onset (align mode). Default true. */
+  refine: boolean;
+  /** Demucs model name. "htdemucs" (standard) | "htdemucs_ft" (fine-tuned, slower). */
+  demucsModel: string;
 }
 
 export interface CreateJobResponse {

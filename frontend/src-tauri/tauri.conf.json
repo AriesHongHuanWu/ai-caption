@@ -40,7 +40,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
+    "targets": "all",
     "createUpdaterArtifacts": true,
     "resources": {
       "../../backend/app.py": "backend/app.py",

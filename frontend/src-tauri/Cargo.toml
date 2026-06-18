@@ -36,7 +36,10 @@ tauri-plugin-fs = "2"
 # In-app auto-update (Tauri v2 官方 updater，簽章驗證):啟動時檢查 GitHub
 # releases 的 latest.json，於 App 內下載 + 安裝 + 重啟。process plugin 提供
 # 安裝後的 relaunch / exit。
-tauri-plugin-updater = "2"
+# >=2.10:多平台發行需要 —— latest.json 的擴充 `{os}-{arch}-{installer}`
+# 平台鍵 (例如 Windows 同時有 nsis+msi) 需 tauri-plugin-updater >= 2.10。
+# 與前端 @tauri-apps/plugin-updater ^2.10.1 對齊。
+tauri-plugin-updater = "2.10"
 tauri-plugin-process = "2"
 
 # Windows-only: Job Object APIs to guarantee the backend child is killed

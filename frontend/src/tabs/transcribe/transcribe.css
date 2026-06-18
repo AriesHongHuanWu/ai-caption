@@ -313,6 +313,16 @@
   color: var(--al-ink-faint);
 }
 
+/* reference editor — forced-align helper line */
+.al-refeditor__helper {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-muted);
+  line-height: 1.45;
+}
+
 /* reference editor — full-lyrics nudge (shown in Biasing when many lines pasted) */
 .al-refeditor__nudge {
   display: flex;
@@ -655,6 +665,29 @@
   font-family: var(--al-font-mono);
   font-size: var(--al-text-xs);
   color: var(--al-ink-muted);
+}
+
+/* ─────────────────────────── AlignPrecision ─────────────────────────── */
+.al-align-precision {
+  display: flex;
+  flex-direction: column;
+  gap: var(--al-space-3);
+  padding: var(--al-space-3) var(--al-pad-panel);
+  border-radius: var(--al-radius-panel);
+  background: var(--al-surface);
+  border: 1px solid var(--al-hairline);
+  animation: al-reveal var(--al-dur-focus) var(--al-ease-ink);
+}
+.al-align-precision__row {
+  display: flex;
+  align-items: flex-start;
+}
+.al-align-precision__row--select {
+  /* select field fills full width inside the precision box */
+  display: block;
+}
+.al-align-precision__row--select .al-field {
+  max-width: 340px;
 }
 
 /* ─────────────────────────── Narrow window ─────────────────────────── */

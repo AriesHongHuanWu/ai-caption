@@ -13,9 +13,16 @@ demucs>=4.0.1
 # 從原始碼建置(對一般使用者門檻太高)。torchaudio 原生路徑免編譯器、跨平台、效果相當。
 # 見 pipeline/align.py。
 #
-# 選用:uroman(純 Python、免編譯)讓「中日韓」歌詞可羅馬化後逐字對齊。
-# 沒裝也能跑——CJK 強制對齊會略過、上層 pipeline 退回 biasing。要中文逐字對齊就裝它:
-uroman>=1.3.1.1  # CJK 強制對齊需要(英文/拉丁語不需要)
+# 選用:uroman(純 Python、免編譯)讓「中日韓」歌詞可羅馬化後逐字對齊(jpn/kor 後備)。
+# 沒裝也能跑——CJK 強制對齊會退回下一層、或上層 pipeline 退回 biasing。
+uroman>=1.3.1.1  # CJK 強制對齊後備(英文/拉丁語不需要)
+
+# 選用(強烈建議,皆純 Python、免 C/C++ 編譯器):語言感知 CJK 羅馬化,大幅提升對齊精度。
+#   - pypinyin:國語(zh)→ 拼音(無聲調即落在 MMS_FA a-z 字典,比 uroman 更貼近歌唱發音)
+#   - pycantonese:粵語(yue)→ 粵拼 jyutping(詞context消歧;聲調數字事後剝除 → 純 a-z)
+# 缺任一個都優雅降級(見 pipeline/romanize.py:zh→pinyin、yue→jyutping、其他→uroman→原樣)。
+pypinyin>=0.51.0     # 選用:國語逐字拼音對齊
+pycantonese>=3.4.0   # 選用:粵語逐字粵拼對齊
 
 # --- 本地 API 服務 ---
 fastapi>=0.110
