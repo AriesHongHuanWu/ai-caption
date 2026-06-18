@@ -5,32 +5,48 @@
    ────────────────────────────────────────────────────────────────── */
 
 import type { JobMode } from '../../api/types';
+import type { TFn } from '../../i18n';
 
-/** Plain-language mode labels (matches the Transcribe mode cards). */
-export const MODE_LABEL: Record<JobMode, string> = {
-  auto: 'Auto',
-  biasing: 'Biasing',
-  align: 'Forced-Align',
+// ---------------------------------------------------------------------------
+// Mode labels — resolved via t() at the call site so language switches work.
+// ---------------------------------------------------------------------------
+
+const MODE_KEY: Record<JobMode, string> = {
+  auto: 'library.mode.auto',
+  biasing: 'library.mode.biasing',
+  align: 'library.mode.align',
 };
 
-/**
- * Whisper language codes → a friendly bilingual label. Falls back to the
- * raw code (upper-cased) so an unexpected code never renders blank.
- */
-const LANGUAGE_LABEL: Record<string, string> = {
-  zh: '中文國語',
-  yue: '粵語',
-  en: 'English',
-  ja: '日本語',
-  ko: '한국어',
-  multi: '多語',
-  auto: '自動',
-};
-
-export function languageLabel(code: string): string {
-  if (!code) return '—';
-  return LANGUAGE_LABEL[code] ?? code.toUpperCase();
+/** Return the localised mode label for the given job mode. */
+export function modeLabel(mode: JobMode, t: TFn): string {
+  return t(MODE_KEY[mode] ?? 'library.mode.auto');
 }
+
+// ---------------------------------------------------------------------------
+// Language labels — script names; resolved via t() so 'multi' etc. localise.
+// ---------------------------------------------------------------------------
+
+const LANG_KEY: Record<string, string> = {
+  zh: 'library.lang.zh',
+  yue: 'library.lang.yue',
+  en: 'library.lang.en',
+  ja: 'library.lang.ja',
+  ko: 'library.lang.ko',
+  multi: 'library.lang.multi',
+  auto: 'library.lang.auto',
+};
+
+/** Return the localised language label for a Whisper language code. */
+export function languageLabelT(code: string, t: TFn): string {
+  if (!code) return '—';
+  const key = LANG_KEY[code];
+  if (key) return t(key);
+  return code.toUpperCase();
+}
+
+// ---------------------------------------------------------------------------
+// Date formatting helpers
+// ---------------------------------------------------------------------------
 
 /** Absolute timestamp: 2026-06-18 14:32 — mono, sortable-looking. */
 export function formatRunDate(ms: number): string {
@@ -41,15 +57,18 @@ export function formatRunDate(ms: number): string {
   )}`;
 }
 
-/** Human relative time ("剛剛 · just now", "3 小時前 · 3h"), for the row tooltip. */
-export function relativeRunDate(ms: number, now = Date.now()): string {
+/**
+ * Human relative time — localised. Pass `t` from `useT()` or `makeT(lang)`.
+ * E.g. "剛剛" / "just now", "3 分鐘前" / "3m ago".
+ */
+export function relativeRunDate(ms: number, t: TFn, now = Date.now()): string {
   const sec = Math.max(0, Math.round((now - ms) / 1000));
-  if (sec < 45) return '剛剛 · just now';
+  if (sec < 45) return t('library.date.justNow');
   const min = Math.round(sec / 60);
-  if (min < 60) return `${min} 分鐘前 · ${min}m`;
+  if (min < 60) return t('library.date.minutesAgo', { n: min });
   const hr = Math.round(min / 60);
-  if (hr < 24) return `${hr} 小時前 · ${hr}h`;
+  if (hr < 24) return t('library.date.hoursAgo', { n: hr });
   const day = Math.round(hr / 24);
-  if (day < 30) return `${day} 天前 · ${day}d`;
+  if (day < 30) return t('library.date.daysAgo', { n: day });
   return formatRunDate(ms);
 }

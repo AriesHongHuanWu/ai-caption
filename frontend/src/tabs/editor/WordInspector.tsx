@@ -7,6 +7,7 @@ import type { Word } from '../../api/types';
 import type { WordRef } from '../../state/useResultStore';
 import type { PeakData } from '../../lib/waveform';
 import type { Onset } from '../../lib/onset';
+import { useT } from '../../i18n';
 
 export interface WordInspectorProps {
   word: Word;
@@ -40,6 +41,7 @@ export function WordInspector({
   onsets,
   currentTime = 0,
 }: WordInspectorProps) {
+  const t = useT();
   const low = isLowConfidence(word);
   const dur = Math.max(0, word.end - word.start);
 
@@ -51,10 +53,10 @@ export function WordInspector({
   return (
     <div className="al-inspector">
       <div className="al-inspector__row al-inspector__row--between">
-        <span className="al-inspector__title">Word · 字詞</span>
+        <span className="al-inspector__title">{t('editor.inspector.title')}</span>
         {low ? (
           <Badge tone="amber" dot>
-            低信心 {(word.prob * 100).toFixed(0)}%
+            {t('editor.inspector.lowConfidence')} {(word.prob * 100).toFixed(0)}%
           </Badge>
         ) : (
           <Badge tone="green">{(word.prob * 100).toFixed(0)}%</Badge>
@@ -67,7 +69,7 @@ export function WordInspector({
         className="al-inspector__text"
         spellCheck={false}
         autoFocus
-        aria-label="字詞文字 Word text"
+        aria-label={t('editor.inspector.wordTextAriaLabel')}
       />
 
       {/* hairline waveform slice with draggable, onset-magnetizing handles */}
@@ -97,13 +99,13 @@ export function WordInspector({
         <TapeCounter label="START" value={word.start} onCommit={(s) => onStart(wordRef, s)} />
         <div className="al-inspector__row">
           <IconButton
-            label="起點 −10ms Start −10ms"
+            label={t('editor.inspector.startMinus')}
             size="sm"
             icon={<Minus size={14} />}
             onClick={() => onStart(wordRef, nudge(word.start, -1))}
           />
           <IconButton
-            label="起點 +10ms Start +10ms"
+            label={t('editor.inspector.startPlus')}
             size="sm"
             icon={<Plus size={14} />}
             onClick={() => onStart(wordRef, nudge(word.start, 1))}
@@ -116,13 +118,13 @@ export function WordInspector({
         <TapeCounter label="END" value={word.end} onCommit={(s) => onEnd(wordRef, s)} />
         <div className="al-inspector__row">
           <IconButton
-            label="終點 −10ms End −10ms"
+            label={t('editor.inspector.endMinus')}
             size="sm"
             icon={<Minus size={14} />}
             onClick={() => onEnd(wordRef, nudge(word.end, -1))}
           />
           <IconButton
-            label="終點 +10ms End +10ms"
+            label={t('editor.inspector.endPlus')}
             size="sm"
             icon={<Plus size={14} />}
             onClick={() => onEnd(wordRef, nudge(word.end, 1))}
@@ -136,7 +138,7 @@ export function WordInspector({
       </div>
 
       <div className="al-inspector__hint">
-        拖曳邊界 → 吸附人聲起點 · Drag a handle to magnetize · ⌥↑↓ nudge ±10 ms
+        {t('editor.inspector.dragHint')}
       </div>
 
       {low && (
@@ -147,7 +149,7 @@ export function WordInspector({
             className="al-btn al-btn--sm al-inspector__confirm"
             onClick={() => onConfirm(wordRef)}
           >
-            <Check size={14} /> 確認字詞 · Confirm word
+            <Check size={14} /> {t('editor.inspector.confirmWord')}
           </button>
         </>
       )}

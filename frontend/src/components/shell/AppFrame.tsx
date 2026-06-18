@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Minus, Square, X } from 'lucide-react';
+import { useT } from '../../i18n';
 import './shell.css';
 
 export interface AppFrameProps {
@@ -36,6 +37,7 @@ function hasWindowControls(): boolean {
 }
 
 function WindowControls() {
+  const t = useT();
   // Swallow rejections: a failed minimize/close should never crash the UI.
   const run = (fn?: () => Promise<void>) => () => {
     void fn?.()?.catch(() => {});
@@ -48,8 +50,8 @@ function WindowControls() {
       <button
         type="button"
         className="al-wincontrol"
-        aria-label="最小化 Minimize"
-        title="最小化 Minimize"
+        aria-label={t('common.window.minimize')}
+        title={t('common.window.minimize')}
         onClick={run(win.minimize?.bind(win))}
       >
         <Minus size={14} />
@@ -57,8 +59,8 @@ function WindowControls() {
       <button
         type="button"
         className="al-wincontrol"
-        aria-label="最大化 Maximize"
-        title="最大化 Maximize"
+        aria-label={t('common.window.maximize')}
+        title={t('common.window.maximize')}
         onClick={run(win.toggleMaximize?.bind(win))}
       >
         <Square size={12} />
@@ -66,8 +68,8 @@ function WindowControls() {
       <button
         type="button"
         className="al-wincontrol al-wincontrol--close"
-        aria-label="關閉 Close"
-        title="關閉 Close"
+        aria-label={t('common.window.close')}
+        title={t('common.window.close')}
         onClick={run(win.close?.bind(win))}
       >
         <X size={14} />
@@ -82,17 +84,18 @@ function WindowControls() {
  * window once wrapped, plus frameless window controls on the right.
  */
 export function AppFrame({ children }: AppFrameProps) {
+  const t = useT();
   const showControls = hasWindowControls();
   return (
     <div className="al-frame">
       <div className="al-titlebar" data-tauri-drag-region>
         <div className="al-titlebar__brand" data-tauri-drag-region>
           <span className="al-titlebar__brand-mark">◆</span>
-          <span>AutoLyrics</span>
+          <span>{t('common.appName')}</span>
         </div>
         <div className="al-titlebar__right" data-tauri-drag-region>
           <div className="al-titlebar__brand" data-tauri-drag-region>
-            <span>本機 · LOCAL-FIRST</span>
+            <span>{t('common.localFirst')}</span>
           </div>
           {showControls && <WindowControls />}
         </div>

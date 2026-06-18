@@ -253,16 +253,8 @@
   font-size: var(--al-text-lg);
   color: var(--al-ink);
   line-height: 1.1;
-}
-.al-modecard__en {
-  font-family: var(--al-font-mono);
-  font-size: var(--al-text-xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--al-ink-faint);
-}
-.al-modecard--active .al-modecard__en {
-  color: color-mix(in srgb, var(--al-gold) 70%, var(--al-ink-faint));
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .al-modecard__desc {
   font-size: var(--al-text-sm);
@@ -291,6 +283,7 @@
 .al-readiness__label > span:first-child {
   flex: 1;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 .al-readiness__pct--ready {
   color: var(--al-green);
@@ -318,6 +311,21 @@
 }
 .al-refeditor__count {
   color: var(--al-ink-faint);
+}
+
+/* reference editor — full-lyrics nudge (shown in Biasing when many lines pasted) */
+.al-refeditor__nudge {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--al-radius-chip);
+  background: var(--al-gold-glow);
+  border: 1px solid color-mix(in srgb, var(--al-gold) 35%, transparent);
+  font-size: var(--al-text-sm);
+  color: color-mix(in srgb, var(--al-gold) 80%, var(--al-ink));
+  line-height: 1.4;
+  animation: al-reveal var(--al-dur-focus) var(--al-ease-ink);
 }
 
 /* ─────────────────────────── Style chips ─────────────────────────── */
@@ -457,13 +465,6 @@
 }
 .al-stage--done .al-stage__zh {
   color: var(--al-ink-dim);
-}
-.al-stage__en {
-  font-family: var(--al-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--al-ink-faint);
 }
 .al-stage__sep {
   flex: 1;
@@ -657,10 +658,15 @@
 }
 
 /* ─────────────────────────── Narrow window ─────────────────────────── */
-@media (max-width: 720px) {
+/* Mode cards drop to a single column earlier (820px) so the longer English
+   titles ('Biasing Transcribe', 'Forced-Align') never get three cramped
+   columns at mid widths. */
+@media (max-width: 820px) {
   .al-modecards {
     grid-template-columns: 1fr;
   }
+}
+@media (max-width: 720px) {
   .al-knobs {
     grid-template-columns: 1fr;
   }

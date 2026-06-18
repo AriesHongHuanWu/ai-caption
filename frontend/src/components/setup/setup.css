@@ -79,6 +79,12 @@
   padding: var(--al-space-6) var(--al-pad-panel);
 }
 
+/* Hardware panel variant — flush top padding since it follows another section */
+.al-setup-phase--hw {
+  padding-top: 0;
+  border-top: 1px solid var(--al-hairline);
+}
+
 /* Loading skeleton variant */
 .al-setup-phase--loading {
   flex-direction: row;
@@ -144,11 +150,6 @@
   color: var(--al-ink-dim);
   line-height: 1.65;
   margin: 0;
-}
-
-.al-setup-phase__en {
-  color: var(--al-ink-muted);
-  font-size: var(--al-text-sm);
 }
 
 /* ── Meta rows (python version, dir path) ────────────────────────── */
@@ -307,5 +308,357 @@
 @media (prefers-reduced-motion: reduce) {
   .al-spin {
     animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HardwarePanel — hardware readout + smart model picker
+   Used in SetupScreen (wider card) and SetupBanner (inline).
+   ═══════════════════════════════════════════════════════════════════ */
+
+.al-hw-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--al-space-4);
+}
+
+/* Loading / offline states */
+.al-hw-panel--loading,
+.al-hw-panel--offline {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--al-space-3);
+  font-family: var(--al-font-body);
+  font-size: var(--al-text-md);
+  color: var(--al-ink-muted);
+  padding: var(--al-space-4) 0;
+}
+
+.al-hw-panel__offline-msg {
+  color: var(--al-ink-faint);
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-sm);
+}
+
+.al-hw-panel__head {
+  /* eyebrow sits above the facts table */
+}
+
+/* ── Hardware facts table (dl) ─────────────────────────────────── */
+.al-hw-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: var(--al-space-3) var(--al-pad-panel);
+  border-radius: var(--al-radius-ctrl);
+  background: var(--al-surface-2);
+  border: 1px solid var(--al-hairline);
+  margin: 0;
+}
+
+.al-hw-fact {
+  display: flex;
+  align-items: baseline;
+  gap: var(--al-space-3);
+  padding: var(--al-space-2) 0;
+  border-bottom: 1px solid var(--al-hairline);
+}
+
+.al-hw-fact:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.al-hw-fact:first-child {
+  padding-top: 0;
+}
+
+.al-hw-fact__label {
+  display: flex;
+  align-items: center;
+  gap: var(--al-space-1);
+  width: 64px;
+  flex-shrink: 0;
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  letter-spacing: var(--al-tracking-caps);
+  text-transform: uppercase;
+  color: var(--al-ink-faint);
+}
+
+.al-hw-fact__value {
+  display: flex;
+  align-items: center;
+  gap: var(--al-space-2);
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-sm);
+  color: var(--al-ink-dim);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+/* ── Status dot ────────────────────────────────────────────────── */
+.al-hw-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+.al-hw-dot--green {
+  background: var(--al-green);
+  box-shadow: 0 0 0 3px var(--al-green-glow);
+}
+
+.al-hw-dot--dim {
+  background: var(--al-ink-decor);
+}
+
+/* ── Recommendation box ────────────────────────────────────────── */
+.al-hw-rec-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--al-space-2);
+  padding: var(--al-space-3) var(--al-pad-panel);
+  border-radius: var(--al-radius-ctrl);
+  background: rgba(232, 195, 107, 0.06);
+  border: 1px solid color-mix(in srgb, var(--al-gold) 28%, transparent);
+}
+
+.al-hw-rec-reason {
+  font-family: var(--al-font-body);
+  font-size: var(--al-text-sm);
+  color: var(--al-ink-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.al-hw-rec-row {
+  display: flex;
+  align-items: center;
+  gap: var(--al-space-5);
+  flex-wrap: wrap;
+}
+
+.al-hw-rec-kv {
+  display: flex;
+  align-items: center;
+  gap: var(--al-space-2);
+}
+
+.al-hw-rec-k {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  letter-spacing: var(--al-tracking-caps);
+  text-transform: uppercase;
+  color: var(--al-ink-faint);
+}
+
+.al-hw-rec-v {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-sm);
+  color: var(--al-ink-dim);
+}
+
+.al-hw-rec-v--model {
+  color: var(--al-gold);
+  font-weight: 600;
+}
+
+/* ── Model picker ──────────────────────────────────────────────── */
+.al-hw-picker {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--al-space-3);
+}
+
+.al-hw-picker__legend {
+  padding: 0;
+  margin-bottom: var(--al-space-1);
+}
+
+.al-hw-picker__cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--al-space-3);
+}
+
+/* individual pick card */
+.al-hw-pick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--al-space-2);
+  padding: var(--al-pad-panel);
+  text-align: left;
+  border-radius: var(--al-radius-ctrl);
+  background: var(--al-surface);
+  border: 1px solid var(--al-hairline);
+  cursor: pointer;
+  transition:
+    border-color var(--al-dur-snap) var(--al-ease-snap),
+    background var(--al-dur-snap) var(--al-ease-snap);
+}
+
+.al-hw-pick:hover:not(.al-hw-pick--selected) {
+  border-color: var(--al-hairline-strong);
+  background: var(--al-surface-2);
+}
+
+.al-hw-pick:focus-visible {
+  outline: 2px solid var(--al-gold);
+  outline-offset: 2px;
+}
+
+.al-hw-pick--rec {
+  border-color: color-mix(in srgb, var(--al-gold) 38%, transparent);
+}
+
+.al-hw-pick--rec:hover:not(.al-hw-pick--selected) {
+  border-color: color-mix(in srgb, var(--al-gold) 55%, transparent);
+}
+
+.al-hw-pick--selected {
+  border-color: var(--al-gold);
+  background: var(--al-gold-glow);
+}
+
+.al-hw-pick--heavy {
+  opacity: 0.72;
+}
+
+.al-hw-pick__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--al-space-2);
+  flex-wrap: wrap;
+}
+
+.al-hw-pick__size {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-md);
+  font-weight: 600;
+  color: var(--al-ink);
+}
+
+.al-hw-pick__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.al-hw-pick__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--al-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
+  border-radius: var(--al-radius-chip);
+}
+
+.al-hw-pick__badge--rec {
+  color: var(--al-gold);
+  border: 1px solid color-mix(in srgb, var(--al-gold) 40%, transparent);
+}
+
+.al-hw-pick__badge--warn {
+  color: var(--al-amber);
+  border: 1px solid color-mix(in srgb, var(--al-amber) 40%, transparent);
+}
+
+.al-hw-pick__desc {
+  font-size: var(--al-text-sm);
+  color: var(--al-ink-muted);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.al-hw-pick__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--al-space-2);
+  border-top: 1px solid var(--al-hairline);
+}
+
+.al-hw-pick__size-label {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-faint);
+}
+
+.al-hw-pick__check {
+  color: var(--al-gold);
+}
+
+/* ── Action row ────────────────────────────────────────────────── */
+.al-hw-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--al-space-3);
+  padding-top: var(--al-space-2);
+}
+
+/* Deferred-action note (first-run wizard: download happens after setup). */
+.al-hw-defer-note {
+  margin: 0;
+  padding-top: var(--al-space-2);
+  font-size: var(--al-text-sm);
+  line-height: 1.4;
+  color: var(--al-ink-muted);
+}
+
+/* ── Download progress ─────────────────────────────────────────── */
+.al-hw-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--al-space-2);
+  padding: var(--al-pad-panel);
+  border-radius: var(--al-radius-ctrl);
+  background: var(--al-surface);
+  border: 1px solid color-mix(in srgb, var(--al-gold) 35%, transparent);
+}
+
+.al-hw-progress__head {
+  display: flex;
+  align-items: center;
+  gap: var(--al-space-2);
+}
+
+.al-hw-progress__label {
+  flex: 1;
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-sm);
+  color: var(--al-ink);
+}
+
+.al-hw-progress__pct {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-gold);
+  flex-shrink: 0;
+}
+
+.al-hw-progress__msg {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-muted);
+}
+
+/* ── Responsive: collapse to single column on narrow ──────────── */
+@media (max-width: 540px) {
+  .al-hw-picker__cards {
+    grid-template-columns: 1fr;
   }
 }

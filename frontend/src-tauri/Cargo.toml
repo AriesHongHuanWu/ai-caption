@@ -33,6 +33,11 @@ tauri-plugin-log = "2"
 # (Tauri v2 的 plugin guest-JS 不會被 withGlobalTauri 自動掛上 window.__TAURI__)。
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
+# In-app auto-update (Tauri v2 官方 updater，簽章驗證):啟動時檢查 GitHub
+# releases 的 latest.json，於 App 內下載 + 安裝 + 重啟。process plugin 提供
+# 安裝後的 relaunch / exit。
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 # Windows-only: Job Object APIs to guarantee the backend child is killed
 # when the parent dies abnormally (Task Manager / taskkill /F / crash),

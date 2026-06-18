@@ -767,6 +767,44 @@ def api_export_edited(body: ExportBody) -> Response:
 # 模型管理端點
 # ─────────────────────────────────────────────────────────────────────────────
 
+@app.get("/api/hardware")
+def api_hardware() -> JSONResponse:
+    """GET /api/hardware — machine hardware detection + model recommendation.
+
+    Returns GPU name, VRAM, CUDA, CPU, RAM plus a recommended whisper model
+    and a tier list showing which sizes fit the detected hardware.
+    Never crashes: all fields fall back to safe defaults if detection fails.
+    """
+    try:
+        from pipeline.hardware import get_hardware_info  # type: ignore
+        info = get_hardware_info()
+    except Exception as e:  # noqa: BLE001
+        logger.error("硬體偵測失敗，回傳 CPU 安全預設值：%r", e)
+        info = {
+            "gpu": False,
+            "gpuName": None,
+            "vramTotalMB": None,
+            "vramFreeMB": None,
+            "cuda": False,
+            "cudaVersion": None,
+            "cpu": "Unknown",
+            "cpuCount": 1,
+            "ramTotalMB": None,
+            "recommended": {
+                "model": "whisper-small",
+                "device": "cpu",
+                "whisperSize": "small",
+                "reasonCode": "cpu_only",
+            },
+            "tiers": [
+                {"model": "whisper-small", "whisperSize": "small", "fits": True},
+                {"model": "whisper-medium", "whisperSize": "medium", "fits": False},
+                {"model": "whisper-large-v3", "whisperSize": "large-v3", "fits": False},
+            ],
+        }
+    return JSONResponse(info)
+
+
 @app.get("/api/models")
 def api_list_models() -> JSONResponse:
     """列出所有模型及其安裝狀態。GET /api/models

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ExportFormat, ExportLevel } from '../../api/types';
+import { useT } from '../../i18n';
 
 export interface FormatChoice {
   fmt: ExportFormat;
@@ -24,7 +25,7 @@ interface LinkDef {
   id: string;
   name: string;
   ext: string;
-  blurb: string;
+  blurbKey: string;
   icon: LucideIcon;
   fmt: ExportFormat;
   level: ExportLevel;
@@ -35,7 +36,7 @@ const LINKS: LinkDef[] = [
     id: 'lrc-line',
     name: 'LRC',
     ext: '.lrc',
-    blurb: '逐行 · line',
+    blurbKey: 'export.fmtLrcLine',
     icon: AlignLeft,
     fmt: 'lrc',
     level: 'line',
@@ -44,7 +45,7 @@ const LINKS: LinkDef[] = [
     id: 'lrc-word',
     name: 'LRC',
     ext: '.lrc',
-    blurb: '逐字 · enhanced',
+    blurbKey: 'export.fmtLrcWord',
     icon: TypeIcon,
     fmt: 'lrc',
     level: 'word',
@@ -53,7 +54,7 @@ const LINKS: LinkDef[] = [
     id: 'srt',
     name: 'SRT',
     ext: '.srt',
-    blurb: '字幕 · subtitles',
+    blurbKey: 'export.fmtSrt',
     icon: Captions,
     fmt: 'srt',
     level: 'line',
@@ -62,7 +63,7 @@ const LINKS: LinkDef[] = [
     id: 'ass',
     name: 'ASS',
     ext: '.ass',
-    blurb: '\\k 卡拉OK · karaoke',
+    blurbKey: 'export.fmtAss',
     icon: Sparkles,
     fmt: 'ass',
     level: 'word',
@@ -71,7 +72,7 @@ const LINKS: LinkDef[] = [
     id: 'json',
     name: 'JSON',
     ext: '.json',
-    blurb: '原始結果 · raw',
+    blurbKey: 'export.fmtJson',
     icon: Braces,
     fmt: 'json',
     level: 'word',
@@ -84,6 +85,7 @@ function sameChoice(l: LinkDef, v: FormatChoice): boolean {
 
 /** LRC line/word · SRT · ASS · JSON selector — a vertical list of typeset links. */
 export function FormatLinks({ value, onChange }: FormatLinksProps) {
+  const t = useT();
   const listRef = useRef<HTMLDivElement>(null);
   const activeIndex = Math.max(
     0,
@@ -118,7 +120,7 @@ export function FormatLinks({ value, onChange }: FormatLinksProps) {
     <div
       className="al-formatlinks"
       role="radiogroup"
-      aria-label="匯出格式 Export format"
+      aria-label={t('export.fmtAriaLabel')}
       ref={listRef}
     >
       {LINKS.map((l, i) => {
@@ -144,7 +146,7 @@ export function FormatLinks({ value, onChange }: FormatLinksProps) {
                 {l.name}
                 <span className="al-formatlink__ext">{l.ext}</span>
               </span>
-              <span className="al-formatlink__blurb">{l.blurb}</span>
+              <span className="al-formatlink__blurb">{t(l.blurbKey)}</span>
             </span>
           </button>
         );

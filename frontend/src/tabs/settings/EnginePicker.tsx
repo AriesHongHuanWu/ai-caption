@@ -2,6 +2,7 @@ import { AudioLines } from 'lucide-react';
 import { Segmented } from './Segmented';
 import type { SegmentedOption } from './Segmented';
 import type { Engine } from '../../api/types';
+import { useT } from '../../i18n';
 
 export interface EnginePickerProps {
   engines: Engine[];
@@ -15,6 +16,7 @@ const ENGINE_HINT: Record<Engine, string> = {
 
 /** Recognition-engine selector. Today whisper is the only engine. */
 export function EnginePicker({ engines, value, onChange }: EnginePickerProps) {
+  const t = useT();
   const options: SegmentedOption<Engine>[] = engines.map((eng) => ({
     value: eng,
     label: eng,
@@ -22,5 +24,5 @@ export function EnginePicker({ engines, value, onChange }: EnginePickerProps) {
     icon: <AudioLines size={14} strokeWidth={1.75} />,
   }));
 
-  return <Segmented<Engine> label="引擎 Engine" value={value} options={options} onChange={onChange} />;
+  return <Segmented<Engine> label={t('settings.engine.label')} value={value} options={options} onChange={onChange} />;
 }

@@ -24,12 +24,6 @@ export interface ModelFacts {
   diskGb: number;
   /** Peak VRAM at inference on the 8 GB target card. */
   vramGb: number;
-  /** Plain-language VRAM headroom note for an 8 GB card. */
-  vramHint: string;
-  /** Relative speed note. */
-  speedHint: string;
-  /** Short trade-off blurb (zh · en). */
-  blurb: string;
 }
 
 export interface ModelStatus {
@@ -40,29 +34,15 @@ export interface ModelStatus {
 }
 
 /* Curated facts, tuned for an RTX 5060 (8 GB). Gold-standard target is
-   large-v3 fitting comfortably under 8 GB with Demucs headroom. */
+   large-v3 fitting comfortably under 8 GB with Demucs headroom.
+
+   Only language-neutral numeric facts live here. The plain-language
+   VRAM / speed / blurb hints are localised in i18n under the
+   `settings.facts.*` keys and resolved in ModelSizePicker via t(). */
 export const MODEL_FACTS: Record<ModelSize, ModelFacts> = {
-  'large-v3': {
-    diskGb: 3.1,
-    vramGb: 6.2,
-    vramHint: '~6.2 GB · 8 GB 卡剛好 fits 8 GB',
-    speedHint: '~1.0× 即時 realtime',
-    blurb: '最高準確度，建議 8 GB 卡使用。Best accuracy — recommended for 8 GB.',
-  },
-  medium: {
-    diskGb: 1.5,
-    vramGb: 3.1,
-    vramHint: '~3.1 GB · 充裕 roomy',
-    speedHint: '~2.2× 即時 realtime',
-    blurb: '速度與準度的平衡點。A balanced speed / accuracy pick.',
-  },
-  small: {
-    diskGb: 0.5,
-    vramGb: 1.6,
-    vramHint: '~1.6 GB · 極省 frugal',
-    speedHint: '~4.5× 即時 realtime',
-    blurb: '最快，適合草稿或低階卡。Fastest — good for drafts / low VRAM.',
-  },
+  'large-v3': { diskGb: 3.1, vramGb: 6.2 },
+  medium: { diskGb: 1.5, vramGb: 3.1 },
+  small: { diskGb: 0.5, vramGb: 1.6 },
 };
 
 /** Recommended default model for the 8 GB target. */

@@ -19,6 +19,8 @@ import { useEffect, useRef } from 'react';
 import { ExternalLink, RefreshCw, Terminal, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button, ProgressBar, Eyebrow } from '../primitives';
 import { useSetup } from '../../state/useSetup';
+import { useT } from '../../i18n';
+import { HardwarePanel } from './HardwarePanel';
 import './setup.css';
 
 // Cap the rendered log to the tail — Rust streams every line but the user only
@@ -27,6 +29,8 @@ import './setup.css';
 const LOG_TAIL = 200;
 
 export function SetupScreen() {
+  const t = useT();
+
   // Granular selectors: each setup-progress line mutates the store once, so a
   // bare destructure of the whole store would re-render this component on every
   // stdout line. Subscribe only to the fields we actually read.
@@ -74,14 +78,12 @@ export function SetupScreen() {
   const readyToInstall = status !== null && pythonFound && !isRunning && !isDone && !hasError;
 
   return (
-    <div className="al-setup-screen" role="main" aria-label="首次設定 First-run setup">
+    <div className="al-setup-screen" role="main" aria-label={t('setup.aria')}>
       {/* ── Logo / heading ── */}
       <header className="al-setup-screen__head">
         <div className="al-setup-screen__mark">◆</div>
         <h1 className="al-setup-screen__title">AutoLyrics</h1>
-        <p className="al-setup-screen__sub">
-          歡迎使用 · Welcome &nbsp;—&nbsp; 首次設定 First-run setup
-        </p>
+        <p className="al-setup-screen__sub">{t('setup.sub')}</p>
       </header>
 
       {/* ── Card ── */}
@@ -89,20 +91,13 @@ export function SetupScreen() {
 
         {/* ── Phase 1: Python not found ── */}
         {needsPython && !isRunning && (
-          <section className="al-setup-phase" aria-label="需要 Python">
-            <Eyebrow>步驟 1 · Step 1</Eyebrow>
+          <section className="al-setup-phase" aria-label={t('setup.python.aria')}>
+            <Eyebrow>{t('setup.step1')}</Eyebrow>
             <div className="al-setup-phase__icon al-setup-phase__icon--warn">
               <AlertTriangle size={22} />
             </div>
-            <h2 className="al-setup-phase__heading">需要 Python 3.10–3.12</h2>
-            <p className="al-setup-phase__body">
-              AutoLyrics 的辨識引擎需要系統安裝 Python 3.10、3.11 或 3.12，
-              並已加入 PATH。
-              <br />
-              <span className="al-setup-phase__en">
-                The recognition engine requires Python 3.10–3.12 on your system PATH.
-              </span>
-            </p>
+            <h2 className="al-setup-phase__heading">{t('setup.python.heading')}</h2>
+            <p className="al-setup-phase__body">{t('setup.python.body')}</p>
             <div className="al-setup-phase__actions">
               <a
                 href="https://www.python.org/downloads/"
@@ -119,7 +114,7 @@ export function SetupScreen() {
                 icon={<RefreshCw size={14} />}
                 onClick={() => void checkStatus()}
               >
-                重新檢查 Re-check
+                {t('setup.python.recheck')}
               </Button>
             </div>
           </section>
@@ -127,21 +122,13 @@ export function SetupScreen() {
 
         {/* ── Phase 2: Ready to install ── */}
         {readyToInstall && (
-          <section className="al-setup-phase" aria-label="準備安裝">
-            <Eyebrow>步驟 2 · Step 2</Eyebrow>
+          <section className="al-setup-phase" aria-label={t('setup.install.aria')}>
+            <Eyebrow>{t('setup.step2')}</Eyebrow>
             <div className="al-setup-phase__icon al-setup-phase__icon--gold">
               <Terminal size={22} />
             </div>
-            <h2 className="al-setup-phase__heading">安裝辨識引擎</h2>
-            <p className="al-setup-phase__body">
-              AutoLyrics 將在本機建立一個獨立的 Python 環境，並下載
-              PyTorch 辨識引擎（需數 GB）。安裝完成後即可開始使用，之後啟動無需再次下載。
-              <br />
-              <span className="al-setup-phase__en">
-                We'll create a local Python venv and download the PyTorch engine (a few GB).
-                This is a one-time setup — future launches start instantly.
-              </span>
-            </p>
+            <h2 className="al-setup-phase__heading">{t('setup.install.heading')}</h2>
+            <p className="al-setup-phase__body">{t('setup.install.body')}</p>
             {status?.python_version && (
               <p className="al-setup-phase__meta">
                 <span className="al-setup-phase__meta-label">Python</span>
@@ -150,7 +137,7 @@ export function SetupScreen() {
             )}
             {status?.backend_dir && (
               <p className="al-setup-phase__meta">
-                <span className="al-setup-phase__meta-label">目錄 Dir</span>
+                <span className="al-setup-phase__meta-label">{t('setup.install.dirLabel')}</span>
                 <span className="al-setup-phase__meta-path">{status.backend_dir}</span>
               </p>
             )}
@@ -160,50 +147,61 @@ export function SetupScreen() {
                 size="lg"
                 onClick={() => void runSetup()}
               >
-                開始設定 Set up engine
+                {t('setup.install.cta')}
               </Button>
             </div>
           </section>
         )}
 
+        {/* ── Hardware panel (shown after Phase 2 CTA; backend is reachable now) ──
+            Pre-install we surface the hardware readout + recommendation ONLY:
+            showActions={false} defers the actual model download to the post-setup
+            SetupBanner. Kicking off an HF download before the venv/torch exists
+            would hit an unready backend path and its progress would vanish the
+            moment the user clicks Install (this section unmounts on isRunning).
+            With actions deferred there is no dead 'Skip' and no dropped download. */}
+        {readyToInstall && (
+          <section className="al-setup-phase al-setup-phase--hw" aria-label={t('hardware.eyebrow')}>
+            <HardwarePanel
+              showActions={false}
+              onDownload={() => {/* deferred until after setup (see SetupBanner) */}}
+              onSkip={() => {/* deferred until after setup (see SetupBanner) */}}
+            />
+          </section>
+        )}
+
         {/* ── Phase 3: Running ── */}
         {isRunning && (
-          <section className="al-setup-phase" aria-label="安裝中" aria-live="polite">
+          <section className="al-setup-phase" aria-label={t('setup.running.aria')} aria-live="polite">
             <div className="al-setup-phase__running-head">
               <Loader2 size={16} className="al-spin" />
               <span className="al-setup-phase__running-label">
                 {progressLines.length === 0
-                  ? '正在啟動安裝… Starting…'
+                  ? t('setup.running.starting')
                   : pct < 30
-                  ? '正在建立虛擬環境… Creating venv…'
+                  ? t('setup.running.venv')
                   : pct < 70
-                  ? '正在下載 PyTorch… Downloading engine…'
-                  : '正在安裝套件… Installing packages…'}
+                  ? t('setup.running.download')
+                  : t('setup.running.installing')}
               </span>
               {progressLines.length > 0 && (
                 <span className="al-setup-phase__running-pct">{Math.round(pct)}%</span>
               )}
             </div>
             {/* Before the first stdout line arrives, show motion so the user
-                always sees feedback the instant they click 開始設定/重試. */}
+                always sees feedback the instant they click the install CTA. */}
             <ProgressBar
               value={pct}
               tone="gold"
               indeterminate={progressLines.length === 0}
             />
-            <p className="al-setup-phase__note">
-              這需要幾分鐘，視網速而定。請保持網路連線。
-              <br />
-              <span className="al-setup-phase__en">
-                This takes a few minutes depending on your connection. Keep the app open.
-              </span>
-            </p>
+            <p className="al-setup-phase__note">{t('setup.running.note')}</p>
             {/* Live log (tail only) */}
             <div
               ref={logRef}
               className="al-setup-log"
               role="log"
-              aria-label="安裝紀錄 Setup log"
+              aria-label={t('setup.running.logAria')}
               aria-live="polite"
               aria-atomic="false"
             >
@@ -218,12 +216,12 @@ export function SetupScreen() {
 
         {/* ── Phase 4: Error ── */}
         {hasError && (
-          <section className="al-setup-phase" aria-label="安裝失敗">
+          <section className="al-setup-phase" aria-label={t('setup.error.aria')}>
             <div className="al-setup-phase__icon al-setup-phase__icon--error">
               <AlertTriangle size={22} />
             </div>
             <h2 className="al-setup-phase__heading al-setup-phase__heading--error">
-              安裝失敗 Setup failed
+              {t('setup.error.heading')}
             </h2>
             <p className="al-setup-phase__body">{error}</p>
             {logLines.length > 0 && (
@@ -242,7 +240,7 @@ export function SetupScreen() {
                 icon={<RefreshCw size={14} />}
                 onClick={() => void runSetup()}
               >
-                重試 Retry
+                {t('setup.error.retry')}
               </Button>
             </div>
           </section>
@@ -250,20 +248,14 @@ export function SetupScreen() {
 
         {/* ── Phase 5: Success (brief, before needsSetup flips) ── */}
         {isDone && !hasError && (
-          <section className="al-setup-phase" aria-label="安裝完成">
+          <section className="al-setup-phase" aria-label={t('setup.done.aria')}>
             <div className="al-setup-phase__icon al-setup-phase__icon--green">
               <CheckCircle2 size={22} />
             </div>
             <h2 className="al-setup-phase__heading al-setup-phase__heading--green">
-              安裝完成 Setup complete!
+              {t('setup.done.heading')}
             </h2>
-            <p className="al-setup-phase__body">
-              辨識引擎已就緒。正在啟動後端…
-              <br />
-              <span className="al-setup-phase__en">
-                Engine ready. Launching backend…
-              </span>
-            </p>
+            <p className="al-setup-phase__body">{t('setup.done.body')}</p>
             <ProgressBar value={100} tone="green" />
           </section>
         )}
@@ -272,13 +264,13 @@ export function SetupScreen() {
         {status === null && !isRunning && (
           <section className="al-setup-phase al-setup-phase--loading">
             <Loader2 size={18} className="al-spin" />
-            <span>檢查安裝狀態… Checking status…</span>
+            <span>{t('setup.checking')}</span>
           </section>
         )}
       </div>
 
       <footer className="al-setup-screen__foot">
-        <span>AutoLyrics &nbsp;·&nbsp; 本機 LOCAL-FIRST &nbsp;·&nbsp; 不需要網路帳號</span>
+        <span>{t('setup.foot')}</span>
       </footer>
     </div>
   );

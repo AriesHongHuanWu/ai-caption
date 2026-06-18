@@ -10,6 +10,7 @@ import {
   type ExportConfig,
 } from './exportOptions';
 import { hasTauri, saveText, downloadBlob } from './saveFile';
+import { useT, makeT, useI18n } from '../../i18n';
 
 export interface ExportActionsProps {
   result: Result;
@@ -28,6 +29,7 @@ type Status =
 
 /** Copy + Save-to-disk. Routes edited vs original per the API contract. */
 export function ExportActions({ result, config, dirty, jobId }: ExportActionsProps) {
+  const t = useT();
   const { fmt, level, precisionMs, encoding } = config;
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
@@ -47,7 +49,8 @@ export function ExportActions({ result, config, dirty, jobId }: ExportActionsPro
       setCopied(true);
       setTimeout(() => setCopied(false), 1400);
     } catch {
-      setStatus({ kind: 'error', msg: '複製失敗 Copy failed' });
+      const tFn = makeT(useI18n.getState().lang);
+      setStatus({ kind: 'error', msg: tFn('export.copyFailed') });
     }
   };
 
@@ -63,12 +66,13 @@ export function ExportActions({ result, config, dirty, jobId }: ExportActionsPro
       if (hasTauri()) {
         const text = applyEncoding(await blob.text(), encoding);
         const outcome = await saveText(text, filename, fmt, mimeFor(fmt));
+        const tFn = makeT(useI18n.getState().lang);
         if (outcome.kind === 'cancelled') {
           setStatus({ kind: 'idle' });
         } else if (outcome.kind === 'tauri') {
-          setStatus({ kind: 'saved', msg: `已存到 ${outcome.path}` });
+          setStatus({ kind: 'saved', msg: tFn('export.savedTo', { path: outcome.path }) });
         } else {
-          setStatus({ kind: 'saved', msg: `已下載 ${filename}` });
+          setStatus({ kind: 'saved', msg: tFn('export.downloaded', { filename }) });
         }
       } else {
         downloadBlob(
@@ -79,22 +83,25 @@ export function ExportActions({ result, config, dirty, jobId }: ExportActionsPro
             : blob,
           filename,
         );
-        setStatus({ kind: 'saved', msg: `已下載 ${filename}` });
+        const tFn = makeT(useI18n.getState().lang);
+        setStatus({ kind: 'saved', msg: tFn('export.downloaded', { filename }) });
       }
     } catch {
       // Offline fallback: render client-side and save that — never blocks.
       try {
         const outcome = await saveText(localText(), filename, fmt, mimeFor(fmt));
+        const tFn = makeT(useI18n.getState().lang);
         if (outcome.kind === 'cancelled') {
           setStatus({ kind: 'idle' });
         } else {
           setStatus({
             kind: 'fallback',
-            msg: '後端離線 — 已用本機預覽輸出 Saved local preview (backend offline)',
+            msg: tFn('export.savedOffline'),
           });
         }
       } catch {
-        setStatus({ kind: 'error', msg: '存檔失敗 Save failed' });
+        const tFn = makeT(useI18n.getState().lang);
+        setStatus({ kind: 'error', msg: tFn('export.saveFailed') });
       }
     }
   };
@@ -109,7 +116,7 @@ export function ExportActions({ result, config, dirty, jobId }: ExportActionsPro
           icon={copied ? <Check size={16} /> : <Copy size={16} />}
           onClick={copy}
         >
-          {copied ? '已複製 Copied' : '複製 Copy'}
+          {copied ? t('common.action.copied') : t('common.action.copy')}
         </Button>
         <Button
           variant="primary"
@@ -125,12 +132,12 @@ export function ExportActions({ result, config, dirty, jobId }: ExportActionsPro
           onClick={save}
           disabled={saving}
         >
-          {saving ? '輸出中… Saving' : '存到磁碟 · Save'}
+          {saving ? t('export.saving') : t('export.saveToDisk')}
         </Button>
       </div>
 
       <div className="al-export__meta">
-        <span className="al-export__routing" title="匯出路由 Export routing">
+        <span className="al-export__routing" title={t('export.routingTitle')}>
           {edited
             ? 'POST /api/export · edited'
             : `GET /api/jobs/${jobId}/export · original`}
@@ -161,7 +168,7 @@ export function ExportActions({ result, config, dirty, jobId }: ExportActionsPro
 
         {/* SR-only: the Copy button's visual label change isn't announced. */}
         <span className="al-vh" role="status" aria-live="polite" aria-atomic="true">
-          {copied ? '已複製到剪貼簿 Copied to clipboard' : ''}
+          {copied ? t('export.copiedToClipboard') : ''}
         </span>
       </div>
     </div>

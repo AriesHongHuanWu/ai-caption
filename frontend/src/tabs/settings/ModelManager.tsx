@@ -25,18 +25,20 @@ import {
 import { Badge, Button, IconButton, ProgressBar } from '../../components/primitives';
 import { useModels } from '../../state/useModels';
 import type { ModelInfo, ModelKind } from '../../api/types';
+import { useT, makeT, useI18n } from '../../i18n';
 
-// ── section labels ──────────────────────────────────────────────────────────
-const KIND_LABEL: Record<ModelKind, { zh: string; en: string }> = {
-  whisper: { zh: '辨識模型', en: 'Whisper' },
-  demucs: { zh: '人聲分離', en: 'Demucs' },
-  aligner: { zh: '強制對齊', en: 'Aligner' },
+// ── section label key map ───────────────────────────────────────────────────
+const KIND_KEY: Record<ModelKind, string> = {
+  whisper: 'settings.kind.whisper',
+  demucs: 'settings.kind.demucs',
+  aligner: 'settings.kind.aligner',
 };
 
 const KIND_ORDER: ModelKind[] = ['whisper', 'demucs', 'aligner'];
 
 // ── single model row ─────────────────────────────────────────────────────────
 function ModelRow({ model }: { model: ModelInfo }) {
+  const t = useT();
   const perId = useModels((s) => s.perId);
   const downloadAndTrack = useModels((s) => s.downloadAndTrack);
   const remove = useModels((s) => s.remove);
@@ -51,9 +53,10 @@ function ModelRow({ model }: { model: ModelInfo }) {
 
   const handleRemove = () => {
     if (model.required) {
+      // window.confirm is outside React render — use makeT for a one-shot translation
+      const tNow = makeT(useI18n.getState().lang);
       const ok = window.confirm(
-        `「${model.label}」是必要元件。移除後對應功能將無法使用，確定繼續？\n` +
-          `"${model.label}" is required for some features. Remove anyway?`,
+        tNow('settings.model.confirmRequired', { name: model.label }),
       );
       if (!ok) return;
     }
@@ -75,27 +78,27 @@ function ModelRow({ model }: { model: ModelInfo }) {
         <div className="al-modelrow__name">
           {model.label}
           {model.recommended && (
-            <span className="al-modelrow__rec" title="建議下載 Recommended">
+            <span className="al-modelrow__rec" title={t('settings.model.recommendedTitle')}>
               <Star size={9} strokeWidth={2.5} style={{ display: 'inline', marginRight: 2 }} />
-              建議
+              {t('settings.model.recommended')}
             </span>
           )}
           {model.required && (
             <span
               className="al-modelrow__req"
-              title="必要元件 Required for this feature"
+              title={t('settings.model.requiredTitle')}
             >
-              必要
+              {t('settings.model.required')}
             </span>
           )}
         </div>
         <div className="al-modelrow__desc">{model.description}</div>
         <div className="al-modelrow__meta">
-          {(model.sizeMB / 1024).toFixed(1)} GB 下載 download ·{' '}
+          {(model.sizeMB / 1024).toFixed(1)} GB {t('settings.model.sizeDownload')} ·{' '}
           {model.vramHint}
           {model.sizeOnDiskMB > 0 && (
             <>
-              {' '}· 磁碟 disk {(model.sizeOnDiskMB / 1024).toFixed(1)} GB
+              {' '}· {t('settings.model.sizeDisk')} {(model.sizeOnDiskMB / 1024).toFixed(1)} GB
             </>
           )}
         </div>
@@ -105,7 +108,7 @@ function ModelRow({ model }: { model: ModelInfo }) {
           <div
             className="al-modelrow__prog"
             aria-live="polite"
-            aria-label={`下載進度 ${Math.round(pct)}%`}
+            aria-label={t('settings.model.downloadProgress', { pct: String(Math.round(pct)) })}
           >
             <ProgressBar value={pct} tone="gold" />
             <span className="al-modelrow__pct">
@@ -126,10 +129,10 @@ function ModelRow({ model }: { model: ModelInfo }) {
         {model.installed && !isDownloading && (
           <>
             <Badge tone="green" dot>
-              已安裝
+              {t('settings.model.installed')}
             </Badge>
             <IconButton
-              label={`移除 ${model.label} Remove`}
+              label={t('settings.model.removeLabel', { name: model.label })}
               size="sm"
               icon={<Trash2 size={14} />}
               onClick={handleRemove}
@@ -142,7 +145,7 @@ function ModelRow({ model }: { model: ModelInfo }) {
             icon={<Download size={14} />}
             onClick={handleDownload}
           >
-            下載
+            {t('settings.model.download')}
           </Button>
         )}
         {!model.installed && isError && (
@@ -152,7 +155,7 @@ function ModelRow({ model }: { model: ModelInfo }) {
             icon={<RefreshCw size={14} />}
             onClick={handleDownload}
           >
-            重試
+            {t('common.action.retry')}
           </Button>
         )}
         {isDownloading && (
@@ -167,6 +170,7 @@ function ModelRow({ model }: { model: ModelInfo }) {
 
 // ── main component ────────────────────────────────────────────────────────────
 export function ModelManager() {
+  const t = useT();
   const models = useModels((s) => s.models);
   const diskUsedMB = useModels((s) => s.diskUsedMB);
   const cacheDir = useModels((s) => s.cacheDir);
@@ -187,7 +191,7 @@ export function ModelManager() {
     return (
       <div className="al-panel al-models al-models--offline">
         <span className="al-models__offlinemsg">
-          後端離線 — 啟動伺服器後重整。Backend offline — start the server and refresh.
+          {t('settings.model.offline')}
         </span>
         <Button
           size="sm"
@@ -195,7 +199,7 @@ export function ModelManager() {
           icon={<RefreshCw size={13} />}
           onClick={() => void load()}
         >
-          重試 Retry
+          {t('common.action.retry')}
         </Button>
       </div>
     );
@@ -205,7 +209,7 @@ export function ModelManager() {
     return (
       <div className="al-panel al-models al-models--loading">
         <Loader2 size={16} className="al-spin" />
-        <span>讀取模型清單… Loading model list…</span>
+        <span>{t('settings.model.loading')}</span>
       </div>
     );
   }
@@ -224,8 +228,7 @@ export function ModelManager() {
       {grouped.map(({ kind, rows }) => (
         <div key={kind} className="al-models__group">
           <div className="al-models__grouplabel">
-            <span className="al-models__groupzh">{KIND_LABEL[kind].zh}</span>
-            <span className="al-models__groupen">{KIND_LABEL[kind].en}</span>
+            <span className="al-models__groupzh">{t(KIND_KEY[kind])}</span>
           </div>
           {rows.map((m) => (
             <ModelRow key={m.id} model={m} />
@@ -237,7 +240,7 @@ export function ModelManager() {
       <div className="al-models__foot">
         <span className="al-models__disk">
           <HardDrive size={12} className="al-models__diskicon" />
-          磁碟用量 Disk used:{' '}
+          {t('settings.model.diskUsed')}:{' '}
           <strong>{diskGb} GB</strong>
         </span>
         <span className="al-models__cache" title={cacheDir}>
@@ -253,8 +256,8 @@ export function ModelManager() {
           type="button"
           className="al-models__refresh"
           onClick={() => void load()}
-          title="重新整理模型列表 Refresh model list"
-          aria-label="重新整理模型列表"
+          title={t('settings.model.refreshTitle')}
+          aria-label={t('settings.model.refreshTitle')}
         >
           <RefreshCw size={12} />
         </button>

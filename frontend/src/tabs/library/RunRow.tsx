@@ -3,7 +3,8 @@ import { FileOutput, CopyPlus, Trash2, PenLine, Check, Scissors } from 'lucide-r
 import { Badge, IconButton } from '../../components/primitives';
 import { formatClock } from '../../lib/timecode';
 import type { RunRecord } from '../../state/useLibrary';
-import { MODE_LABEL, languageLabel, formatRunDate, relativeRunDate } from './runMeta';
+import { modeLabel, languageLabelT, formatRunDate, relativeRunDate } from './runMeta';
+import { useT } from '../../i18n';
 
 export interface RunRowProps {
   run: RunRecord;
@@ -21,6 +22,8 @@ export interface RunRowProps {
  * Shows which model + engine produced the run — a local-first trust signal.
  */
 export function RunRow({ run, onOpen, onReExport, onDuplicate, onDelete, sample = false }: RunRowProps) {
+  const t = useT();
+
   // Two-step delete so a stray click never destroys history.
   const [confirming, setConfirming] = useState(false);
 
@@ -40,6 +43,9 @@ export function RunRow({ run, onOpen, onReExport, onDuplicate, onDelete, sample 
   const wordCount = run.result.segments.reduce((n, s) => n + s.words.length, 0);
   const separated = run.result.meta.separated;
 
+  const modeLbl = modeLabel(run.mode, t);
+  const langLbl = languageLabelT(run.language, t);
+
   return (
     <div
       className={`al-runrow${sample ? ' al-runrow--sample' : ''}`}
@@ -47,19 +53,19 @@ export function RunRow({ run, onOpen, onReExport, onDuplicate, onDelete, sample 
       role="button"
       tabIndex={0}
       onKeyDown={onKeyDown}
-      aria-label={`${run.title} — ${MODE_LABEL[run.mode]}, ${languageLabel(run.language)}`}
+      aria-label={t('library.row.aria', { title: run.title, mode: modeLbl, lang: langLbl })}
     >
       {/* Title + sub-line (lang · words) */}
       <div className="al-runrow__name">
         <span className="al-runrow__title">{run.title}</span>
         <span className="al-runrow__sub">
-          <span className="al-runrow__lang">{languageLabel(run.language)}</span>
+          <span className="al-runrow__lang">{langLbl}</span>
           {wordCount > 0 && (
             <>
               <span className="al-runrow__dot" aria-hidden="true">
                 ·
               </span>
-              <span>{wordCount} 字 words</span>
+              <span>{t('library.row.wordCount', { count: wordCount })}</span>
             </>
           )}
           {separated && (
@@ -67,8 +73,11 @@ export function RunRow({ run, onOpen, onReExport, onDuplicate, onDelete, sample 
               <span className="al-runrow__dot" aria-hidden="true">
                 ·
               </span>
-              <span className="al-runrow__sep" title="已先分離人聲 Vocals separated (Demucs)">
-                <Scissors size={10} strokeWidth={2} /> 分離
+              <span
+                className="al-runrow__sep"
+                title={t('library.row.separated.title')}
+              >
+                <Scissors size={10} strokeWidth={2} /> {t('library.row.separated.label')}
               </span>
             </>
           )}
@@ -77,16 +86,16 @@ export function RunRow({ run, onOpen, onReExport, onDuplicate, onDelete, sample 
 
       {/* Mode — metadata, so neutral (gold is reserved for live/primary). */}
       <span className="al-runrow__mode">
-        <Badge tone="neutral">{MODE_LABEL[run.mode]}</Badge>
+        <Badge tone="neutral">{modeLbl}</Badge>
       </span>
 
       {/* Duration */}
-      <span className="al-runrow__cell al-runrow__dur" title="時長 Duration">
+      <span className="al-runrow__cell al-runrow__dur" title={t('library.row.durTitle')}>
         {formatClock(run.durationSec)}
       </span>
 
       {/* Which model + engine produced it — the trust signal. */}
-      <span className="al-runrow__engine" title="模型 · 引擎 Model · engine">
+      <span className="al-runrow__engine" title={t('library.row.engineTitle')}>
         <span className="al-runrow__model">{run.modelSize}</span>
         <span className="al-runrow__dot" aria-hidden="true">
           ·
@@ -95,17 +104,20 @@ export function RunRow({ run, onOpen, onReExport, onDuplicate, onDelete, sample 
       </span>
 
       {/* Date */}
-      <span className="al-runrow__cell al-runrow__date" title={relativeRunDate(run.createdAt)}>
+      <span
+        className="al-runrow__cell al-runrow__date"
+        title={relativeRunDate(run.createdAt, t)}
+      >
         {formatRunDate(run.createdAt)}
       </span>
 
       {/* Status — done is the only state a stored run can be in. Green = done. */}
       <span className="al-runrow__status">
         {sample ? (
-          <Badge tone="neutral">範例 Sample</Badge>
+          <Badge tone="neutral">{t('library.row.statusSample')}</Badge>
         ) : (
           <Badge tone="green" dot>
-            完成
+            {t('library.row.statusDone')}
           </Badge>
         )}
       </span>
@@ -114,9 +126,9 @@ export function RunRow({ run, onOpen, onReExport, onDuplicate, onDelete, sample 
       <span className="al-runrow__actions" onClick={(e) => e.stopPropagation()}>
         {confirming ? (
           <span className="al-runrow__confirm">
-            <span className="al-runrow__confirm-q">刪除？</span>
+            <span className="al-runrow__confirm-q">{t('library.row.confirmQ')}</span>
             <IconButton
-              label="確認刪除 Confirm delete"
+              label={t('library.row.confirmYes')}
               size="sm"
               icon={<Check size={14} />}
               className="al-runrow__confirm-yes"
@@ -126,7 +138,7 @@ export function RunRow({ run, onOpen, onReExport, onDuplicate, onDelete, sample 
               }}
             />
             <IconButton
-              label="取消 Cancel"
+              label={t('common.action.cancel')}
               size="sm"
               icon={<Trash2 size={14} />}
               onClick={() => setConfirming(false)}
@@ -135,27 +147,27 @@ export function RunRow({ run, onOpen, onReExport, onDuplicate, onDelete, sample 
         ) : (
           <>
             <IconButton
-              label="在編輯器開啟 Open in Editor"
+              label={t('library.row.openEditor')}
               size="sm"
               icon={<PenLine size={14} />}
               onClick={open}
               disabled={sample}
             />
             <IconButton
-              label="重新匯出 Re-export"
+              label={t('library.row.reExport')}
               size="sm"
               icon={<FileOutput size={14} />}
               onClick={() => onReExport(run)}
               disabled={sample}
             />
             <IconButton
-              label="複製設定 Duplicate settings"
+              label={t('library.row.dupSettings')}
               size="sm"
               icon={<CopyPlus size={14} />}
               onClick={() => onDuplicate(run)}
             />
             <IconButton
-              label="刪除 Delete"
+              label={t('library.row.delete')}
               size="sm"
               icon={<Trash2 size={14} />}
               className="al-runrow__del"

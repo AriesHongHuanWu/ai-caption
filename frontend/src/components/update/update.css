@@ -1,0 +1,162 @@
+/* ── UpdateBanner ── */
+
+.al-update-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--al-space-3);
+  padding: 0 var(--al-space-5);
+  min-height: 40px;
+  border-bottom: 1px solid var(--al-hairline);
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-dim);
+  flex-shrink: 0;
+  /* Slide down from above when it appears */
+  animation: al-banner-slide-in var(--al-dur-ease, 220ms) var(--al-ease-snap, cubic-bezier(.22,.68,0,1.2)) both;
+}
+
+@keyframes al-banner-slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* -- Variant: update available (gold accent) -------------------------------- */
+.al-update-banner--available {
+  background: var(--al-gold-glow, color-mix(in srgb, var(--al-gold) 10%, transparent));
+  border-bottom-color: color-mix(in srgb, var(--al-gold) 35%, transparent);
+}
+
+/* -- Variant: downloading (neutral) ---------------------------------------- */
+.al-update-banner--progress {
+  background: var(--al-surface);
+}
+
+/* -- Variant: error (error accent) ----------------------------------------- */
+.al-update-banner--error {
+  background: color-mix(in srgb, var(--al-error, #e55) 8%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--al-error, #e55) 30%, transparent);
+}
+
+/* -- Icon ------------------------------------------------------------------- */
+.al-update-banner__icon {
+  flex-shrink: 0;
+  color: var(--al-ink-muted);
+}
+.al-update-banner__icon--gold {
+  color: var(--al-gold);
+}
+.al-update-banner__icon--error {
+  color: var(--al-error, #e55);
+}
+
+/* -- Body text (available state: heading + optional notes) ------------------ */
+.al-update-banner__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.al-update-banner__heading {
+  font-weight: 600;
+  color: var(--al-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.al-update-banner__notes {
+  font-size: 11px;
+  color: var(--al-ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* -- Single-line message (progress / error states) -------------------------- */
+.al-update-banner__msg {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* -- Progress bar (downloading state) --------------------------------------- */
+.al-update-banner__bar {
+  width: 160px;
+  flex-shrink: 0;
+}
+
+/* -- Action buttons cluster ------------------------------------------------- */
+.al-update-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--al-space-2);
+  flex-shrink: 0;
+}
+
+/* -- Dismiss (X) button ----------------------------------------------------- */
+.al-update-banner__dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--al-ink-faint);
+  cursor: pointer;
+  border-radius: var(--al-radius-chip, 4px);
+  flex-shrink: 0;
+  transition: color var(--al-dur-snap, 120ms), background var(--al-dur-snap, 120ms);
+}
+.al-update-banner__dismiss:hover {
+  color: var(--al-ink);
+  background: var(--al-surface-2);
+}
+.al-update-banner__dismiss:focus-visible {
+  outline: 2px solid var(--al-gold);
+  outline-offset: 1px;
+}
+
+/* ── UpdateSettingsRow (inside SettingsTab) ── */
+.al-update-row {
+  display: flex;
+  align-items: center;
+  gap: var(--al-space-3);
+  flex-wrap: wrap;
+}
+.al-update-row__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.al-update-row__version {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-dim);
+}
+.al-update-row__label {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.al-update-row__status {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-muted);
+}
+.al-update-row__status--ok {
+  color: var(--al-green);
+}
+.al-update-row__status--available {
+  color: var(--al-gold);
+  font-weight: 600;
+}
+.al-update-row__status--error {
+  color: var(--al-error, #e55);
+}

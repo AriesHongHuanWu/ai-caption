@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { AlignLeft, Crosshair } from 'lucide-react';
+import { AlignLeft, Crosshair, Info } from 'lucide-react';
 import { TextAreaField } from '../../components/primitives';
+import { useT } from '../../i18n';
 
 export interface ReferenceEditorProps {
   value: string;
@@ -9,8 +10,12 @@ export interface ReferenceEditorProps {
   mode: 'biasing' | 'align';
 }
 
+/** Threshold: if user pastes this many lines under Biasing, nudge them toward Forced-Align. */
+const FULL_LYRICS_LINE_THRESHOLD = 8;
+
 /** Full-width serif reference-lyrics editor (line breaks preserved). */
 export function ReferenceEditor({ value, onChange, mode }: ReferenceEditorProps) {
+  const t = useT();
   const align = mode === 'align';
 
   const { lines, chars } = useMemo(() => {
@@ -21,9 +26,12 @@ export function ReferenceEditor({ value, onChange, mode }: ReferenceEditorProps)
     };
   }, [value]);
 
+  // Nudge hint: if under Biasing the user pastes many lines, it probably looks like full lyrics.
+  const showFullLyricsNudge = !align && lines >= FULL_LYRICS_LINE_THRESHOLD;
+
   const placeholder = align
-    ? '貼上完整歌詞，每行一句 — 換行會被保留。\nPaste the full lyrics, one line per phrase — every line break is honoured.'
-    : '貼上你記得的片段 — 不必完整。\nPaste whatever fragments you remember — partial is fine.';
+    ? t('transcribe.ref.placeholderAlign')
+    : t('transcribe.ref.placeholderBiasing');
 
   return (
     <div className="al-refeditor">
@@ -31,16 +39,16 @@ export function ReferenceEditor({ value, onChange, mode }: ReferenceEditorProps)
         <span className="al-refeditor__which">
           {align ? (
             <>
-              <Crosshair size={12} strokeWidth={2} /> 完整歌詞 · Full lyrics
+              <Crosshair size={12} strokeWidth={2} /> {t('transcribe.ref.fullLyrics')}
             </>
           ) : (
             <>
-              <AlignLeft size={12} strokeWidth={2} /> 片段歌詞 · Fragments
+              <AlignLeft size={12} strokeWidth={2} /> {t('transcribe.ref.fragments')}
             </>
           )}
         </span>
         <span className="al-refeditor__count">
-          {lines} 行 lines · {chars} 字 chars
+          {lines} {t('transcribe.ref.linesChars')} · {chars} {t('transcribe.ref.chars')}
         </span>
       </div>
 
@@ -49,15 +57,18 @@ export function ReferenceEditor({ value, onChange, mode }: ReferenceEditorProps)
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        hint={
-          align
-            ? '換行有意義 — 每行對齊一句。Line breaks are meaningful; each line aligns as one phrase.'
-            : '換行有意義。Line breaks are meaningful.'
-        }
+        hint={align ? t('transcribe.ref.hintAlign') : t('transcribe.ref.hintBiasing')}
         style={{ minHeight: align ? 184 : 148, fontSize: 'var(--al-text-lg)', lineHeight: 1.55 }}
         spellCheck={false}
-        aria-label={align ? '完整歌詞 Full lyrics' : '片段歌詞 Fragment lyrics'}
+        aria-label={align ? t('transcribe.ref.ariaAlign') : t('transcribe.ref.ariaFragments')}
       />
+
+      {showFullLyricsNudge && (
+        <div className="al-refeditor__nudge" role="status">
+          <Info size={12} strokeWidth={2} style={{ flexShrink: 0 }} />
+          <span>{t('transcribe.mode.biasing.fullLyricsHint')}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@
 import { create } from 'zustand';
 import { createJob, getJob } from '../api/jobs';
 import type { JobParams, JobStatusValue, Result } from '../api/types';
+import { makeT, useI18n } from '../i18n';
 
 const POLL_INTERVAL_MS = 700;
 
@@ -59,10 +60,14 @@ export const useJob = create<JobState>((set, get) => ({
     if (prevUrl) URL.revokeObjectURL(prevUrl);
 
     const objectUrl = URL.createObjectURL(audio);
+    // Resolve the queued label in the active language now (non-React store →
+    // makeT, same pattern App.tsx uses for the run title). The first backend
+    // poll overwrites `stage` with the server's value shortly after.
+    const tNow = makeT(useI18n.getState().lang);
     set({
       submitting: true,
       status: 'queued',
-      stage: '排隊中 Queued',
+      stage: tNow('transcribe.stage.queued'),
       pct: 0,
       message: '',
       result: null,

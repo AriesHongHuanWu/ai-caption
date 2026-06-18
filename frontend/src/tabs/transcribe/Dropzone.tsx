@@ -3,6 +3,7 @@ import { FileMusic, Replace, Waves, X } from 'lucide-react';
 import { IconButton } from '../../components/primitives';
 import { formatClock } from '../../lib/timecode';
 import { WaveformThumb } from './WaveformThumb';
+import { useT } from '../../i18n';
 
 export interface DropzoneProps {
   file: File | null;
@@ -44,6 +45,7 @@ function MetaFact({ k, v, tone }: { k: string; v: string; tone?: 'gold' }) {
 
 /** Typeset drop target → waveform thumbnail + parsed file-meta card. */
 export function Dropzone({ file, durationSec, onFile, onClear }: DropzoneProps) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const [rejected, setRejected] = useState(false);
@@ -79,22 +81,22 @@ export function Dropzone({ file, durationSec, onFile, onClear }: DropzoneProps) 
             {file.name}
           </div>
           <div className="al-filecard__facts">
-            <MetaFact k="格式 Format" v={ext} tone="gold" />
-            <MetaFact k="長度 Length" v={durationSec > 0 ? formatClock(durationSec) : '—'} />
-            <MetaFact k="大小 Size" v={prettyBytes(file.size)} />
-            <MetaFact k="聲道 Mix" v="↓ mono" />
+            <MetaFact k={t('transcribe.file.factFormat')} v={ext} tone="gold" />
+            <MetaFact k={t('transcribe.file.factLength')} v={durationSec > 0 ? formatClock(durationSec) : '—'} />
+            <MetaFact k={t('transcribe.file.factSize')} v={prettyBytes(file.size)} />
+            <MetaFact k={t('transcribe.file.factMix')} v="↓ mono" />
           </div>
         </div>
 
         <div className="al-filecard__actions">
           <IconButton
-            label="換一首 Replace file"
+            label={t('transcribe.file.replace')}
             icon={<Replace size={15} />}
             size="sm"
             onClick={pick}
           />
           <IconButton
-            label="移除檔案 Remove file"
+            label={t('transcribe.file.remove')}
             icon={<X size={16} />}
             size="sm"
             onClick={onClear}
@@ -133,7 +135,7 @@ export function Dropzone({ file, durationSec, onFile, onClear }: DropzoneProps) 
       }}
       role="button"
       tabIndex={0}
-      aria-label="拖放或選擇一首歌 Drop or choose a song file"
+      aria-label={t('transcribe.drop.ariaLabel')}
       aria-invalid={rejected || undefined}
       onDragOver={(e) => {
         e.preventDefault();
@@ -149,14 +151,14 @@ export function Dropzone({ file, durationSec, onFile, onClear }: DropzoneProps) 
       <span className="al-dropzone__icon" aria-hidden="true">
         <Waves size={26} strokeWidth={1.4} />
       </span>
-      <div className="al-dropzone__lead">拖一首歌進來 — 它會變成一頁。</div>
+      <div className="al-dropzone__lead">{t('transcribe.drop.lead')}</div>
       <div className="al-dropzone__sub" role="status" aria-live="polite">
         {rejected ? (
           <span className="al-dropzone__reject">
-            這不是音訊檔。Not an audio file — try MP3 · WAV · FLAC · M4A.
+            {t('transcribe.drop.reject')}
           </span>
         ) : (
-          <>Drop a song; it becomes a page. — MP3 · WAV · FLAC · M4A</>
+          <>{t('transcribe.drop.sub')}</>
         )}
       </div>
 

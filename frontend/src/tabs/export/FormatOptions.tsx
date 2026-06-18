@@ -7,6 +7,7 @@ import {
   type Encoding,
   type ExportConfig,
 } from './exportOptions';
+import { useT } from '../../i18n';
 
 export interface FormatOptionsProps {
   config: ExportConfig;
@@ -33,38 +34,39 @@ function OptionRow({ label, hint, children }: SegRowProps) {
 
 /** Per-format options — only the groups meaningful to the format are shown. */
 export function FormatOptions({ config, onChange }: FormatOptionsProps) {
+  const t = useT();
   const caps = capabilitiesFor(config.fmt);
+
+  const sweepOptions: [AssSweepStyle, string][] = [
+    ['gradient', t('export.sweepGradient')],
+    ['wipe', t('export.sweepWipe')],
+    ['fill', t('export.sweepFill')],
+  ];
 
   return (
     <div className="al-options">
       {caps.level && (
-        <OptionRow label="層級 Level">
+        <OptionRow label={t('export.optLevel')}>
           <Pill
             active={config.level === 'line'}
             onClick={() => onChange({ level: 'line' as ExportLevel })}
-            title="一行一個時間標記 One stamp per line"
+            title={t('export.optLevelLineTitle')}
           >
-            逐行 Line
+            {t('export.levelLine')}
           </Pill>
           <Pill
             active={config.level === 'word'}
             onClick={() => onChange({ level: 'word' as ExportLevel })}
-            title="每字一個時間標記 Per-word stamps"
+            title={t('export.optLevelWordTitle')}
           >
-            逐字 Word
+            {t('export.levelWord')}
           </Pill>
         </OptionRow>
       )}
 
       {caps.sweep && (
-        <OptionRow label="掃動 Sweep" hint="preview only">
-          {(
-            [
-              ['gradient', '漸層 Gradient'],
-              ['wipe', '抹過 Wipe'],
-              ['fill', '填滿 Fill'],
-            ] as [AssSweepStyle, string][]
-          ).map(([key, lbl]) => (
+        <OptionRow label={t('export.optSweep')} hint="preview only">
+          {sweepOptions.map(([key, lbl]) => (
             <Pill
               key={key}
               active={config.assSweep === key}
@@ -77,18 +79,18 @@ export function FormatOptions({ config, onChange }: FormatOptionsProps) {
       )}
 
       {caps.precision && (
-        <OptionRow label="精度 Precision">
+        <OptionRow label={t('export.optPrecision')}>
           <Pill
             active={!config.precisionMs}
             onClick={() => onChange({ precisionMs: false })}
-            title="百分之一秒 Centisecond (native LRC/ASS)"
+            title={t('export.precisionCsTitle')}
           >
             10 ms · cs
           </Pill>
           <Pill
             active={config.precisionMs}
             onClick={() => onChange({ precisionMs: true })}
-            title="毫秒 Millisecond"
+            title={t('export.precisionMsTitle')}
           >
             1 ms
           </Pill>
@@ -96,7 +98,7 @@ export function FormatOptions({ config, onChange }: FormatOptionsProps) {
       )}
 
       {caps.encoding && (
-        <OptionRow label="編碼 Encoding">
+        <OptionRow label={t('export.optEncoding')}>
           {(
             [
               ['utf-8', 'UTF-8'],
@@ -109,8 +111,8 @@ export function FormatOptions({ config, onChange }: FormatOptionsProps) {
               onClick={() => onChange({ encoding: key })}
               title={
                 key === 'utf-8-bom'
-                  ? '加上 BOM — 部分舊播放器需要 Adds a BOM for legacy players'
-                  : '純 UTF-8'
+                  ? t('export.encodingBomTitle')
+                  : t('export.encodingUtf8Title')
               }
             >
               {lbl}

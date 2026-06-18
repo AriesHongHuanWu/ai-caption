@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { Sparkles, Target, Crosshair, type LucideIcon } from 'lucide-react';
 import { ProgressBar } from '../../components/primitives';
+import { useT } from '../../i18n';
 import type { JobMode } from '../../api/types';
 
 export interface ModeCardsProps {
@@ -14,45 +15,23 @@ export interface ModeCardsProps {
 
 interface ModeDef {
   key: JobMode;
-  zh: string;
-  en: string;
+  /** i18n key prefix — we look up .zh (title) / .desc / .meterNote from it. */
+  i18nPrefix: string;
   icon: LucideIcon;
-  desc: string;
-  /** Plain-language note describing what the meter is reading. */
-  meterNote: string;
 }
 
 const MODES: ModeDef[] = [
-  {
-    key: 'auto',
-    zh: '自動辨識',
-    en: 'Auto',
-    icon: Sparkles,
-    desc: '什麼都不貼 — 乾淨的逐字轉錄。Nothing to paste; pure transcription.',
-    meterNote: '只需要一首歌 Just needs a song',
-  },
-  {
-    key: 'biasing',
-    zh: '偏向',
-    en: 'Biasing',
-    icon: Target,
-    desc: '貼片段歌詞 + 風格提示 — 引導辨識器。Fragments + style hint guide it.',
-    meterNote: '加風格與片段更準 Style + fragments sharpen it',
-  },
-  {
-    key: 'align',
-    zh: '強制對齊',
-    en: 'Forced-Align',
-    icon: Crosshair,
-    desc: '貼完整歌詞 — 近乎完美的逐字時間。Full lyrics → near-perfect timing.',
-    meterNote: '貼越完整，越接近完美 The fuller the lyrics, the better',
-  },
+  { key: 'auto',    i18nPrefix: 'transcribe.mode.auto',    icon: Sparkles  },
+  { key: 'biasing', i18nPrefix: 'transcribe.mode.biasing', icon: Target    },
+  { key: 'align',   i18nPrefix: 'transcribe.mode.align',   icon: Crosshair },
 ];
 
 const ORDER: JobMode[] = ['auto', 'biasing', 'align'];
 
 /** Three first-class mode cards, each with a plain-language readiness meter. */
 export function ModeCards({ value, onChange, alignerEnabled, readiness }: ModeCardsProps) {
+  const t = useT();
+
   const refs = useRef<Record<JobMode, HTMLButtonElement | null>>({
     auto: null,
     biasing: null,
@@ -80,13 +59,18 @@ export function ModeCards({ value, onChange, alignerEnabled, readiness }: ModeCa
   };
 
   return (
-    <div className="al-modecards" role="radiogroup" aria-label="辨識模式 Recognition mode">
+    <div
+      className="al-modecards"
+      role="radiogroup"
+      aria-label={t('transcribe.mode.radiogroup')}
+    >
       {MODES.map((m) => {
         const disabled = isDisabled(m.key);
         const active = value === m.key;
         const r = Math.round((readiness[m.key] ?? 0) * 100);
         const Icon = m.icon;
         const ready = r >= 80;
+        const label = t(`${m.i18nPrefix}.zh`);
         return (
           <button
             key={m.key}
@@ -101,25 +85,22 @@ export function ModeCards({ value, onChange, alignerEnabled, readiness }: ModeCa
             role="radio"
             aria-checked={active}
             tabIndex={active ? 0 : -1}
-            title={
-              disabled ? '此機器未提供強制對齊 Aligner unavailable' : `${m.zh} · ${m.en}`
-            }
+            title={disabled ? t('transcribe.mode.alignerUnavailable') : label}
           >
             <div className="al-modecard__head">
               <span className="al-modecard__icon" aria-hidden="true">
                 <Icon size={17} strokeWidth={1.75} />
               </span>
               <span className="al-modecard__titles">
-                <span className="al-modecard__title">{m.zh}</span>
-                <span className="al-modecard__en">{m.en}</span>
+                <span className="al-modecard__title">{label}</span>
               </span>
             </div>
 
-            <span className="al-modecard__desc">{m.desc}</span>
+            <span className="al-modecard__desc">{t(`${m.i18nPrefix}.desc`)}</span>
 
             <div className="al-readiness">
               <div className="al-readiness__label">
-                <span>{m.meterNote}</span>
+                <span>{t(`${m.i18nPrefix}.meterNote`)}</span>
                 <span className={ready ? 'al-readiness__pct--ready' : ''}>{r}%</span>
               </div>
               <ProgressBar value={r} tone={ready ? 'green' : 'gold'} />

@@ -1,0 +1,54 @@
+/* ──────────────────────────────────────────────────────────────────
+   LanguageToggle — segmented 中 / EN. Mono caps, one hairline outline,
+   gold-tinted active segment. Reads as a sibling of the StatusStrip
+   chips, never louder than the GPU badge.
+   ────────────────────────────────────────────────────────────────── */
+
+.al-langtoggle {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--al-hairline-strong);
+  border-radius: var(--al-radius-chip);
+  overflow: hidden;
+  background: var(--al-surface);
+}
+
+.al-langtoggle__seg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 20px;
+  padding: 0 7px;
+  border: none;
+  background: transparent;
+  color: var(--al-ink-faint);
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color var(--al-dur-focus) var(--al-ease-ink),
+    background var(--al-dur-focus) var(--al-ease-ink);
+}
+
+/* hairline divider between the two segments */
+.al-langtoggle__seg + .al-langtoggle__seg {
+  border-left: 1px solid var(--al-hairline);
+}
+
+.al-langtoggle__seg:hover:not(.al-langtoggle__seg--active) {
+  color: var(--al-ink-dim);
+  background: var(--al-surface-2);
+}
+
+.al-langtoggle__seg--active {
+  color: var(--al-gold);
+  background: var(--al-gold-glow);
+}
+
+.al-langtoggle__seg:focus-visible {
+  outline: 1px solid var(--al-gold);
+  outline-offset: -1px;
+}

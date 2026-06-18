@@ -1,5 +1,6 @@
 import { Cpu, Zap } from 'lucide-react';
 import { Badge, ProgressBar } from '../../components/primitives';
+import { useT } from '../../i18n';
 
 export interface GpuReadoutProps {
   online: boolean;
@@ -25,9 +26,15 @@ export function GpuReadout({
   vramTotalGb,
   cudaBuild,
 }: GpuReadoutProps) {
+  const t = useT();
   const liveGpu = online && gpu;
   const name =
-    gpuName ?? (liveGpu ? 'NVIDIA GeForce RTX 5060' : online ? 'CPU only · 無獨立 GPU' : '未連線 · 啟動後端以讀取');
+    gpuName ??
+    (liveGpu
+      ? 'NVIDIA GeForce RTX 5060'
+      : online
+        ? t('settings.gpu.cpuOnly')
+        : t('settings.gpu.notConnected'));
 
   const total = vramTotalGb ?? 8; // RTX 5060 8 GB target
   const used = vramUsedGb ?? (liveGpu ? 0 : 0);
@@ -49,15 +56,15 @@ export function GpuReadout({
         {online ? (
           gpu ? (
             <Badge tone="green" dot>
-              GPU online
+              {t('settings.gpu.badgeOnline')}
             </Badge>
           ) : (
             <Badge tone="neutral" dot>
-              CPU only
+              {t('settings.gpu.badgeCpuOnly')}
             </Badge>
           )
         ) : (
-          <Badge>離線 Offline</Badge>
+          <Badge>{t('settings.gpu.badgeOffline')}</Badge>
         )}
       </div>
 
@@ -74,17 +81,17 @@ export function GpuReadout({
         {!hasLiveVram && (
           <span className="al-gpu__vram-foot">
             {liveGpu
-              ? `${total.toFixed(0)} GB 總容量 · 即時用量見工作管理員 total capacity`
+              ? t('settings.gpu.vramTotal', { total: total.toFixed(0) })
               : online
-                ? 'CPU 模式 · 無 VRAM。CPU mode — no VRAM.'
-                : '後端離線 — 啟動後讀取。Backend offline.'}
+                ? t('settings.gpu.cpuMode')
+                : t('settings.gpu.backendOffline')}
           </span>
         )}
       </div>
 
       <div className="al-gpu__note">
         CUDA build: <span className="al-gpu__build">{cudaBuild ?? 'cu128 · Blackwell (sm_120)'}</span>
-        {' '}— 為 8 GB 卡優化 tuned for 8 GB cards.
+        {' '}— {t('settings.gpu.cudaNote')}
       </div>
     </div>
   );

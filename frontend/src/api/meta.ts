@@ -11,25 +11,29 @@ import type { Meta } from './types';
  * gpu/demucs/aligner default to `true` so the full feature surface shows;
  * the StatusStrip separately reflects real connectivity.
  */
+// NOTE: the `label` fields below are only a last-resort fallback for unknown
+// server keys/codes. The Transcribe UI renders localized labels via i18n keys
+// (transcribe.style.<key> / library.lang.<code>) for every known entry, so
+// these labels are single-language by design — never inline-bilingual.
 export const FALLBACK_META: Meta = {
   styles: [
-    { key: 'pop', label: '流行 Pop' },
-    { key: 'ballad', label: '抒情 Ballad' },
-    { key: 'rock', label: '搖滾 Rock' },
-    { key: 'rap', label: '饒舌 Rap / Hip-hop' },
-    { key: 'electronic', label: '電子 Electronic' },
-    { key: 'folk', label: '民謠 Folk' },
+    { key: 'pop', label: 'Pop' },
+    { key: 'ballad', label: 'Ballad' },
+    { key: 'rock', label: 'Rock' },
+    { key: 'rap', label: 'Rap / Hip-hop' },
+    { key: 'electronic', label: 'Electronic' },
+    { key: 'folk', label: 'Folk' },
     { key: 'rnb', label: 'R&B / Soul' },
-    { key: 'jazz', label: '爵士 Jazz' },
-    { key: 'classical', label: '古典 Classical' },
-    { key: 'kids', label: '兒歌 Kids' },
+    { key: 'jazz', label: 'Jazz' },
+    { key: 'classical', label: 'Classical' },
+    { key: 'kids', label: 'Kids' },
   ],
   languages: [
-    { code: 'zh', label: '中文國語 Mandarin', iso3: 'zho' },
-    { code: 'yue', label: '粵語 Cantonese', iso3: 'yue' },
+    { code: 'zh', label: 'Mandarin', iso3: 'zho' },
+    { code: 'yue', label: 'Cantonese', iso3: 'yue' },
     { code: 'en', label: 'English', iso3: 'eng' },
-    { code: 'ja', label: '日本語 Japanese', iso3: 'jpn' },
-    { code: 'ko', label: '한국어 Korean', iso3: 'kor' },
+    { code: 'ja', label: 'Japanese', iso3: 'jpn' },
+    { code: 'ko', label: 'Korean', iso3: 'kor' },
   ],
   modelSizes: ['large-v3', 'medium', 'small'],
   engines: ['whisper'],

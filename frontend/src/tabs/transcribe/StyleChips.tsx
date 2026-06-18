@@ -12,6 +12,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { Pill, TextAreaField } from '../../components/primitives';
+import { useT } from '../../i18n';
 import type { StyleOption } from '../../api/types';
 
 export interface StyleChipsProps {
@@ -40,6 +41,21 @@ function iconFor(key: string): ReactNode {
   return STYLE_ICON[key] ?? <Tag size={12} strokeWidth={2} />;
 }
 
+// Genre keys we ship a localized label for. Unknown server keys fall back to
+// the raw meta label so a custom backend genre still renders something.
+const KNOWN_STYLE_KEYS = new Set([
+  'pop',
+  'ballad',
+  'rock',
+  'rap',
+  'electronic',
+  'folk',
+  'rnb',
+  'jazz',
+  'classical',
+  'kids',
+]);
+
 /** Genre pill chips + freeform content hint → styleKeys + referenceContent. */
 export function StyleChips({
   styles,
@@ -48,10 +64,12 @@ export function StyleChips({
   contentHint,
   onContentHint,
 }: StyleChipsProps) {
+  const t = useT();
+
   return (
     <div className="al-stylechips">
       <div className="al-stylechips__label">
-        風格 Style
+        {t('transcribe.style.label')}
         {selected.length > 0 && (
           <span className="al-stylechips__count"> · {selected.length}</span>
         )}
@@ -64,17 +82,17 @@ export function StyleChips({
             onClick={() => onToggle(s.key)}
             icon={iconFor(s.key)}
           >
-            {s.label}
+            {KNOWN_STYLE_KEYS.has(s.key) ? t(`transcribe.style.${s.key}`) : s.label}
           </Pill>
         ))}
       </div>
 
       <TextAreaField
-        label="內容提示 Content hint"
+        label={t('transcribe.style.contentHintLabel')}
         value={contentHint}
         onChange={(e) => onContentHint(e.target.value)}
-        placeholder="例如：歌名、歌手、專有名詞、副歌關鍵字… e.g. title, artist, proper nouns, hook keywords…"
-        hint="自由文字 — 餵給辨識器當偏向線索。Freeform — biases the recognizer toward these words."
+        placeholder={t('transcribe.style.contentHintPlaceholder')}
+        hint={t('transcribe.style.contentHintHint')}
         style={{ minHeight: 68 }}
         spellCheck={false}
       />

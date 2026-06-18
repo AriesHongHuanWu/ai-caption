@@ -1,6 +1,7 @@
 import { Globe, Languages, Layers, Scissors, SlidersHorizontal } from 'lucide-react';
 import { Pill, SelectField } from '../../components/primitives';
 import type { ExportFormat, JobMode, LanguageOption, ModelSize } from '../../api/types';
+import { useT } from '../../i18n';
 
 export interface DefaultsValue {
   modelSize: ModelSize;
@@ -22,12 +23,6 @@ export interface DefaultsPanelProps {
 
 const AUTO = '__auto__';
 
-const MODE_LABEL: Record<JobMode, string> = {
-  auto: 'Auto · 純辨識',
-  biasing: 'Biasing · 提示',
-  align: 'Forced-Align · 對齊',
-};
-
 const FMT_LABEL: Record<ExportFormat, string> = {
   lrc: 'LRC',
   srt: 'SRT',
@@ -48,12 +43,14 @@ export function DefaultsPanel({
   alignerAvailable,
   onChange,
 }: DefaultsPanelProps) {
+  const t = useT();
+
   return (
     <div className="al-defaults">
       <div className="al-settings__grid">
         <SelectField
-          label="預設模型 Default model"
-          hint="新工作預先選好的大小"
+          label={t('settings.defaults.modelLabel')}
+          hint={t('settings.defaults.modelHint')}
           value={value.modelSize}
           onChange={(e) => onChange({ modelSize: e.target.value as ModelSize })}
         >
@@ -65,14 +62,14 @@ export function DefaultsPanel({
         </SelectField>
 
         <SelectField
-          label="預設語言 Default language"
-          hint="留空則自動偵測"
+          label={t('settings.defaults.langLabel')}
+          hint={t('settings.defaults.langHint')}
           value={value.language ?? AUTO}
           onChange={(e) =>
             onChange({ language: e.target.value === AUTO ? null : e.target.value })
           }
         >
-          <option value={AUTO}>Auto-detect · 自動偵測</option>
+          <option value={AUTO}>{t('settings.defaults.langAuto')}</option>
           {languages.map((l) => (
             <option key={l.code} value={l.code}>
               {l.label}
@@ -81,22 +78,22 @@ export function DefaultsPanel({
         </SelectField>
 
         <SelectField
-          label="預設模式 Default mode"
-          hint="辨識頁開啟時的起手式"
+          label={t('settings.defaults.modeLabel')}
+          hint={t('settings.defaults.modeHint')}
           value={value.mode}
           onChange={(e) => onChange({ mode: e.target.value as JobMode })}
         >
-          <option value="auto">{MODE_LABEL.auto}</option>
-          <option value="biasing">{MODE_LABEL.biasing}</option>
+          <option value="auto">Auto · {t('settings.mode.auto')}</option>
+          <option value="biasing">Biasing · {t('settings.mode.biasing')}</option>
           <option value="align" disabled={!alignerAvailable}>
-            {MODE_LABEL.align}
-            {!alignerAvailable ? ' (無對齊器)' : ''}
+            Forced-Align · {t('settings.mode.align')}
+            {!alignerAvailable ? ` ${t('settings.mode.alignUnavail')}` : ''}
           </option>
         </SelectField>
 
         <SelectField
-          label="預設匯出 Default export"
-          hint="匯出頁的起始格式"
+          label={t('settings.defaults.exportLabel')}
+          hint={t('settings.defaults.exportHint')}
           value={value.exportFormat}
           onChange={(e) => onChange({ exportFormat: e.target.value as ExportFormat })}
         >
@@ -116,29 +113,29 @@ export function DefaultsPanel({
           disabled={!demucsAvailable}
           title={
             demucsAvailable
-              ? '新工作預設先用 Demucs 分離人聲'
-              : '此機未提供 Demucs separation'
+              ? t('settings.defaults.demucsTitle')
+              : t('settings.defaults.demucsUnavailTitle')
           }
         >
-          預設分離人聲 · Default to Demucs separation
+          {t('settings.defaults.demucsOn')}
         </Pill>
         {!demucsAvailable && (
-          <span className="al-defaults__gate">此機未安裝 Demucs · unavailable</span>
+          <span className="al-defaults__gate">{t('settings.defaults.demucsUnavail')}</span>
         )}
       </div>
 
       <ul className="al-defaults__legend" aria-hidden="true">
         <li>
-          <SlidersHorizontal size={12} /> 預設值會自動帶入辨識與匯出頁
+          <SlidersHorizontal size={12} /> {t('settings.defaults.legendSeed')}
         </li>
         <li>
-          <Languages size={12} /> 語言
+          <Languages size={12} /> {t('settings.defaults.legendLang')}
         </li>
         <li>
-          <Layers size={12} /> 模式
+          <Layers size={12} /> {t('settings.defaults.legendMode')}
         </li>
         <li>
-          <Globe size={12} /> 全部留在本機
+          <Globe size={12} /> {t('settings.defaults.legendLocal')}
         </li>
       </ul>
     </div>

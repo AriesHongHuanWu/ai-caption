@@ -22,6 +22,7 @@ import { create } from 'zustand';
 import { listModels, downloadModel, getModelJob, deleteModel } from '../api/models';
 import type { ModelInfo, ModelKind, ModelsResponse } from '../api/types';
 import { ApiError } from '../api/client';
+import { makeT, useI18n } from '../i18n';
 
 export interface PerIdProgress {
   pct: number;
@@ -120,11 +121,13 @@ export const useModels = create<ModelsState>((set, get) => ({
     const existing = get().perId[id];
     if (existing?.status === 'running') return;
 
-    // Optimistic UI: mark as running immediately
+    // Optimistic UI: mark as running immediately. Resolve the label in the
+    // active language now (non-React store → makeT like ModelManager does).
+    const tNow = makeT(useI18n.getState().lang);
     set((s) => ({
       perId: {
         ...s.perId,
-        [id]: { pct: 0, message: '準備中…', status: 'running' },
+        [id]: { pct: 0, message: tNow('settings.model.preparing'), status: 'running' },
       },
     }));
 
@@ -183,7 +186,7 @@ export const useModels = create<ModelsState>((set, get) => ({
         failures += 1;
         if (failures >= MAX_POLL_FAILURES) {
           stopPoll(id);
-          const message = '與後端的連線中斷，下載狀態已遺失。Lost connection to backend.';
+          const message = makeT(useI18n.getState().lang)('settings.model.lostConnection');
           set((s) => ({
             perId: {
               ...s.perId,

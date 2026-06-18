@@ -4,6 +4,7 @@ import { peaksToPath, visibleWindow } from '../../lib/waveform';
 import { magnetize } from '../../lib/onset';
 import type { Onset } from '../../lib/onset';
 import { formatTimecode } from '../../lib/timecode';
+import { useT } from '../../i18n';
 
 export interface BoundaryMarker {
   id: 'start' | 'end';
@@ -48,6 +49,7 @@ export function WaveformStrip({
   onsets,
   magnetWindow = 0.08,
 }: WaveformStripProps) {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   const W = 1000; // viewBox width; SVG scales to container
   const dur = duration || peaks?.duration || 0;
@@ -137,7 +139,7 @@ export function WaveformStrip({
         onSeek(xToTime(e.clientX));
       }}
       role="slider"
-      aria-label="波形時間軸 Waveform seek"
+      aria-label={t('editor.waveform.ariaLabel')}
       aria-valuemin={Math.round(win.start)}
       aria-valuemax={Math.round(win.end)}
       aria-valuenow={Math.round(currentTime)}
@@ -207,7 +209,7 @@ export function WaveformStrip({
             } ${drag?.id === m.id && drag.snapped ? 'is-snapped' : ''}`}
             style={{ left: `${timeToPct(live) * 100}%` }}
             role="slider"
-            aria-label={m.id === 'start' ? '起點邊界 Start boundary' : '終點邊界 End boundary'}
+            aria-label={m.id === 'start' ? t('editor.waveform.startBoundary') : t('editor.waveform.endBoundary')}
             aria-valuemin={Math.round(win.start * 1000)}
             aria-valuemax={Math.round(win.end * 1000)}
             aria-valuenow={Math.round(live * 1000)}

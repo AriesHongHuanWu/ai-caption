@@ -1,4 +1,5 @@
 import { Search, X } from 'lucide-react';
+import { useT } from '../../i18n';
 
 export interface RunSearchProps {
   value: string;
@@ -14,6 +15,7 @@ export interface RunSearchProps {
  * Quiet, single-line. A clear button appears once there's a query.
  */
 export function RunSearch({ value, onChange, count, total }: RunSearchProps) {
+  const t = useT();
   const filtering = value.trim().length > 0;
   return (
     <div className="al-runsearch" role="search">
@@ -21,10 +23,10 @@ export function RunSearch({ value, onChange, count, total }: RunSearchProps) {
       <input
         type="search"
         className="al-runsearch__input"
-        placeholder="搜尋名稱 / 模式 / 語言 — Search name, mode, language"
+        placeholder={t('library.search.placeholder')}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        aria-label="搜尋紀錄 Search runs"
+        aria-label={t('library.search.aria')}
         spellCheck={false}
         autoComplete="off"
       />
@@ -36,8 +38,8 @@ export function RunSearch({ value, onChange, count, total }: RunSearchProps) {
           type="button"
           className="al-runsearch__clear"
           onClick={() => onChange('')}
-          aria-label="清除搜尋 Clear search"
-          title="清除 Clear"
+          aria-label={t('library.search.clearAria')}
+          title={t('library.search.clearTitle')}
         >
           <X size={14} />
         </button>

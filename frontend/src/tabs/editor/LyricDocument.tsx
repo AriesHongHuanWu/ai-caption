@@ -3,6 +3,7 @@ import type { Result, Segment, Word } from '../../api/types';
 import type { WordRef } from '../../state/useResultStore';
 import { WordSweep } from './WordSweep';
 import { wordClass } from './ConfidenceMark';
+import { useT } from '../../i18n';
 
 export interface LyricDocumentProps {
   result: Result;
@@ -53,6 +54,7 @@ export function LyricDocument({
   onSeek,
   onSelectWord,
 }: LyricDocumentProps) {
+  const t = useT();
   const segments = result.segments;
   const activeIdx = activeSegmentIndex(segments, currentTime);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -82,7 +84,7 @@ export function LyricDocument({
       ref={scrollRef}
       className={`al-doc ${flat ? 'al-doc--flat' : ''}`}
       role="listbox"
-      aria-label="歌詞文件 Lyric document"
+      aria-label={t('editor.doc.ariaLabel')}
       aria-activedescendant={`al-line-${segments[activeIdx]?.id ?? 0}`}
       tabIndex={0}
       onKeyDown={(e) => {
@@ -127,7 +129,7 @@ export function LyricDocument({
                       className={wordClass(word, { selected: isSel, passing, sung })}
                       role="button"
                       tabIndex={0}
-                      aria-label={`${word.word} — 編輯時間 edit timing`}
+                      aria-label={t('editor.doc.wordAriaLabel', { word: word.word })}
                       aria-pressed={isSel}
                       onClick={(e) => {
                         e.stopPropagation();

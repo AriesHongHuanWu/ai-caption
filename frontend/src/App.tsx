@@ -14,6 +14,8 @@ import { useLibrary } from './state/useLibrary';
 import { useModels } from './state/useModels';
 import { useSetup } from './state/useSetup';
 import { SetupScreen } from './components/setup/SetupScreen';
+import { makeT, useI18n } from './i18n';
+import { UpdateBanner } from './components/update/UpdateBanner';
 
 const COLLAPSE_WIDTH = 900;
 
@@ -91,7 +93,10 @@ export default function App() {
   const addRun = useLibrary((s) => s.add);
   useEffect(() => {
     if (jobStatus === 'done' && jobResult) {
-      const title = audioFile?.name.replace(/\.[^.]+$/, '') ?? 'Untitled run';
+      // Read the active language non-reactively (this runs in an effect, not
+      // render) so the persisted run title matches the current UI language.
+      const t = makeT(useI18n.getState().lang);
+      const title = audioFile?.name.replace(/\.[^.]+$/, '') ?? t('common.untitledRun');
       addRun({
         id: jobId ?? `local-${Date.now()}`,
         title,
@@ -120,6 +125,10 @@ export default function App() {
 
   return (
     <AppFrame>
+      {/* Update banner sits above the shell row so it spans the full width
+          between the titlebar and the content area. Only renders in Tauri
+          when an update is found (or during download / on error). */}
+      <UpdateBanner />
       <div className="al-shell">
         <TabRail active={tab} onChange={setTab} collapsed={collapsed} />
         <div className="al-main">

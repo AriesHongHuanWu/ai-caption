@@ -13,8 +13,11 @@ import { useMeta } from '../../state/useMeta';
 import { useModels } from '../../state/useModels';
 import { useSettings } from '../../state/useSettings';
 import type { Device, Engine } from '../../api/types';
+import { useT } from '../../i18n';
+import { UpdateSettingsRow } from '../../components/update/UpdateSettingsRow';
 
 export function SettingsTab() {
+  const t = useT();
   const meta = useMeta((s) => s.meta);
   const online = useMeta((s) => s.online);
   const defaults = useSettings((s) => s.defaults);
@@ -42,27 +45,24 @@ export function SettingsTab() {
   return (
     <div className="al-tabpage">
       <div className="al-tabpage__head">
-        <h1 className="al-tabpage__title">設定 · Settings</h1>
-        <p className="al-tabpage__lede">
-          本機控制室 — 引擎、硬體、模型管理、預設值。一切都留在這台機器上。
-          The local-first control room — engine, hardware, model manager, defaults.
-        </p>
+        <h1 className="al-tabpage__title">{t('settings.title')}</h1>
+        <p className="al-tabpage__lede">{t('settings.lede')}</p>
       </div>
 
       <div className="al-settings">
         {/* ── HARDWARE ── */}
         <section className="al-settings__group">
-          <Eyebrow num={1}>Hardware · 硬體</Eyebrow>
+          <Eyebrow num={1}>{t('settings.hardware')}</Eyebrow>
           <GpuReadout online={online} gpu={meta.gpu} />
         </section>
 
         {/* ── ENGINE / DEVICE ── */}
         <section className="al-settings__group">
-          <Eyebrow num={2}>Engine &amp; Device · 引擎與裝置</Eyebrow>
+          <Eyebrow num={2}>{t('settings.engineDevice')}</Eyebrow>
           <div className="al-settings__pair">
             <div className="al-settings__field">
               <label className="al-settings__caption">
-                <Cpu size={13} /> 引擎 Engine
+                <Cpu size={13} /> {t('settings.captionEngine')}
               </label>
               <EnginePicker
                 engines={meta.engines}
@@ -72,7 +72,7 @@ export function SettingsTab() {
             </div>
             <div className="al-settings__field">
               <label className="al-settings__caption">
-                <Layers3 size={13} /> 運算裝置 Device
+                <Layers3 size={13} /> {t('settings.captionDevice')}
               </label>
               <DevicePicker
                 value={defaults.device}
@@ -85,7 +85,7 @@ export function SettingsTab() {
 
         {/* ── MODEL SIZE ── */}
         <section className="al-settings__group">
-          <Eyebrow num={3}>Model size · 模型大小</Eyebrow>
+          <Eyebrow num={3}>{t('settings.modelSize')}</Eyebrow>
           <ModelSizePicker
             modelSizes={meta.modelSizes}
             value={defaults.modelSize}
@@ -96,22 +96,22 @@ export function SettingsTab() {
 
         {/* ── MODEL MANAGER ── */}
         <section className="al-settings__group">
-          <Eyebrow num={4}>Models · 模型管理</Eyebrow>
+          <Eyebrow num={4}>{t('settings.models')}</Eyebrow>
           <ModelManager />
         </section>
 
         {/* ── DEFAULTS ── */}
         <section className="al-settings__group">
           <div className="al-settings__grouphead">
-            <Eyebrow num={5}>Defaults · 預設值</Eyebrow>
+            <Eyebrow num={5}>{t('settings.defaults')}</Eyebrow>
             <Button
               variant="ghost"
               size="sm"
               icon={<RotateCcw size={13} />}
               onClick={resetDefaults}
-              title="還原所有預設值 Reset all defaults"
+              title={t('settings.resetTitle')}
             >
-              還原 Reset
+              {t('settings.resetAll')}
             </Button>
           </div>
           <DefaultsPanel
@@ -124,41 +124,43 @@ export function SettingsTab() {
           />
         </section>
 
+        {/* ── APP UPDATE ── */}
+        <section className="al-settings__group">
+          <Eyebrow num={6}>{t('update.settingsEyebrow')}</Eyebrow>
+          <UpdateSettingsRow />
+        </section>
+
         {/* ── LOCAL ASSURANCE ── */}
         <section className="al-settings__group">
-          <Eyebrow num={6}>Privacy · 本機保證</Eyebrow>
+          <Eyebrow num={7}>{t('settings.privacy')}</Eyebrow>
           <div className="al-panel al-assurance">
             <div className="al-assurance__lead">
               <ShieldCheck size={16} className="al-assurance__shield" />
-              <span>
-                一切都在這台機器上 — 不會外傳。沒有雲端、沒有遙測。
-                <br />
-                Everything runs locally — no cloud, no telemetry, no account.
-              </span>
+              <span>{t('settings.assuranceLead')}</span>
             </div>
             <dl className="al-assurance__paths">
               <div className="al-assurance__path">
                 <dt>
-                  <FolderLock size={12} /> 資料夾 Data folder
+                  <FolderLock size={12} /> {t('settings.pathData')}
                 </dt>
                 <dd>
                   <code>~/.autolyrics</code>
                 </dd>
               </div>
               <div className="al-assurance__path">
-                <dt>模型 Models</dt>
+                <dt>{t('settings.pathModels')}</dt>
                 <dd>
                   <code>~/.autolyrics/models</code>
                 </dd>
               </div>
               <div className="al-assurance__path">
-                <dt>後端 Backend</dt>
+                <dt>{t('settings.pathBackend')}</dt>
                 <dd>
                   <code>http://127.0.0.1:8756</code>
                 </dd>
               </div>
               <div className="al-assurance__path">
-                <dt>版本 Version</dt>
+                <dt>{t('settings.pathVersion')}</dt>
                 <dd>
                   <code>{meta.version}</code>
                 </dd>

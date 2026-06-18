@@ -14,6 +14,7 @@ import type { PeakData } from '../../lib/waveform';
 import { detectOnsets } from '../../lib/onset';
 import type { Onset } from '../../lib/onset';
 import { nudge } from '../../lib/timecode';
+import { useT } from '../../i18n';
 
 /** Popover dimensions used to flip/clamp anchoring near the viewport edge. */
 const POP_W = 360;
@@ -37,6 +38,7 @@ function usePrefersReducedMotion(): boolean {
 }
 
 export function EditorTab() {
+  const t = useT();
   const result = useResultStore((s) => s.result);
   const dirty = useResultStore((s) => s.dirty);
   const selected = useResultStore((s) => s.selected);
@@ -166,12 +168,8 @@ export function EditorTab() {
       <div className="al-editor">
         <div className="al-empty">
           <TextCursorInput size={30} strokeWidth={1.25} />
-          <div className="al-empty__title">尚無已辨識的歌詞</div>
-          <div>
-            先在「辨識」分頁跑一首歌 — 它會在這裡變成一份會自己播放的文件。
-            <br />
-            Run a song in Transcribe; it becomes a self-playing document here.
-          </div>
+          <div className="al-empty__title">{t('editor.emptyTitle')}</div>
+          <div>{t('editor.emptyBody')}</div>
         </div>
       </div>
     );
@@ -201,28 +199,28 @@ export function EditorTab() {
           <Badge tone="gold">{result.modeUsed}</Badge>
           <Badge>{result.language}</Badge>
           <Badge>{result.meta.modelSize}</Badge>
-          {result.meta.separated && <Badge tone="green">人聲分離 Demucs</Badge>}
+          {result.meta.separated && <Badge tone="green">{t('editor.badge.separated')}</Badge>}
           {dirty && (
             <Badge tone="amber" dot>
-              已編輯 Edited
+              {t('editor.badge.edited')}
             </Badge>
           )}
           {showingDemo && !dirty && (
             <Badge tone="neutral">
               <Sparkles size={11} style={{ marginRight: 4, verticalAlign: '-1px' }} />
-              示範 Demo
+              {t('editor.badge.demo')}
             </Badge>
           )}
         </div>
         <div className="al-editor__bar-group">
-          <span className="al-editor__hint">空白鍵 播放 · ⌥↑↓ 微調 · Space play · ⌥↑↓ nudge</span>
+          <span className="al-editor__hint">{t('editor.hint.keys')}</span>
           <Pill
             active={flat}
             icon={flat ? <EyeOff size={14} /> : <Eye size={14} />}
             onClick={() => setFlat((v) => !v)}
-            title="平讀模式：關閉鄰行淡化 Flat read: disable neighbour dimming"
+            title={t('editor.flatReadTitle')}
           >
-            平讀 Flat read
+            {t('editor.flatRead')}
           </Pill>
         </div>
       </div>
@@ -258,8 +256,8 @@ export function EditorTab() {
         style={popStyle}
         label={
           selectedWord
-            ? `字詞校時 Word inspector — ${selectedWord.word}`
-            : '字詞校時 Word inspector'
+            ? t('editor.inspector.popoverLabel', { word: selectedWord.word })
+            : t('editor.inspector.popoverLabelEmpty')
         }
       >
         {selectedWord && selected && (

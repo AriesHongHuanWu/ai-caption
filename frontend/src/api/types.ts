@@ -130,6 +130,36 @@ export interface ModelJob {
   error?: string;
 }
 
+/* ── GET /api/hardware ── */
+
+export interface HardwareTier {
+  model: string;
+  whisperSize: string;
+  fits: boolean;
+}
+
+export interface HardwareRecommended {
+  model: string;
+  device: 'cuda' | 'cpu';
+  whisperSize: string;
+  /** Short stable code mapped to a localized explanation in the frontend. */
+  reasonCode: string;
+}
+
+export interface HardwareInfo {
+  gpu: boolean;
+  gpuName: string | null;
+  vramTotalMB: number | null;
+  vramFreeMB: number | null;
+  cuda: boolean;
+  cudaVersion: string | null;
+  cpu: string;
+  cpuCount: number;
+  ramTotalMB: number | null;
+  recommended: HardwareRecommended;
+  tiers: HardwareTier[];
+}
+
 /* ── Export ── */
 
 export type ExportFormat = 'lrc' | 'srt' | 'ass' | 'json';

@@ -38,7 +38,15 @@ package-lock.json
 # ── Tauri desktop shell (Rust) ──────────────────────────────────
 frontend/src-tauri/target/
 frontend/src-tauri/gen/
+
+# ── Updater signing keys (SECRET — never commit) ────────────────
+.tauri-keys/
+*.key
 # NOTE: Cargo.lock IS committed (this is an application — reproducible builds)
+
+# ── Local-only tooling / internal (not published) ───────────────
+.claude/
+marketing/
 
 # ── Editor / OS ─────────────────────────────────────────────────
 .vscode/

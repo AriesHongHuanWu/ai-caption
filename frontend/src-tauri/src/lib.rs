@@ -229,10 +229,17 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
     for entry in std::fs::read_dir(src)? {
         let entry = entry?;
         let name = entry.file_name();
-        // 安全網:絕不複製重型/衍生目錄。
+        // 安全網:絕不複製/覆寫重型或執行期衍生目錄。App 更新時 ensure_work_source()
+        // 會以新版原始碼重新覆寫 WORK,但這些目錄 (虛擬環境、模型快取、輸出/工作檔)
+        // 一律跳過保留 —— 否則更新會清掉數 GB 的 venv/模型,或刪掉使用者的輸出。
         if matches!(
             name.to_str(),
-            Some(".venv") | Some("__pycache__") | Some("out") | Some("jobs") | Some("tmp")
+            Some(".venv")
+                | Some("__pycache__")
+                | Some("models")
+                | Some("out")
+                | Some("jobs")
+                | Some("tmp")
         ) {
             continue;
         }
@@ -816,6 +823,13 @@ pub fn run() {
         )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        // In-app 自動更新 (官方 updater，簽章驗證) + process (安裝後 relaunch)。
+        // 前端透過 @tauri-apps/plugin-updater / -process 的 JS 綁定:啟動時檢查
+        // GitHub releases 的 latest.json → 下載 → 安裝 → relaunch。App 更新後,
+        // ensure_work_source() 會因 .autolyrics_src_ok 哨兵內的版本不符而把
+        // 新版後端原始碼重新複製進 WORK (保留 .venv/out)，故後端碼也會跟著更新。
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(BackendProcess::default())
         .invoke_handler(tauri::generate_handler![
             backend_status,

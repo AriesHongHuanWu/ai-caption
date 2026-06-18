@@ -13,8 +13,10 @@ import { formatClock } from '../../lib/timecode';
 import { useResultStore } from '../../state/useResultStore';
 import { useAudio } from '../../state/useAudio';
 import { useJob } from '../../state/useJob';
+import { useT } from '../../i18n';
 
 export function ExportTab() {
+  const t = useT();
   const result = useResultStore((s) => s.result);
   const dirty = useResultStore((s) => s.dirty);
   const currentTime = useAudio((s) => s.currentTime);
@@ -47,12 +49,12 @@ export function ExportTab() {
     return (
       <div className="al-tabpage">
         <div className="al-tabpage__head">
-          <h1 className="al-tabpage__title">匯出 · Export</h1>
+          <h1 className="al-tabpage__title">{t('export.title')}</h1>
         </div>
         <div className="al-empty" style={{ paddingTop: '16vh' }}>
           <FileOutput size={30} strokeWidth={1.25} />
-          <div className="al-empty__title">尚無可匯出的結果</div>
-          <div>先辨識一首歌，再回來匯出檔案。Run a transcription first, then export here.</div>
+          <div className="al-empty__title">{t('export.emptyTitle')}</div>
+          <div>{t('export.emptyHint')}</div>
         </div>
       </div>
     );
@@ -65,24 +67,21 @@ export function ExportTab() {
   return (
     <div className="al-tabpage">
       <div className="al-tabpage__head">
-        <h1 className="al-tabpage__title">匯出 · Export</h1>
-        <p className="al-tabpage__lede">
-          把文件變成檔案 — 存檔前先看一眼忠實預覽。ASS 的 \k 卡拉 OK 預覽會隨播放掃動，所見即所存。
-          Turn the document into files; the ASS preview sweeps against playback so preview is proof.
-        </p>
+        <h1 className="al-tabpage__title">{t('export.title')}</h1>
+        <p className="al-tabpage__lede">{t('export.lede')}</p>
       </div>
 
       <div className="al-export">
         <aside className="al-export__side">
           <section>
-            <Eyebrow num={1}>Format · 格式</Eyebrow>
+            <Eyebrow num={1}>{t('export.sectionFormat')}</Eyebrow>
             <div className="al-export__group">
               <FormatLinks value={choice} onChange={onChoice} />
             </div>
           </section>
 
           <section>
-            <Eyebrow num={2}>Options · 選項</Eyebrow>
+            <Eyebrow num={2}>{t('export.sectionOptions')}</Eyebrow>
             <div className="al-export__group">
               <FormatOptions config={config} onChange={patch} />
             </div>
@@ -92,13 +91,13 @@ export function ExportTab() {
         <main className="al-export__main">
           <div className="al-export__previewhead">
             <Eyebrow num={3} rule={false}>
-              Preview · 預覽
+              {t('export.sectionPreview')}
             </Eyebrow>
             <div className="al-export__file">
               <FileText size={13} strokeWidth={1.5} />
               <span className="al-export__filename">{filename}</span>
               <span className="al-export__stats">
-                {stats.lines} 行 lines · {stats.chars} 字元 chars
+                {t('export.statsLine', { lines: stats.lines, chars: stats.chars })}
               </span>
             </div>
           </div>
@@ -118,7 +117,7 @@ export function ExportTab() {
             className={`al-export__scrub${isAss ? ' al-export__scrub--live' : ''}`}
           >
             <IconButton
-              label={playing ? '暫停 Pause' : '播放 Play'}
+              label={playing ? t('export.pause') : t('export.play')}
               icon={playing ? <Pause size={15} /> : <Play size={15} />}
               onClick={toggle}
               size="sm"
@@ -133,14 +132,14 @@ export function ExportTab() {
               value={Math.min(currentTime, duration || 0)}
               onChange={(e) => seek(Number(e.currentTarget.value))}
               disabled={!canScrub}
-              aria-label="掃動播放位置 Scrub playback"
+              aria-label={t('export.scrubAriaLabel')}
             />
             <span className="al-export__clock">
               {formatClock(currentTime)} / {formatClock(duration)}
             </span>
             {isAss && (
-              <Badge tone="gold" dot title="ASS \k 掃動已綁定播放">
-                掃動 sweep
+              <Badge tone="gold" dot title={t('export.sweepBound')}>
+                {t('export.sweepLabel')}
               </Badge>
             )}
           </div>

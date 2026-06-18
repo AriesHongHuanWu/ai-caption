@@ -218,7 +218,11 @@
   border: 1px solid var(--al-hairline);
 }
 .al-seg__opt {
-  flex: 1;
+  flex: 1 1 0;
+  /* allow the item to shrink below its nowrap-hint width so the hint
+     ellipsizes inside the rounded track instead of overflowing it (the
+     "CPU 禿出去" bug). flex:1 alone keeps min-width:auto = content width. */
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;

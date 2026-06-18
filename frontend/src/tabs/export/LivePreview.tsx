@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { ExportFormat, ExportLevel, Result, Segment } from '../../api/types';
 import { renderExport } from '../../lib/exporters';
 import type { AssSweepStyle } from './exportOptions';
+import { useT } from '../../i18n';
 
 export interface LivePreviewProps {
   result: Result;
@@ -142,6 +143,7 @@ export function LivePreview({
   assSweep,
   currentTime,
 }: LivePreviewProps) {
+  const t = useT();
   const text = useMemo(() => {
     const raw = renderExport(result, fmt, { level, precisionMs });
     return applyPrecision(raw, fmt, precisionMs);
@@ -174,7 +176,7 @@ export function LivePreview({
   const gutterWidth = String(lines.length).length;
 
   return (
-    <div className="al-preview" role="figure" aria-label="檔案預覽 File preview">
+    <div className="al-preview" role="figure" aria-label={t('export.previewAriaLabel')}>
       <pre className="al-preview__code">
         {lines.map((line, i) => {
           const num = String(i + 1).padStart(gutterWidth, ' ');

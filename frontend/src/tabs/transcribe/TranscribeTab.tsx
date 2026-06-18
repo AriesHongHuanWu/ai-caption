@@ -13,6 +13,7 @@ import { useMeta } from '../../state/useMeta';
 import { useJob } from '../../state/useJob';
 import { useResultStore } from '../../state/useResultStore';
 import { useModels } from '../../state/useModels';
+import { useT } from '../../i18n';
 import type { Device, JobMode, JobParams, ModelSize } from '../../api/types';
 
 export interface TranscribeTabProps {
@@ -21,6 +22,7 @@ export interface TranscribeTabProps {
 }
 
 export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
+  const t = useT();
   const meta = useMeta((s) => s.meta);
 
   // useJob is a flat store — select the slices we need.
@@ -185,11 +187,8 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
   return (
     <div className="al-tabpage">
       <div className="al-tabpage__head">
-        <h1 className="al-tabpage__title">辨識 · Transcribe</h1>
-        <p className="al-tabpage__lede">
-          載入一首歌，選擇它被讀取的方式，貼上參考，然後執行 — 全在這一欄。
-          Load a song, choose how it is read, paste reference, run — all in one column.
-        </p>
+        <h1 className="al-tabpage__title">{t('transcribe.title')}</h1>
+        <p className="al-tabpage__lede">{t('transcribe.lede')}</p>
       </div>
 
       <div className="al-transcribe">
@@ -198,7 +197,7 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
 
         {/* 01 SOURCE */}
         <section className="al-section">
-          <Eyebrow num={1}>Source · 來源</Eyebrow>
+          <Eyebrow num={1}>{t('transcribe.section.source')}</Eyebrow>
           <Dropzone
             file={file}
             durationSec={durationSec}
@@ -209,7 +208,7 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
 
         {/* 02 MODE */}
         <section className="al-section">
-          <Eyebrow num={2}>Mode · 模式</Eyebrow>
+          <Eyebrow num={2}>{t('transcribe.section.mode')}</Eyebrow>
           <ModeCards
             value={mode}
             onChange={setMode}
@@ -221,7 +220,7 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
         {/* 03 REFERENCE — progressive disclosure (biasing / align only) */}
         {showReference && (
           <section className="al-section al-section--reveal">
-            <Eyebrow num={3}>Reference · 參考</Eyebrow>
+            <Eyebrow num={3}>{t('transcribe.section.reference')}</Eyebrow>
             {mode === 'align' ? (
               <ReferenceEditor value={referenceLyrics} onChange={setReferenceLyrics} mode="align" />
             ) : (
@@ -245,19 +244,21 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
 
         {/* 04 LANGUAGE + engine knobs */}
         <section className="al-section">
-          <Eyebrow num={4}>Language · 語言</Eyebrow>
+          <Eyebrow num={4}>{t('transcribe.section.language')}</Eyebrow>
           <LanguageSelect languages={meta.languages} value={language} onChange={setLanguage} />
 
           <div className="al-knobs">
             <SelectField
-              label="模型 Model"
+              label={t('transcribe.knobs.modelLabel')}
               value={modelSize}
               onChange={(e) => setModelSize(e.target.value as ModelSize)}
               hint={(() => {
                 const info = whisperInstallMap[modelSize];
-                if (!info) return 'larger = 更準但更慢 more accurate, slower';
-                if (info.installed) return '✓ 已安裝 installed';
-                return `首次使用會自動下載 (~${(info.sizeMB / 1024).toFixed(1)} GB)`;
+                if (!info) return t('transcribe.knobs.modelHintDefault');
+                if (info.installed) return t('transcribe.knobs.modelHintInstalled');
+                return t('transcribe.knobs.modelHintDownload', {
+                  size: (info.sizeMB / 1024).toFixed(1),
+                });
               })()}
             >
               {meta.modelSizes.map((m) => {
@@ -271,16 +272,16 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
               })}
             </SelectField>
             <SelectField
-              label="裝置 Device"
+              label={t('transcribe.knobs.deviceLabel')}
               value={device}
               onChange={(e) => setDevice(e.target.value as Device)}
-              hint={meta.gpu ? 'GPU 最快 GPU is fastest' : '此機器未偵測到 GPU No GPU detected'}
+              hint={meta.gpu ? t('transcribe.knobs.deviceHintGpu') : t('transcribe.knobs.deviceHintNoGpu')}
             >
-              <option value="auto">自動 · Auto</option>
+              <option value="auto">{t('transcribe.knobs.deviceAuto')} · Auto</option>
               <option value="cuda" disabled={!meta.gpu}>
-                GPU · CUDA
+                {t('transcribe.knobs.deviceGpu')} · CUDA
               </option>
-              <option value="cpu">CPU</option>
+              <option value="cpu">{t('transcribe.knobs.deviceCpu')}</option>
             </SelectField>
           </div>
 
@@ -292,11 +293,11 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
               icon={<Scissors size={12} strokeWidth={2} />}
               title={
                 meta.demucs
-                  ? '先用 Demucs 分離人聲，常讓辨識更乾淨。Separate vocals first with Demucs — often cleaner.'
-                  : '此機器未提供 Demucs Demucs unavailable on this machine'
+                  ? t('transcribe.separate.titleEnabled')
+                  : t('transcribe.separate.titleDisabled')
               }
             >
-              分離人聲 · Separate vocals (Demucs)
+              {t('transcribe.separate.label')}
             </Pill>
           </div>
         </section>
@@ -312,7 +313,7 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
               onClick={run}
               title="⌘↵ / Ctrl+↵"
             >
-              {running ? '執行中… Running' : '開始辨識 · Run'}
+              {running ? t('transcribe.run.running') : t('transcribe.run.start')}
             </Button>
 
             {finished && !running && (
@@ -321,15 +322,15 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
                 size="lg"
                 icon={<RotateCcw size={15} />}
                 onClick={handleReset}
-                title="清除這次的進度 Clear this run"
+                title={t('transcribe.run.resetTitle')}
               >
-                重設 · Reset
+                {t('transcribe.run.reset')}
               </Button>
             )}
 
             <span className="al-runrow__spacer" />
             {!file ? (
-              <span className="al-runrow__note">先放一首歌 Drop a song first</span>
+              <span className="al-runrow__note">{t('transcribe.run.dropFirst')}</span>
             ) : (
               <kbd className="al-kbd">⌘↵</kbd>
             )}
