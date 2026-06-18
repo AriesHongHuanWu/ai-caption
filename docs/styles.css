@@ -1661,7 +1661,10 @@ a { color: inherit; text-decoration: none; }
 .sysreq-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 520px;
+  /* No min-width — the table must SHRINK to the container so the wrapper
+     never shows an inner horizontal scrollbar on narrow screens. Cells
+     wrap instead. */
+  min-width: 0;
   font-size: 13.5px;
 }
 
@@ -1710,6 +1713,16 @@ a { color: inherit; text-decoration: none; }
 
 .sysreq-table td.rec-highlight {
   color: var(--al-gold-soft);
+}
+
+/* Narrow screens: tighten padding + let headers/first column wrap so all
+   three columns fit and the wrapper never needs a horizontal scrollbar. */
+@media (max-width: 620px) {
+  .sysreq-table { font-size: 12.5px; }
+  .sysreq-table th,
+  .sysreq-table td { padding: 11px 12px; }
+  .sysreq-table th { white-space: normal; }
+  .sysreq-table td:first-child { white-space: normal; width: auto; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
