@@ -949,3 +949,95 @@
     text-align: left;
   }
 }
+
+/* ───────────────────────── Data location (which drive) ───────────────────────── */
+.al-dataloc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--al-space-4);
+}
+.al-dataloc__note {
+  margin: 0;
+  font-size: var(--al-text-sm);
+  color: var(--al-ink-faint);
+}
+.al-dataloc__current {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--al-space-3);
+}
+.al-dataloc__icon {
+  color: var(--al-gold);
+  flex: none;
+  margin-top: 2px;
+}
+.al-dataloc__currentbody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.al-dataloc__label {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  letter-spacing: var(--al-tracking-caps);
+  text-transform: uppercase;
+  color: var(--al-ink-muted);
+}
+.al-dataloc__path {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-dim);
+  word-break: break-all;
+}
+.al-dataloc__lede {
+  margin: 0;
+  font-size: var(--al-text-sm);
+  color: var(--al-ink-faint);
+}
+.al-dataloc__actions {
+  display: flex;
+  gap: var(--al-space-2);
+  flex-wrap: wrap;
+}
+.al-dataloc__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--al-space-3);
+  padding: var(--al-pad-panel);
+  border-radius: var(--al-radius-panel);
+  background: var(--al-surface-2);
+  border: 1px solid color-mix(in srgb, var(--al-gold) 30%, var(--al-hairline));
+}
+.al-dataloc__confirmhead {
+  display: flex;
+  align-items: center;
+  gap: var(--al-space-2);
+  font-size: var(--al-text-md);
+  color: var(--al-ink);
+  font-weight: 500;
+}
+.al-dataloc__warnicon {
+  color: var(--al-gold);
+  flex: none;
+}
+.al-dataloc__confirmtarget {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.al-dataloc__warn {
+  margin: 0;
+  font-size: var(--al-text-sm);
+  color: var(--al-ink-dim);
+  line-height: 1.5;
+}
+.al-dataloc__error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--al-text-sm);
+  color: var(--al-error);
+}

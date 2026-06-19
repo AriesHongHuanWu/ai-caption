@@ -4,6 +4,7 @@ import { Button, Eyebrow } from '../../components/primitives';
 import { GpuReadout } from './GpuReadout';
 import { ModelManager } from './ModelManager';
 import { StoragePanel } from './StoragePanel';
+import { DataLocationPanel } from './DataLocationPanel';
 import { ModelSizePicker } from './ModelSizePicker';
 import { EnginePicker } from './EnginePicker';
 import { DevicePicker } from './DevicePicker';
@@ -13,6 +14,7 @@ import type { ModelStatus } from './modelStatus';
 import { useMeta } from '../../state/useMeta';
 import { useModels } from '../../state/useModels';
 import { useSettings } from '../../state/useSettings';
+import { useDataRoot } from '../../state/useDataRoot';
 import type { Device, Engine } from '../../api/types';
 import { useT } from '../../i18n';
 import { UpdateSettingsRow } from '../../components/update/UpdateSettingsRow';
@@ -24,6 +26,9 @@ export function SettingsTab() {
   const defaults = useSettings((s) => s.defaults);
   const setDefaults = useSettings((s) => s.set);
   const resetDefaults = useSettings((s) => s.reset);
+  // Real on-disk data root (desktop). null in browser / before first load.
+  const dataInfo = useDataRoot((s) => s.info);
+  const dataPath = dataInfo?.effective ?? '~/.local · %LOCALAPPDATA%';
 
   // Derive install state from the real useModels store for the size picker.
   const modelInfos = useModels((s) => s.models);
@@ -131,10 +136,16 @@ export function SettingsTab() {
           <UpdateSettingsRow />
         </section>
 
+        {/* ── DATA LOCATION (which drive) ── */}
+        <section className="al-settings__group">
+          <Eyebrow num={7}>{t('settings.dataLocation')}</Eyebrow>
+          <DataLocationPanel />
+        </section>
+
         {/* ── STORAGE ── */}
         <section className="al-settings__group">
           <div className="al-settings__grouphead">
-            <Eyebrow num={7}>{t('storage.title')}</Eyebrow>
+            <Eyebrow num={8}>{t('storage.title')}</Eyebrow>
           </div>
           <p className="al-settings__caption" style={{ textTransform: 'none', letterSpacing: 0 }}>
             {t('storage.lede')}
@@ -144,7 +155,7 @@ export function SettingsTab() {
 
         {/* ── LOCAL ASSURANCE ── */}
         <section className="al-settings__group">
-          <Eyebrow num={8}>{t('settings.privacy')}</Eyebrow>
+          <Eyebrow num={9}>{t('settings.privacy')}</Eyebrow>
           <div className="al-panel al-assurance">
             <div className="al-assurance__lead">
               <ShieldCheck size={16} className="al-assurance__shield" />
@@ -156,13 +167,7 @@ export function SettingsTab() {
                   <FolderLock size={12} /> {t('settings.pathData')}
                 </dt>
                 <dd>
-                  <code>~/.autolyrics</code>
-                </dd>
-              </div>
-              <div className="al-assurance__path">
-                <dt>{t('settings.pathModels')}</dt>
-                <dd>
-                  <code>~/.autolyrics/models</code>
+                  <code>{dataPath}</code>
                 </dd>
               </div>
               <div className="al-assurance__path">

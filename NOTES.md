@@ -1,21 +1,12 @@
-# Ai Caption v0.1.4
+# Ai Caption v0.1.5
 
-Critical fresh-install fix, plus per-mode interfaces and moving text/object removal.
-
-### Fixed (important — please reinstall)
-- **🚑 Fresh installs on a clean machine now work.** The bundled portable Python had its folder structure flattened during packaging, so on a computer with no prior install the engine setup failed with `No module named 'encodings'` / "建立虛擬環境失敗". Packaging now preserves the interpreter's directory tree, so the first-run wizard builds its environment correctly. If a previous install failed at "建立虛擬環境", install this version over it.
+Choose where the heavy stuff lives — put the engine and models on the drive you want.
 
 ### New
-- **🎬 Per-mode interfaces** — the app now reshapes itself around what you're doing:
-  - **🎵 Song lyrics** keeps the full word-level editor.
-  - **🎬 Video → Subtitles** gets a dedicated **video-editor-style** workspace — preview alongside an editable cue list (edit text, nudge start/end by ±0.1 s, click a cue to seek, active cue highlighted; falls back gracefully for audio-only sources).
-  - **🧹 Clean Text** collapses to just the steps it needs (no more lyric/subtitle tabs cluttering it).
-- **✨ Moving text/object removal** — Clean Text now offers **固定** (fixed position) or **會移動 (追蹤)**: draw the box once on the first frame and Ai Caption **tracks the region as it moves** through the video, erasing it frame-by-frame with LaMa inpainting.
+- **🗂️ Choose your data drive** (Settings → 資料儲存位置). Running low on C:? Point Ai Caption at a roomier drive (e.g. D:) and the engine, downloaded models and caches all live there instead. Pick a folder, confirm, and the app restarts to apply — the first-run wizard then sets up at the new location and future model downloads land on that drive. Existing data isn't moved (the old location is left untouched for you to remove if you like). On the default location, nothing changes — behaviour is exactly as before.
 
-### Also fixed
-- Version number now reads the **real app version** (it was showing a stale value).
-- **Mode switcher is icon-only** — no more cramped, truncated labels.
-- Health check **no longer downloads all three models** up front — it only fetches what the mode you're using actually needs.
+### About choosing models
+- You already pick exactly which models to download in **Settings → 模型管理 (Model Manager)** — download or remove each one individually (Whisper sizes, Demucs, aligner, LaMa). Since v0.1.4 the health check no longer auto-pulls everything; it only fetches what the mode you're using needs, so nothing large downloads without you asking.
 
 ### Unchanged
 - 100% local — nothing is uploaded. Runs on no-GPU laptops (CPU int8 / Intel Core Ultra).

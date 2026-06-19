@@ -24,7 +24,29 @@ export const settings: Record<string, Entry> = {
   'settings.modelSize': { zh: '模型大小', en: 'Model size' },
   'settings.models': { zh: '模型管理', en: 'Models' },
   'settings.defaults': { zh: '預設值', en: 'Defaults' },
+  'settings.dataLocation': { zh: '資料儲存位置', en: 'Data location' },
   'settings.privacy': { zh: '本機保證', en: 'Privacy' },
+
+  // ── Data location (which drive stores venv + models + caches) ──
+  'dataloc.lede': {
+    zh: '引擎、模型與快取會放在這裡。可改放到空間較大的硬碟(例如 D:)。',
+    en: 'The engine, models and caches live here. You can move them to a roomier drive (e.g. D:).',
+  },
+  'dataloc.desktopOnly': { zh: '此設定僅桌面版可用。', en: 'This setting is available in the desktop app.' },
+  'dataloc.defaultLabel': { zh: '目前位置(預設)', en: 'Current location (default)' },
+  'dataloc.customLabel': { zh: '目前位置(自訂)', en: 'Current location (custom)' },
+  'dataloc.change': { zh: '變更位置…', en: 'Change location…' },
+  'dataloc.reset': { zh: '還原預設', en: 'Reset to default' },
+  'dataloc.pickTitle': { zh: '選擇資料儲存資料夾', en: 'Choose a folder to store app data' },
+  'dataloc.confirmHead': { zh: '套用後會重新啟動', en: 'Applying will restart the app' },
+  'dataloc.newLocation': { zh: '新位置', en: 'New location' },
+  'dataloc.confirmBody': {
+    zh: '不會搬移既有檔案 —— 新位置會重新安裝引擎,模型也會下載到此硬碟。原位置的舊資料會保留,確認沒問題後可自行刪除。',
+    en: 'Existing files are not moved — the engine is set up fresh at the new location and models download to this drive. Old data stays at the previous location; you can delete it yourself once everything works.',
+  },
+  'dataloc.applyRestart': { zh: '套用並重新啟動', en: 'Apply & restart' },
+  'dataloc.applying': { zh: '套用中…', en: 'Applying…' },
+  'dataloc.cancel': { zh: '取消', en: 'Cancel' },
 
   // ── Section captions (field labels) ──
   'settings.captionEngine': { zh: '引擎', en: 'Engine' },

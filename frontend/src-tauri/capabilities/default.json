@@ -18,6 +18,7 @@
     "core:window:allow-close",
     "dialog:default",
     "dialog:allow-save",
+    "dialog:allow-open",
     "fs:default",
     "fs:allow-write-text-file",
     "updater:default",

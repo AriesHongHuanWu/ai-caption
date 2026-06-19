@@ -214,6 +214,71 @@ fn dev_repo_backend_dir() -> Option<PathBuf> {
         .map(|p| p.join("backend"))
 }
 
+// ───────────────────────────── 資料根目錄(可選硬碟)─────────────────────────────
+//
+// 使用者可把所有「重量級內容」(venv + torch + 下載的模型 + 快取) 放到自選的硬碟。
+// 機制:在**預設** app_local_data_dir 寫一個 `config.json` 指標({"dataRoot": "<path>"}),
+// 指標檔本身**永遠**落在預設位置(不隨自訂根目錄移動,否則改了就找不到指標)。
+// 未設定(或空字串)時一切維持舊行為 —— 後端在 app_local_data_dir、模型在 ~/.cache,
+// **零回歸**。只有在使用者明確選了自訂根目錄時,才把後端與快取(HF_HOME/TORCH_HOME)
+// 一起導向該硬碟。
+
+/// 持久化設定檔位置(永遠在預設 app_local_data_dir,與自訂根目錄無關)。
+fn config_path(app: &AppHandle) -> Option<PathBuf> {
+    app.path()
+        .app_local_data_dir()
+        .ok()
+        .map(|d| d.join("config.json"))
+}
+
+/// 使用者自訂的資料根目錄(若已設定且非空)。回傳 `None` 代表沿用預設。
+fn custom_data_root(app: &AppHandle) -> Option<PathBuf> {
+    let cfg = config_path(app)?;
+    let raw = std::fs::read_to_string(&cfg).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&raw).ok()?;
+    let s = v.get("dataRoot")?.as_str()?.trim().to_string();
+    if s.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(s))
+    }
+}
+
+/// 預設資料根目錄(local app data,永不同步)。
+fn default_data_root(app: &AppHandle) -> Option<PathBuf> {
+    app.path().app_local_data_dir().ok()
+}
+
+/// 生效中的資料根目錄:自訂 → 否則預設。
+fn effective_data_root(app: &AppHandle) -> Option<PathBuf> {
+    custom_data_root(app).or_else(|| default_data_root(app))
+}
+
+/// 啟動後端子行程時要注入的快取環境變數。
+///
+/// 僅當使用者選了**自訂**根目錄時才設 `HF_HOME` / `TORCH_HOME`,讓 HuggingFace
+/// 與 torch.hub 下載的模型落在使用者選的硬碟(`<root>/cache/...`)。預設根目錄時
+/// 回空向量 —— 維持模型在 `~/.cache` 的舊行為,對既有安裝零回歸。
+fn cache_env(app: &AppHandle) -> Vec<(String, String)> {
+    match custom_data_root(app) {
+        Some(root) => {
+            let cache = root.join("cache");
+            vec![
+                (
+                    "HF_HOME".into(),
+                    cache.join("huggingface").to_string_lossy().into_owned(),
+                ),
+                (
+                    "TORCH_HOME".into(),
+                    cache.join("torch").to_string_lossy().into_owned(),
+                ),
+                ("HF_HUB_DISABLE_TELEMETRY".into(), "1".into()),
+            ]
+        }
+        None => Vec::new(),
+    }
+}
+
 /// 解析**可寫**的後端工作目錄。
 ///
 /// 優先序:
@@ -247,11 +312,12 @@ fn resolve_backend_dir(app: &AppHandle) -> Option<(PathBuf, bool)> {
         }
     }
 
-    // (3) 發佈:WORK = <app_local_data_dir>/backend (可寫、非 roaming/同步)。
-    match app.path().app_local_data_dir() {
-        Ok(data) => Some((data.join("backend"), true)),
-        Err(e) => {
-            log::warn!("無法取得 app_local_data_dir: {} —— 後端目錄無法解析。", e);
+    // (3) 發佈:WORK = <data_root>/backend (可寫、非 roaming/同步)。
+    //     data_root = 使用者自訂硬碟 → 否則預設 app_local_data_dir。
+    match effective_data_root(app) {
+        Some(root) => Some((root.join("backend"), true)),
+        None => {
+            log::warn!("無法取得資料根目錄 —— 後端目錄無法解析。");
             None
         }
     }
@@ -355,7 +421,7 @@ struct SpawnedBackend {
 }
 
 /// 在指定後端目錄啟動後端子行程。找不到 python / app.py 時回傳 `None` (不視為錯誤)。
-fn spawn_backend_at(backend_dir: &Path) -> Option<SpawnedBackend> {
+fn spawn_backend_at(backend_dir: &Path, env: &[(String, String)]) -> Option<SpawnedBackend> {
     let python = venv_python(backend_dir);
     let app_py = backend_dir.join("app.py");
 
@@ -376,6 +442,10 @@ fn spawn_backend_at(backend_dir: &Path) -> Option<SpawnedBackend> {
 
     let mut cmd = Command::new(&python);
     cmd.arg(&app_py).current_dir(backend_dir);
+    // 自訂資料硬碟時注入 HF_HOME / TORCH_HOME,讓模型下載落在使用者選的硬碟。
+    for (k, v) in env {
+        cmd.env(k, v);
+    }
 
     // Windows:CREATE_NO_WINDOW,避免閃出主控台視窗。
     #[cfg(windows)]
@@ -441,7 +511,8 @@ fn try_spawn_backend(app: &AppHandle) -> Option<SpawnedBackend> {
         log::warn!("準備後端工作目錄失敗: {} —— 前端將顯示離線狀態。", e);
         // 即便複製失敗,仍嘗試啟動 (也許目錄部份存在);多半會在 venv 缺席時優雅放棄。
     }
-    spawn_backend_at(&backend_dir)
+    let env = cache_env(app);
+    spawn_backend_at(&backend_dir, &env)
 }
 
 // ============================================================================
@@ -962,6 +1033,79 @@ fn reset_backend(
 }
 
 // ============================================================================
+// Tauri 指令:資料根目錄(可選硬碟)
+// ============================================================================
+
+/// `get_data_root` 回傳結構(欄位名須與前端 `state/useDataRoot.ts` 一致)。
+#[derive(Serialize)]
+struct DataRootInfo {
+    /// 使用者明確設定的自訂路徑;`None` = 未設(用預設)。
+    custom: Option<String>,
+    /// 目前生效的資料根目錄(backend / venv / 模型快取的家)。
+    effective: String,
+    /// 預設資料根目錄(local app data)。
+    default: String,
+    /// 是否正在使用自訂路徑。
+    is_custom: bool,
+}
+
+/// 回報資料根目錄狀態,供設定頁顯示「目前位置 / 變更 / 還原預設」。
+#[tauri::command]
+fn get_data_root(app: AppHandle) -> DataRootInfo {
+    let default = default_data_root(&app)
+        .map(|p| p.display().to_string())
+        .unwrap_or_default();
+    let custom = custom_data_root(&app).map(|p| p.display().to_string());
+    let effective = effective_data_root(&app)
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|| default.clone());
+    DataRootInfo {
+        is_custom: custom.is_some(),
+        custom,
+        effective,
+        default,
+    }
+}
+
+/// 設定(或清除)自訂資料根目錄。
+///
+/// `path = Some(非空)` → 驗證可寫(建資料夾 + 寫一個測試檔再刪)後寫入指標。
+/// `path = None / 空字串` → 清除自訂,還原為預設位置。
+///
+/// **不**搬移既有資料 —— 改變後新位置會缺 venv,前端應引導使用者重啟,
+/// 啟動時自動在新位置重跑安裝精靈(模型也會下載到新硬碟)。
+#[tauri::command]
+fn set_data_root(app: AppHandle, path: Option<String>) -> Result<(), String> {
+    let cfg = config_path(&app).ok_or_else(|| "無法解析設定檔位置".to_string())?;
+    if let Some(parent) = cfg.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("無法建立設定目錄: {}", e))?;
+    }
+
+    let trimmed = path
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+
+    if let Some(p) = &trimmed {
+        // 可寫驗證:建立目錄 + 寫測試檔再刪。
+        let root = PathBuf::from(p);
+        std::fs::create_dir_all(&root)
+            .map_err(|e| format!("無法建立資料夾「{}」: {}", root.display(), e))?;
+        let probe = root.join(".aicaption_write_test");
+        std::fs::write(&probe, b"ok")
+            .map_err(|e| format!("此位置無法寫入(請選有寫入權限的資料夾): {}", e))?;
+        let _ = std::fs::remove_file(&probe);
+    }
+
+    let body = serde_json::json!({ "dataRoot": trimmed.clone().unwrap_or_default() });
+    let bytes = serde_json::to_vec_pretty(&body)
+        .map_err(|e| format!("序列化設定失敗: {}", e))?;
+    std::fs::write(&cfg, bytes).map_err(|e| format!("寫入設定失敗: {}", e))?;
+    log::info!("set_data_root → {:?}", trimmed);
+    Ok(())
+}
+
+// ============================================================================
 // 進入點
 // ============================================================================
 
@@ -1005,7 +1149,9 @@ pub fn run() {
             backend_status,
             setup_backend,
             restart_backend,
-            reset_backend
+            reset_backend,
+            get_data_root,
+            set_data_root
         ])
         .setup(|app| {
             // 啟動後端 sidecar。venv 不存在 (全新機器、尚未跑安裝精靈) 時回 false,
