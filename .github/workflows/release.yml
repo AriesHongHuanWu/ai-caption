@@ -68,11 +68,13 @@ jobs:
             label: "(x86_64)"
             args: "--bundles deb,appimage"
             rust-targets: ""
-          # Windows — NSIS is the updater format (updaterJsonPreferNsis points
-          # latest.json at it); MSI is for manual installs.
+          # Windows — NSIS only. NSIS is the updater format (updaterJsonPreferNsis
+          # points latest.json at it) and handles the bundled portable-Python tree
+          # fine. MSI is dropped: WiX (light.exe) chokes on the interpreter's
+          # thousands of resource files. NSIS supports silent install (/S) anyway.
           - platform: "windows-latest"
             label: "(x86_64)"
-            args: "--bundles nsis,msi"
+            args: "--bundles nsis"
             rust-targets: ""
 
     runs-on: ${{ matrix.platform }}
