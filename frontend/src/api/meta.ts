@@ -42,6 +42,19 @@ export const FALLBACK_META: Meta = {
   aligner: true,
   caption: true,
   captionTemplates: ['clean', 'karaoke', 'bold'],
+  mastering: true,
+  masterGenres: [
+    { key: 'auto', label: 'Auto / 通用' },
+    { key: 'pop', label: 'Pop' },
+    { key: 'hiphop', label: 'Hip-Hop / Rap' },
+    { key: 'edm', label: 'EDM / Electronic' },
+    { key: 'rock', label: 'Rock' },
+    { key: 'rnb', label: 'R&B / Soul' },
+    { key: 'acoustic', label: 'Acoustic / Folk' },
+    { key: 'ballad', label: 'Ballad' },
+    { key: 'lofi', label: 'Lo-fi' },
+  ],
+  masterLoudness: ['streaming', 'balanced', 'social'],
   version: '0.1.0-local',
 };
 

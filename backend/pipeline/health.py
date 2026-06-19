@@ -66,6 +66,7 @@ _PIP_NAME = {
     "cv2": "opencv-python",
     "simple_lama_inpainting": "simple-lama-inpainting",
     "soundfile": "soundfile",
+    "pyloudnorm": "pyloudnorm",
 }
 
 # (module, label, required)
@@ -83,6 +84,8 @@ _DEP_SPECS: tuple[tuple[str, str, bool], ...] = (
     ("demucs", "Demucs (人聲分離 · vocal separation)", False),
     ("simple_lama_inpainting", "simple-lama-inpainting (LaMa 文字移除 · text removal)", False),
     ("cv2", "OpenCV (文字移除後備 · inpaint fallback)", False),
+    ("scipy", "SciPy (母帶 DSP · mastering)", False),
+    ("pyloudnorm", "pyloudnorm (LUFS 響度 · loudness)", False),
     ("numpy", "NumPy", False),
     ("uvicorn", "Uvicorn (ASGI 伺服器 · server)", False),
     ("pypinyin", "pypinyin (中文拼音 · Mandarin pinyin)", False),

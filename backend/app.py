@@ -125,6 +125,23 @@ def _caption_available() -> bool:
         return False
 
 
+# 自動母帶 (Auto-Mastering) 子模組 —— 防禦式載入 (相依 scipy / pyloudnorm / numpy)。
+try:
+    from pipeline import mastering as mastering  # type: ignore[no-redef]
+except Exception as _e:  # pragma: no cover
+    logger.error("無法載入 pipeline.mastering:%r — 母帶功能停用,其餘 API 正常。", _e)
+    mastering = None  # type: ignore[assignment]
+
+
+def _mastering_available() -> bool:
+    if mastering is None:
+        return False
+    try:
+        return bool(mastering.is_available())
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _gpu_available() -> bool:
     """torch.cuda 是否可用 (torch 未安裝 → False,絕不丟例外)。"""
     try:
@@ -450,6 +467,10 @@ _INPAINT_JOBS_LOCK = threading.Lock()
 # 動態字幕燒錄 (caption) 作業 in-memory 登記表 (結構同 INPAINT_JOBS)。
 CAPTION_JOBS: dict[str, dict[str, Any]] = {}
 _CAPTION_JOBS_LOCK = threading.Lock()
+
+# 自動母帶 (mastering) 作業 in-memory 登記表 (結構同上)。
+MASTER_JOBS: dict[str, dict[str, Any]] = {}
+_MASTER_JOBS_LOCK = threading.Lock()
 
 
 def _gpu_vram_total_mb() -> Optional[int]:
@@ -836,6 +857,9 @@ def api_meta() -> JSONResponse:
             "inpaint": _inpaint_available(),
             "caption": _caption_available(),
             "captionTemplates": caption.templates() if caption is not None else ["clean", "karaoke", "bold"],
+            "mastering": _mastering_available(),
+            "masterGenres": mastering.genres() if mastering is not None else [],
+            "masterLoudness": mastering.loudness_targets() if mastering is not None else ["streaming", "balanced", "social"],
             "installedWhisper": _installed_whisper_sizes(),
             "version": VERSION,
         }
@@ -1762,6 +1786,181 @@ def api_get_caption_result(job_id: str) -> FileResponse:
     if not out_path or not os.path.exists(out_path):
         raise HTTPException(status_code=404, detail="找不到輸出檔案")
     return FileResponse(out_path, media_type="video/mp4", filename="captioned.mp4")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 自動母帶 (mastering / Auto-Mastering) 端點群 —— 「母帶」模式。
+# 把一首混音處理成可發佈母帶(EQ/壓縮/寬度/響度/限幅)。重相依缺席時回 503。
+# ─────────────────────────────────────────────────────────────────────────────
+def _require_mastering() -> None:
+    if not _mastering_available():
+        raise HTTPException(
+            status_code=503,
+            detail="母帶功能不可用 (缺 scipy/pyloudnorm)。請重新執行安裝以取得相依套件。",
+        )
+
+
+def _make_master_progress(job_id: str):
+    def progress(stage: str, pct: float, message: str = "") -> None:
+        with _MASTER_JOBS_LOCK:
+            job = MASTER_JOBS.get(job_id)
+            if job is None:
+                return
+            if job["status"] in ("queued", "running"):
+                job["status"] = "running"
+            try:
+                job["pct"] = max(0.0, min(100.0, float(pct)))
+            except (TypeError, ValueError):
+                pass
+            if message:
+                job["message"] = str(message)
+
+    return progress
+
+
+def _run_master_job(
+    job_id: str,
+    audio_path: str,
+    out_path: str,
+    genre: str,
+    loudness: str,
+    reference_path: Optional[str],
+) -> None:
+    progress = _make_master_progress(job_id)
+    try:
+        progress("master", 0.0, "準備中…")
+        if mastering is None:  # pragma: no cover
+            raise RuntimeError("pipeline.mastering 不可用")
+        result = mastering.master(
+            audio_path,
+            out_path,
+            genre=genre,
+            loudness=loudness,
+            reference_path=reference_path,
+            progress=progress,
+        )
+        with _MASTER_JOBS_LOCK:
+            job = MASTER_JOBS.get(job_id)
+            if job is not None:
+                job["status"] = "done"
+                job["pct"] = 100.0
+                job["message"] = "完成 Done"
+                job["meta"] = result
+                job["error"] = None
+        logger.info("母帶工作 %s 完成。", job_id)
+    except Exception as e:  # noqa: BLE001
+        tb = traceback.format_exc()
+        logger.error("母帶工作 %s 失敗:%s\n%s", job_id, e, tb)
+        with _MASTER_JOBS_LOCK:
+            job = MASTER_JOBS.get(job_id)
+            if job is not None:
+                job["status"] = "error"
+                job["message"] = str(e)
+                job["error"] = str(e)
+    finally:
+        for p in (audio_path, reference_path):
+            try:
+                if p and os.path.exists(p):
+                    os.remove(p)
+            except OSError:
+                pass
+
+
+@app.post("/api/master")
+async def api_master(
+    audio: UploadFile = File(...),
+    genre: str = Form("auto"),
+    loudness: str = Form("streaming"),
+    reference: Optional[UploadFile] = File(None),
+) -> JSONResponse:
+    """建立母帶工作。multipart:audio=混音檔,genre,loudness,選用 reference=參考曲。
+    回傳 { jobId };背景跑 mastering.master → 暫存 master_<jobId>.wav。"""
+    _require_mastering()
+
+    valid_genres = [g["key"] for g in mastering.genres()] if mastering is not None else ["auto"]  # type: ignore[union-attr]
+    g = (genre or "auto").strip().lower()
+    if g not in valid_genres:
+        g = "auto"
+    loud = (loudness or "streaming").strip().lower()
+    valid_loud = mastering.loudness_targets() if mastering is not None else ["streaming"]  # type: ignore[union-attr]
+    if loud not in valid_loud:
+        loud = "streaming"
+
+    job_id = uuid.uuid4().hex
+    # 來源與輸出**必須不同檔名** —— 否則 .wav 輸入時兩者撞名,清理來源會把輸出刪掉。
+    src = UPLOAD_DIR / f"masterin_{job_id}{_safe_upload_suffix(audio.filename)}"
+    out = UPLOAD_DIR / f"mastered_{job_id}.wav"
+    ref_path: Optional[str] = None
+    try:
+        data = await audio.read()
+        if not data:
+            raise HTTPException(status_code=400, detail="上傳的音檔是空的")
+        src.write_bytes(data)
+        if reference is not None:
+            rdata = await reference.read()
+            if rdata:
+                rp = UPLOAD_DIR / f"masterref_{job_id}{_safe_upload_suffix(reference.filename)}"
+                rp.write_bytes(rdata)
+                ref_path = str(rp)
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"上傳音檔儲存失敗:{e}") from e
+    finally:
+        await audio.close()
+        if reference is not None:
+            await reference.close()
+
+    with _MASTER_JOBS_LOCK:
+        MASTER_JOBS[job_id] = {
+            "status": "queued",
+            "pct": 0.0,
+            "message": "已建立工作,等待開始…",
+            "error": None,
+            "meta": None,
+            "_out_path": str(out),
+        }
+
+    thread = threading.Thread(
+        target=_run_master_job,
+        args=(job_id, str(src), str(out), g, loud, ref_path),
+        name=f"autolyrics-master-{job_id[:8]}",
+        daemon=True,
+    )
+    thread.start()
+    return JSONResponse({"jobId": job_id})
+
+
+@app.get("/api/master/jobs/{job_id}")
+def api_get_master_job(job_id: str) -> JSONResponse:
+    """輪詢母帶工作狀態。GET /api/master/jobs/{jobId}"""
+    with _MASTER_JOBS_LOCK:
+        job = MASTER_JOBS.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="找不到此母帶工作 jobId")
+        payload: dict[str, Any] = {
+            "status": job["status"],
+            "pct": job["pct"],
+            "message": job["message"],
+            "error": job.get("error"),
+            "meta": job.get("meta"),
+        }
+    return JSONResponse(payload)
+
+
+@app.get("/api/master/jobs/{job_id}/result")
+def api_get_master_result(job_id: str) -> FileResponse:
+    """下載母帶輸出的 wav。GET /api/master/jobs/{jobId}/result"""
+    with _MASTER_JOBS_LOCK:
+        job = MASTER_JOBS.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="找不到此母帶工作 jobId")
+        if job["status"] != "done":
+            raise HTTPException(status_code=404, detail="工作尚未完成,結果尚未就緒")
+        out_path = job.get("_out_path")
+    if not out_path or not os.path.exists(out_path):
+        raise HTTPException(status_code=404, detail="找不到輸出檔案")
+    return FileResponse(out_path, media_type="audio/wav", filename="mastered.wav")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

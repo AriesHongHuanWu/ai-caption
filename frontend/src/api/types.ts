@@ -43,6 +43,12 @@ export interface Meta {
   caption?: boolean;
   /** Available caption style templates (e.g. ['clean','karaoke','bold']). */
   captionTemplates?: string[];
+  /** Auto-Mastering available (scipy + pyloudnorm). */
+  mastering?: boolean;
+  /** Mastering genre presets [{key,label}]. */
+  masterGenres?: { key: string; label: string }[];
+  /** Mastering loudness targets (e.g. ['streaming','balanced','social']). */
+  masterLoudness?: string[];
   version: string;
 }
 

@@ -15,7 +15,7 @@ import type { Entry } from '../types';
 
 export const common: Record<string, Entry> = {
   // ── App brand ──
-  'common.appName': { zh: 'Ai Caption', en: 'Ai Caption' },
+  'common.appName': { zh: 'Local Studio', en: 'Local Studio' },
   'common.appTagline': {
     zh: '本地 AI 字幕 ・ 逐字歌詞',
     en: 'Local AI captions & word-level lyrics',
@@ -39,6 +39,55 @@ export const common: Record<string, Entry> = {
     zh: '文字移除 — 框出影片上多餘的文字，AI 逐幀填補成背景並保留原音軌',
     en: 'Clean Text — box unwanted text on a video; AI fills it in frame-by-frame and keeps the original audio',
   },
+  'common.mode.master': { zh: '母帶', en: 'Mastering' },
+  'common.mode.masterTitle': {
+    zh: '母帶 — 依曲風或參考曲自動 EQ／壓縮／響度，輸出錄音室級母帶',
+    en: 'Auto-Mastering — genre/reference EQ, compression & loudness for a release-ready master',
+  },
+
+  // ── Auto-Mastering (母帶) mode ──
+  'master.title': { zh: '母帶處理', en: 'Auto-Mastering' },
+  'master.lede': {
+    zh: '上傳混音，選曲風或參考曲，本機 AI 自動 EQ／壓縮／立體聲寬度／響度，輸出可直接發佈的母帶。',
+    en: 'Drop a mix, pick a genre or reference, and the local AI does EQ, compression, width & loudness for a release-ready master.',
+  },
+  'master.section.source': { zh: '來源', en: 'Source' },
+  'master.section.style': { zh: '風格', en: 'Style' },
+  'master.section.loudness': { zh: '響度目標', en: 'Loudness target' },
+  'master.section.result': { zh: '結果', en: 'Result' },
+  'master.drop': { zh: '拖放或選擇一首混音', en: 'Drop or choose a mix' },
+  'master.original': { zh: '原始', en: 'Original' },
+  'master.mastered': { zh: '母帶後', en: 'Mastered' },
+  'master.genreLabel': { zh: '曲風預設', en: 'Genre preset' },
+  'master.refLabel': { zh: '參考曲（選用）', en: 'Reference track (optional)' },
+  'master.refDrop': { zh: '上傳一首「想要的聲音」', en: 'Upload a track you want to sound like' },
+  'master.refHint': {
+    zh: '有參考曲時，會比對它的音色（頻譜）來調整，忽略曲風預設。',
+    en: 'With a reference, it matches that track’s tonal balance instead of the genre preset.',
+  },
+  'master.loud.streaming': { zh: '串流', en: 'Streaming' },
+  'master.loud.balanced': { zh: '平衡', en: 'Balanced' },
+  'master.loud.social': { zh: '社群', en: 'Social' },
+  'master.loudDesc.streaming': { zh: 'Spotify/Apple/YouTube 標準', en: 'Spotify/Apple/YouTube standard' },
+  'master.loudDesc.balanced': { zh: '較動態、通用', en: 'More dynamic, all-round' },
+  'master.loudDesc.social': { zh: '較大聲，手機更有衝擊力', en: 'Louder, punchier on phones' },
+  'master.start': { zh: '開始母帶處理', en: 'Master it' },
+  'master.running': { zh: '處理中…', en: 'Mastering…' },
+  'master.rerun': { zh: '重新處理', en: 'Master again' },
+  'master.preparing': { zh: '準備中…', en: 'Preparing…' },
+  'master.download': { zh: '下載母帶 (WAV)', en: 'Download master (WAV)' },
+  'master.unavailable': {
+    zh: '母帶相依未安裝 — 請到設定→修復，或重新安裝引擎。',
+    en: 'Mastering deps not installed — repair in Settings or re-run setup.',
+  },
+  'master.stat.loudness': { zh: '響度', en: 'Loudness' },
+  'master.stat.peak': { zh: '真峰', en: 'True peak' },
+  'master.stat.gain': { zh: '增益', en: 'Gain' },
+  'master.stat.gainSub': { zh: '響度提升', en: 'loudness lift' },
+  'master.stat.source': { zh: '依據', en: 'Based on' },
+  'master.stat.reference': { zh: '參考曲', en: 'Reference' },
+  'master.error.job': { zh: '母帶處理失敗', en: 'Mastering failed' },
+  'master.error.offline': { zh: '連不上本機後端', en: 'Cannot reach local backend' },
 
   // ── Window controls (titlebar) ──
   'common.window.minimize': { zh: '最小化', en: 'Minimize' },

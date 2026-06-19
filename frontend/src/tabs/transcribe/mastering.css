@@ -1,0 +1,226 @@
+/* ──────────────────────────────────────────────────────────────────
+   Auto-Mastering (母帶) mode — dropzone, genre chips, loudness cards,
+   A/B players, result stats. Same ink-on-dark-stock system; reuses
+   .al-clean__progress* for the progress panel.
+   ────────────────────────────────────────────────────────────────── */
+
+.al-master__file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── source dropzone ── */
+.al-master__drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--al-space-2);
+  padding: var(--al-space-6) var(--al-space-4);
+  border-radius: var(--al-radius-panel);
+  border: 1px dashed var(--al-hairline-strong);
+  background: var(--al-surface);
+  color: var(--al-ink-dim);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color var(--al-dur-snap) var(--al-ease-snap), background var(--al-dur-snap) var(--al-ease-snap);
+}
+.al-master__drop:hover {
+  border-color: color-mix(in srgb, var(--al-gold) 50%, var(--al-hairline-strong));
+  background: var(--al-surface-2);
+}
+.al-master__dropmain {
+  font-size: var(--al-text-md);
+  color: var(--al-ink);
+  word-break: break-all;
+}
+.al-master__drophint {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-faint);
+  letter-spacing: var(--al-tracking-caps);
+}
+
+/* ── audio players ── */
+.al-master__player {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--al-space-3);
+}
+.al-master__playerlabel {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--al-tracking-caps);
+  color: var(--al-ink-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.al-master__playerlabel--gold {
+  color: var(--al-gold);
+}
+.al-master__audio {
+  width: 100%;
+  height: 38px;
+}
+
+.al-master__sub {
+  margin: var(--al-space-2) 0 var(--al-space-2);
+  font-size: var(--al-text-sm);
+  color: var(--al-ink-muted);
+}
+
+/* ── genre chips ── */
+.al-master__genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--al-space-2);
+}
+.al-master__chip {
+  padding: 6px 14px;
+  border-radius: var(--al-radius-chip);
+  border: 1px solid var(--al-hairline-strong);
+  background: var(--al-surface);
+  color: var(--al-ink-dim);
+  font-size: var(--al-text-sm);
+  cursor: pointer;
+  transition: all var(--al-dur-snap) var(--al-ease-snap);
+}
+.al-master__chip:hover:not(.al-master__chip--active):not(:disabled) {
+  color: var(--al-ink);
+  border-color: var(--al-ink-faint);
+}
+.al-master__chip--active {
+  border-color: color-mix(in srgb, var(--al-gold) 55%, transparent);
+  background: var(--al-gold-glow);
+  color: var(--al-gold);
+}
+
+/* ── reference picker ── */
+.al-master__reframe {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--al-radius-ctrl);
+  border: 1px dashed var(--al-hairline-strong);
+  background: var(--al-surface);
+  color: var(--al-ink-dim);
+  cursor: pointer;
+  font-size: var(--al-text-sm);
+  max-width: 100%;
+}
+.al-master__reframe:hover {
+  border-color: var(--al-ink-faint);
+}
+.al-master__refclear {
+  border: none;
+  background: transparent;
+  color: var(--al-ink-faint);
+  cursor: pointer;
+  padding: 0 2px;
+}
+.al-master__refclear:hover {
+  color: var(--al-error);
+}
+.al-master__hint {
+  margin: 6px 0 0;
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-faint);
+}
+
+/* ── loudness cards ── */
+.al-master__loudness {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--al-space-2);
+}
+@media (max-width: 560px) {
+  .al-master__loudness {
+    grid-template-columns: 1fr;
+  }
+}
+.al-master__loudbtn {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  padding: var(--al-space-3);
+  border-radius: var(--al-radius-ctrl);
+  border: 1px solid var(--al-hairline-strong);
+  background: var(--al-surface-2);
+  color: var(--al-ink-dim);
+  cursor: pointer;
+  transition: all var(--al-dur-snap) var(--al-ease-snap);
+}
+.al-master__loudbtn:hover:not(.al-master__loudbtn--active):not(:disabled) {
+  border-color: var(--al-ink-faint);
+  color: var(--al-ink);
+}
+.al-master__loudbtn--active {
+  border-color: color-mix(in srgb, var(--al-gold) 55%, transparent);
+  background: var(--al-gold-glow);
+  color: var(--al-ink);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--al-gold) 30%, transparent) inset;
+}
+.al-master__loudname {
+  font-size: var(--al-text-sm);
+  font-weight: 600;
+}
+.al-master__loudval {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-gold);
+}
+.al-master__louddesc {
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-faint);
+}
+
+/* ── result ── */
+.al-master__result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--al-space-4);
+  animation: al-reveal var(--al-dur-focus) var(--al-ease-ink);
+}
+.al-master__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--al-space-2);
+}
+@media (max-width: 560px) {
+  .al-master__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.al-master__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--al-space-3);
+  border-radius: var(--al-radius-ctrl);
+  background: var(--al-surface-2);
+  border: 1px solid var(--al-hairline);
+}
+.al-master__statlabel {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--al-tracking-caps);
+  color: var(--al-ink-faint);
+}
+.al-master__statvalue {
+  font-size: var(--al-text-md);
+  font-weight: 600;
+  color: var(--al-ink);
+}
+.al-master__statsub {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-muted);
+}

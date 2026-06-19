@@ -33,6 +33,12 @@ python-multipart>=0.0.9
 soundfile>=0.12
 numpy>=1.24
 
+# --- 自動母帶(Auto-Mastering;母帶模式 DSP)---
+# scipy:biquad EQ / FIR 卷積 / 限幅器移動最小值。pyloudnorm:ITU-R BS.1770 整合式 LUFS 量測。
+# 皆為 BSD/MIT,授權乾淨。
+scipy>=1.11
+pyloudnorm>=0.1.1
+
 # --- 影片文字 / 區域移除(inpaint;「文字移除 / Clean Text」模式)---
 # OpenCV 提供免模型的 cv2.inpaint(Telea) 後備路徑(LaMa 不可用時自動退回)。
 opencv-python>=4.8.0

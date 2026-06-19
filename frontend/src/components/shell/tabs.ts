@@ -42,6 +42,8 @@ const TABS_BY_MODE: Record<AppMode, TabKey[]> = {
   song: ['transcribe', 'editor', 'export', 'library', 'settings'],
   video: ['transcribe', 'editor', 'export', 'library', 'settings'],
   clean: ['transcribe', 'settings'],
+  // master → a focused audio-out flow: the MasteringFlow lives in 辨識; 設定 stays.
+  master: ['transcribe', 'settings'],
 };
 
 /** The ordered TabKeys a given product mode should show in the rail/router. */

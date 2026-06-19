@@ -15,6 +15,7 @@ import { VideoPreview } from './VideoPreview';
 import { CueList } from './CueList';
 import { CaptionBurn } from './CaptionBurn';
 import { CleanTextFlow } from './CleanTextFlow';
+import { MasteringFlow } from './MasteringFlow';
 import { useMeta } from '../../state/useMeta';
 import { useJob } from '../../state/useJob';
 import { useResultStore } from '../../state/useResultStore';
@@ -333,6 +334,12 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
   // (All hooks above still run, keeping hook order stable across modes.)
   if (appMode === 'clean') {
     return <CleanTextFlow />;
+  }
+
+  // Auto-Mastering (母帶) — also a self-contained surface (own file picker,
+  // genre/loudness pickers, optional reference, job + poll, A/B + download).
+  if (appMode === 'master') {
+    return <MasteringFlow />;
   }
 
   return (
