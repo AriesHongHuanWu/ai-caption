@@ -160,3 +160,115 @@
 .al-update-row__status--error {
   color: var(--al-error, #e55);
 }
+
+/* ── Update modal (auto-popup with full release notes) ── */
+.al-update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--al-space-5);
+  background: color-mix(in srgb, #000 55%, transparent);
+  backdrop-filter: blur(2px);
+  animation: al-update-fade 160ms ease both;
+}
+@keyframes al-update-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.al-update-modal {
+  width: min(540px, 100%);
+  max-height: min(80vh, 660px);
+  display: flex;
+  flex-direction: column;
+  background: var(--al-surface-2, #1b181d);
+  border: 1px solid color-mix(in srgb, var(--al-gold) 28%, var(--al-hairline));
+  border-radius: var(--al-radius-card, 12px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: al-update-pop 200ms var(--al-ease-snap, cubic-bezier(.22,.68,0,1.2)) both;
+}
+@keyframes al-update-pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+.al-update-modal__head {
+  display: flex;
+  align-items: center;
+  gap: var(--al-space-3);
+  padding: var(--al-space-4) var(--al-space-5);
+  border-bottom: 1px solid var(--al-hairline);
+  flex-shrink: 0;
+}
+.al-update-modal__icon { flex-shrink: 0; }
+.al-update-modal__icon--gold { color: var(--al-gold); }
+.al-update-modal__icon--error { color: var(--al-error, #e55); }
+.al-update-modal__title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--al-font-display, var(--al-font-body));
+  font-size: var(--al-text-lg);
+  font-weight: 600;
+  color: var(--al-ink);
+}
+.al-update-modal__close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--al-ink-faint);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 120ms, background 120ms;
+}
+.al-update-modal__close:hover { color: var(--al-ink); background: var(--al-surface); }
+.al-update-modal__close:focus-visible { outline: 2px solid var(--al-gold); outline-offset: 1px; }
+.al-update-modal__notesLabel {
+  padding: var(--al-space-4) var(--al-space-5) 0;
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--al-ink-faint);
+  flex-shrink: 0;
+}
+.al-update-modal__notes {
+  padding: var(--al-space-2) var(--al-space-5) var(--al-space-4);
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--al-font-body);
+  font-size: var(--al-text-sm);
+  line-height: 1.55;
+  color: var(--al-ink-dim);
+}
+.al-update-modal__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--al-space-2);
+  padding: var(--al-space-5);
+}
+.al-update-modal__progressMsg { font-size: var(--al-text-sm); color: var(--al-ink); }
+.al-update-modal__restartNote { font-size: var(--al-text-xs); color: var(--al-ink-muted); }
+.al-update-modal__error {
+  padding: var(--al-space-4) var(--al-space-5);
+  margin: 0;
+  font-size: var(--al-text-sm);
+  color: var(--al-ink-dim);
+}
+.al-update-modal__actions {
+  display: flex;
+  gap: var(--al-space-2);
+  justify-content: flex-end;
+  padding: var(--al-space-4) var(--al-space-5);
+  border-top: 1px solid var(--al-hairline);
+  margin-top: auto;
+  flex-shrink: 0;
+}
