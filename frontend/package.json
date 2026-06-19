@@ -1,5 +1,6 @@
 {
-  "name": "autolyrics-frontend",
+  "name": "ai-caption-frontend",
+  "productName": "Ai Caption",
   "private": true,
   "version": "0.1.0",
   "type": "module",

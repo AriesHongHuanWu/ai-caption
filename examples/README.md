@@ -110,5 +110,5 @@ syllables a recognizer is least sure about.
 
 ---
 
-Made by **Aries HongHuan Wu** · AutoLyrics / LocalAiLyrics · MIT.
-Repo: <https://github.com/AriesHongHuanWu/LocalAiLyrics>
+Made by **Aries HongHuan Wu** · Ai Caption · MIT.
+Repo: <https://github.com/AriesHongHuanWu/ai-caption>

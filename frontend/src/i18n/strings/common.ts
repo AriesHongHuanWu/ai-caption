@@ -15,9 +15,25 @@ import type { Entry } from '../types';
 
 export const common: Record<string, Entry> = {
   // ── App brand ──
-  'common.appName': { zh: 'AutoLyrics', en: 'AutoLyrics' },
-  'common.appTagline': { zh: '逐字時間軸歌詞', en: 'Word-level lyric timelines' },
+  'common.appName': { zh: 'Ai Caption', en: 'Ai Caption' },
+  'common.appTagline': {
+    zh: '本地 AI 字幕 ・ 逐字歌詞',
+    en: 'Local AI captions & word-level lyrics',
+  },
   'common.localFirst': { zh: '本機', en: 'LOCAL-FIRST' },
+
+  // ── Top-level product mode (Song lyrics / Video → Subtitles) ──
+  'common.mode.switchAria': { zh: '產品模式', en: 'Product mode' },
+  'common.mode.song': { zh: '歌曲歌詞', en: 'Lyrics' },
+  'common.mode.video': { zh: '影片字幕', en: 'Subtitles' },
+  'common.mode.songTitle': {
+    zh: '歌曲歌詞 — 分離人聲、辨識、對齊出逐字卡拉 OK',
+    en: 'Song lyrics — separate vocals, transcribe, align word-level karaoke',
+  },
+  'common.mode.videoTitle': {
+    zh: '影片字幕 — 影片或音訊轉成乾淨字幕',
+    en: 'Video → Subtitles — turn a video or audio file into clean captions',
+  },
 
   // ── Window controls (titlebar) ──
   'common.window.minimize': { zh: '最小化', en: 'Minimize' },

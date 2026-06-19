@@ -30,6 +30,7 @@ export function hasTauri(): boolean {
 const EXT_FILTER: Record<ExportFormat, { name: string; extensions: string[] }> = {
   lrc: { name: 'LRC lyrics', extensions: ['lrc'] },
   srt: { name: 'SubRip subtitles', extensions: ['srt'] },
+  webvtt: { name: 'WebVTT subtitles', extensions: ['vtt'] },
   ass: { name: 'ASS karaoke', extensions: ['ass'] },
   json: { name: 'JSON result', extensions: ['json'] },
 };

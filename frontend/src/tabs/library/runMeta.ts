@@ -11,7 +11,9 @@ import type { TFn } from '../../i18n';
 // Mode labels — resolved via t() at the call site so language switches work.
 // ---------------------------------------------------------------------------
 
-const MODE_KEY: Record<JobMode, string> = {
+// Partial: 'speech' (video/subtitle runs) intentionally falls back to the
+// generic 'library.mode.auto' label rather than adding a library string.
+const MODE_KEY: Partial<Record<JobMode, string>> = {
   auto: 'library.mode.auto',
   biasing: 'library.mode.biasing',
   align: 'library.mode.align',

@@ -61,7 +61,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 # ─────────────────────────────────────────────────────────────────────────────
 try:  # 主管線 + 匯出格式函式 (由 pipeline/__init__.py re-export)
     from pipeline import run as pipeline_run
-    from pipeline import to_ass, to_json, to_lrc, to_srt
+    from pipeline import to_ass, to_json, to_lrc, to_srt, to_vtt
 except Exception as _e:  # pragma: no cover
     logger.error("無法載入 pipeline 套件:%r — API 仍會啟動,但工作會回報錯誤。", _e)
     _pipeline_err = _e
@@ -74,6 +74,9 @@ except Exception as _e:  # pragma: no cover
 
     def to_srt(*_a: Any, **_k: Any) -> str:  # type: ignore[misc]
         raise ImportError(f"pipeline.to_srt 不可用:{_pipeline_err!r}")
+
+    def to_vtt(*_a: Any, **_k: Any) -> str:  # type: ignore[misc]
+        raise ImportError(f"pipeline.to_vtt 不可用:{_pipeline_err!r}")
 
     def to_ass(*_a: Any, **_k: Any) -> str:  # type: ignore[misc]
         raise ImportError(f"pipeline.to_ass 不可用:{_pipeline_err!r}")
@@ -171,7 +174,15 @@ _FALLBACK_LANGUAGES = [
     {"code": "ja", "label": "日本語 Japanese", "iso3": "jpn"},
     {"code": "ko", "label": "한국어 Korean", "iso3": "kor"},
 ]
-_FALLBACK_MODEL_SIZES = ["large-v3", "medium", "small"]
+_FALLBACK_MODEL_SIZES = ["large-v3", "large-v3-turbo", "medium", "small"]
+_FALLBACK_MODES = [
+    {"key": "auto", "label": "自動辨識 Auto", "kind": "song"},
+    {"key": "biasing", "label": "提示偏置 Biasing", "kind": "song"},
+    {"key": "align", "label": "強制對齊 Forced-Align", "kind": "song"},
+    {"key": "speech", "label": "影片字幕 Video → Subtitles", "kind": "speech"},
+]
+# 匯出格式清單 (給 UI 渲染下載選項;含新增的 vtt)
+_FALLBACK_FORMATS = ["lrc", "srt", "vtt", "ass", "json"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -190,7 +201,7 @@ _JOBS_LOCK = threading.Lock()
 class JobParams(BaseModel):
     """POST /api/jobs 的 ``params`` JSON 結構 (完全照 API_CONTRACT)。"""
 
-    mode: str = "auto"  # "auto" | "biasing" | "align"
+    mode: str = "auto"  # "auto" | "biasing" | "align" | "speech"
     referenceLyrics: str = ""
     referenceContent: str = ""
     styleKeys: list[str] = Field(default_factory=list)
@@ -202,14 +213,17 @@ class JobParams(BaseModel):
     # Precision options (forced-align mode)
     refine: bool = True  # snap word boundaries to nearest vocal onset
     demucsModel: str = "htdemucs"  # "htdemucs" | "htdemucs_ft"
+    # Video→Subtitles (speech) options
+    task: Optional[str] = None  # faster-whisper task; None == "transcribe" (translate hook, not impl)
 
 
 class ExportBody(BaseModel):
     """POST /api/export 的 JSON body。"""
 
     result: dict
-    fmt: str = "lrc"  # "lrc" | "srt" | "ass" | "json"
+    fmt: str = "lrc"  # "lrc" | "srt" | "vtt" | "ass" | "json"
     level: str = "line"  # "line" | "word"
+    subtitle: bool = False  # apply video-subtitle cue shaping (wrap_cues) for srt/vtt
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -255,6 +269,7 @@ def _run_job(job_id: str, audio_path: str, params: JobParams) -> None:
             engine=params.engine,
             refine=params.refine,
             demucs_model=params.demucsModel,
+            task=params.task,
             progress=progress,
         )
         with _JOBS_LOCK:
@@ -292,13 +307,20 @@ def _run_job(job_id: str, audio_path: str, params: JobParams) -> None:
 _FMT_FUNCS = {
     "lrc": ("text/plain; charset=utf-8", "lrc"),
     "srt": ("application/x-subrip; charset=utf-8", "srt"),
+    "vtt": ("text/vtt; charset=utf-8", "vtt"),
     "ass": ("text/x-ssa; charset=utf-8", "ass"),
     "json": ("application/json; charset=utf-8", "json"),
 }
 
 
-def _render_export(result: dict, fmt: str, level: str) -> tuple[str, str, str]:
-    """把 result 轉成指定格式,回傳 (內容文字, mime, 副檔名)。"""
+def _render_export(
+    result: dict, fmt: str, level: str, subtitle: bool = False
+) -> tuple[str, str, str]:
+    """把 result 轉成指定格式,回傳 (內容文字, mime, 副檔名)。
+
+    subtitle=True 時,srt/vtt 會套用影片字幕整形 (wrap_cues):切分過長段落、折成
+    至多兩行。歌詞模式 (subtitle=False) 維持原樣輸出,不影響 lrc/ass/json。
+    """
     fmt = (fmt or "lrc").lower()
     level = (level or "line").lower()
     if fmt not in _FMT_FUNCS:
@@ -311,7 +333,9 @@ def _render_export(result: dict, fmt: str, level: str) -> tuple[str, str, str]:
         if fmt == "lrc":
             text = to_lrc(result, level=level)
         elif fmt == "srt":
-            text = to_srt(result)
+            text = to_srt(result, subtitle=subtitle)
+        elif fmt == "vtt":
+            text = to_vtt(result, level=level, subtitle=subtitle)
         elif fmt == "ass":
             text = to_ass(result, karaoke=(level == "word"))
         else:  # json
@@ -331,6 +355,31 @@ def _download_response(text: str, mime: str, filename: str) -> Response:
         media_type=mime,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 上傳輸入:接受的副檔名 (音訊 + 影片)。
+# 影片由 PyAV / ffmpeg 解碼抽取音軌 (Demucs / faster-whisper 皆透過它讀檔),
+# 因此「影片→字幕」(speech 模式) 可直接吃 mp4/mkv/mov/webm/m4v 等。
+# 這裡只是用來保留「解碼器好認」的副檔名;未知副檔名仍接受 (以 .bin 落地),
+# 由下游解碼器自行判斷,絕不在此因副檔名而拒收。
+# ─────────────────────────────────────────────────────────────────────────────
+_AUDIO_EXTS = {".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".opus", ".wma"}
+_VIDEO_EXTS = {".mp4", ".mkv", ".mov", ".webm", ".m4v", ".avi", ".flv", ".ts", ".wmv"}
+_MEDIA_EXTS = _AUDIO_EXTS | _VIDEO_EXTS
+
+
+def _safe_upload_suffix(filename: Optional[str]) -> str:
+    """挑一個讓解碼器好認的暫存副檔名。
+
+    已知音訊/影片副檔名原樣保留 (小寫);其他則回退 ``.bin`` 交由解碼器自行嗅探。
+    不在此拒絕任何輸入 —— PyAV 能解的影片都應放行。
+    """
+    suffix = Path(filename or "").suffix.lower()
+    if suffix in _MEDIA_EXTS:
+        return suffix
+    # 保留原副檔名 (即使不在清單內) 仍可能有助解碼;真的沒有才用 .bin。
+    return Path(filename or "").suffix or ".bin"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -697,11 +746,30 @@ def api_meta() -> JSONResponse:
         except Exception:  # noqa: BLE001
             model_sizes = _FALLBACK_MODEL_SIZES
 
+    # modes:[{key,label,kind}] — 含新增的 "speech" (影片→字幕);缺席用回退
+    modes: list[dict] = []
+    if cfg is not None and getattr(cfg, "MODES", None):
+        try:
+            for m in cfg.MODES:
+                modes.append(
+                    {
+                        "key": m.get("key"),
+                        "label": m.get("label", m.get("key")),
+                        "kind": m.get("kind", "song"),
+                    }
+                )
+        except Exception as e:  # noqa: BLE001
+            logger.warning("讀取 MODES 失敗,改用回退:%r", e)
+    if not modes:
+        modes = list(_FALLBACK_MODES)
+
     return JSONResponse(
         {
             "styles": styles,
             "languages": languages,
             "modelSizes": model_sizes,
+            "modes": modes,
+            "formats": _FALLBACK_FORMATS,
             "engines": ["whisper"],
             "gpu": _gpu_available(),
             "demucs": _demucs_available(),
@@ -727,14 +795,15 @@ async def api_create_job(
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=f"params 解析失敗:{e}") from e
 
-    # 2) 存上傳檔到暫存目錄 (保留原副檔名,讓解碼器好認)
+    # 2) 存上傳檔到暫存目錄 (保留音訊/影片副檔名,讓 PyAV/ffmpeg 好認)
+    #    影片 (mp4/mkv/mov/webm/m4v…) 一律放行,由下游解碼抽音軌。
     job_id = uuid.uuid4().hex
-    suffix = Path(audio.filename or "").suffix or ".bin"
+    suffix = _safe_upload_suffix(audio.filename)
     dest = UPLOAD_DIR / f"{job_id}{suffix}"
     try:
         data = await audio.read()
         if not data:
-            raise ValueError("上傳的音檔是空的")
+            raise ValueError("上傳的檔案是空的")
         dest.write_bytes(data)
     except HTTPException:
         raise
@@ -787,8 +856,13 @@ def api_get_job(job_id: str) -> JSONResponse:
 
 
 @app.get("/api/jobs/{job_id}/export")
-def api_export_original(job_id: str, fmt: str = "lrc", level: str = "line") -> Response:
-    """下載「原始」(未編輯) 結果檔。"""
+def api_export_original(
+    job_id: str, fmt: str = "lrc", level: str = "line", subtitle: bool = False
+) -> Response:
+    """下載「原始」(未編輯) 結果檔。
+
+    subtitle=true 時,srt/vtt 會套用影片字幕整形 (適用「影片→字幕」模式)。
+    """
     with _JOBS_LOCK:
         job = JOBS.get(job_id)
         if job is None:
@@ -797,17 +871,17 @@ def api_export_original(job_id: str, fmt: str = "lrc", level: str = "line") -> R
             raise HTTPException(status_code=409, detail="工作尚未完成,無法匯出")
         result = job["result"]
 
-    text, mime, ext = _render_export(result, fmt, level)
+    text, mime, ext = _render_export(result, fmt, level, subtitle=subtitle)
     filename = f"{job_id}.{ext}"
     return _download_response(text, mime, filename)
 
 
 @app.post("/api/export")
 def api_export_edited(body: ExportBody) -> Response:
-    """匯出「編輯後」結果。JSON body { result, fmt, level } → 下載文字檔。"""
+    """匯出「編輯後」結果。JSON body { result, fmt, level, subtitle } → 下載文字檔。"""
     if not isinstance(body.result, dict) or "segments" not in body.result:
         raise HTTPException(status_code=400, detail="result 結構不正確 (缺 segments)")
-    text, mime, ext = _render_export(body.result, body.fmt, body.level)
+    text, mime, ext = _render_export(body.result, body.fmt, body.level, subtitle=body.subtitle)
     filename = f"autolyrics.{ext}"
     return _download_response(text, mime, filename)
 

@@ -4,17 +4,20 @@ import { ProgressBar } from '../../components/primitives';
 import { useT } from '../../i18n';
 import type { JobMode } from '../../api/types';
 
+/** The lyric-recognition modes ModeCards presents (excludes 'speech'). */
+export type LyricMode = 'auto' | 'biasing' | 'align';
+
 export interface ModeCardsProps {
   value: JobMode;
   onChange: (mode: JobMode) => void;
   /** Forced-Align availability (meta.aligner). */
   alignerEnabled: boolean;
-  /** 0..1 readiness per mode, computed from supplied reference + style. */
-  readiness: Record<JobMode, number>;
+  /** 0..1 readiness per lyric mode, computed from supplied reference + style. */
+  readiness: Record<LyricMode, number>;
 }
 
 interface ModeDef {
-  key: JobMode;
+  key: LyricMode;
   /** i18n key prefix — we look up .zh (title) / .desc / .meterNote from it. */
   i18nPrefix: string;
   icon: LucideIcon;
@@ -26,22 +29,22 @@ const MODES: ModeDef[] = [
   { key: 'align',   i18nPrefix: 'transcribe.mode.align',   icon: Crosshair },
 ];
 
-const ORDER: JobMode[] = ['auto', 'biasing', 'align'];
+const ORDER: LyricMode[] = ['auto', 'biasing', 'align'];
 
 /** Three first-class mode cards, each with a plain-language readiness meter. */
 export function ModeCards({ value, onChange, alignerEnabled, readiness }: ModeCardsProps) {
   const t = useT();
 
-  const refs = useRef<Record<JobMode, HTMLButtonElement | null>>({
+  const refs = useRef<Record<LyricMode, HTMLButtonElement | null>>({
     auto: null,
     biasing: null,
     align: null,
   });
 
-  const isDisabled = (key: JobMode) => key === 'align' && !alignerEnabled;
+  const isDisabled = (key: LyricMode) => key === 'align' && !alignerEnabled;
 
   // roving radiogroup: arrow keys move selection across enabled cards
-  const onKeyNav = (e: React.KeyboardEvent, key: JobMode) => {
+  const onKeyNav = (e: React.KeyboardEvent, key: LyricMode) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp')
       return;
     e.preventDefault();

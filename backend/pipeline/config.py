@@ -91,7 +91,30 @@ LANGUAGES: list[dict] = [
 # --------------------------------------------------------------------------- #
 # 模型尺寸
 # --------------------------------------------------------------------------- #
-MODEL_SIZES: list[str] = ["large-v3", "medium", "small"]
+MODEL_SIZES: list[str] = ["large-v3", "large-v3-turbo", "medium", "small"]
+
+# 無獨顯(CPU / iGPU,如 Intel Core Ultra)時建議的快速模型。
+# large-v3 在 CPU 上慢到不堪用;large-v3-turbo 為 8× 加速蒸餾版,準確度接近、
+# CPU 上實用,是「影片→字幕」CPU 路徑的預設首選。若該模型未安裝,呼叫端可退回 small。
+CPU_FAST_MODEL: str = "large-v3-turbo"
+
+# --------------------------------------------------------------------------- #
+# 模式 (mode)
+# --------------------------------------------------------------------------- #
+# key 對應 pipeline.run(mode=...) 與 API_CONTRACT 的 params.mode。
+#   auto    純辨識(歌詞)
+#   biasing 提示偏置辨識(歌詞)
+#   align   完整歌詞強制對齊(歌詞)
+#   speech  影片→字幕:純語音辨識,無偏置、預設不分離人聲
+MODES: list[dict] = [
+    {"key": "auto", "label": "自動辨識 Auto", "kind": "song"},
+    {"key": "biasing", "label": "提示偏置 Biasing", "kind": "song"},
+    {"key": "align", "label": "強制對齊 Forced-Align", "kind": "song"},
+    {"key": "speech", "label": "影片字幕 Video → Subtitles", "kind": "speech"},
+]
+
+# 合法的 mode key 集合(供呼叫端驗證)。
+VALID_MODES: set[str] = {m["key"] for m in MODES}
 
 # --------------------------------------------------------------------------- #
 # 預設值
@@ -106,7 +129,18 @@ DEFAULTS: dict = {
     "beamSize": 5,
     "demucsModel": "htdemucs",
     "alignRefine": True,   # 強制對齊後做 onset 吸附精修(把 start 吸附到真實人聲起音點)
+    "task": None,          # faster-whisper 任務;None == "transcribe"(speech 模式翻譯前向掛鉤)
+    "subtitle": False,     # 匯出時是否套用影片字幕整形(wrap_cues)。歌詞模式維持 False。
     "version": "0.1.0",
+}
+
+# 「影片→字幕」(speech)模式的建議預設覆寫。呼叫端(app/UI)可據此調整既有 DEFAULTS:
+# 不做人聲分離、匯出走字幕整形;模型留給硬體偵測決定(CPU 走 CPU_FAST_MODEL)。
+SPEECH_DEFAULTS: dict = {
+    "mode": "speech",
+    "separate": False,     # 影片語音通常無需 Demucs;預設關閉以加速且省資源
+    "subtitle": True,      # 影片字幕預設套用 wrap_cues 整形
+    "task": None,          # 原文辨識(v1 不翻譯)
 }
 
 # 可選的 Demucs 模型(UI 下拉用)。htdemucs_ft 較乾淨但 ~4× 慢、8GB VRAM 長曲可能 OOM。

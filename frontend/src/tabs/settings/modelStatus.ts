@@ -41,8 +41,12 @@ export interface ModelStatus {
    `settings.facts.*` keys and resolved in ModelSizePicker via t(). */
 export const MODEL_FACTS: Record<ModelSize, ModelFacts> = {
   'large-v3': { diskGb: 3.1, vramGb: 6.2 },
+  // Turbo: large-v3 quality at a fraction of the compute — the CPU-fast pick.
+  'large-v3-turbo': { diskGb: 1.6, vramGb: 3.4 },
   medium: { diskGb: 1.5, vramGb: 3.1 },
   small: { diskGb: 0.5, vramGb: 1.6 },
+  base: { diskGb: 0.15, vramGb: 1.0 },
+  tiny: { diskGb: 0.08, vramGb: 0.7 },
 };
 
 /** Recommended default model for the 8 GB target. */

@@ -249,16 +249,19 @@ def run(
     engine: str = "whisper",
     refine: bool = True,
     demucs_model: str = "htdemucs",
+    task: Optional[str] = None,
     progress: Optional[ProgressFn] = None,
 ) -> dict:
     """跑完整辨識/對齊管線,回傳符合 API_CONTRACT 的 Result dict。
 
     參數
     ----
-    audio_path: 待處理的音訊檔路徑。
-    mode: "auto" | "biasing" | "align"。
+    audio_path: 待處理的音訊/影片檔路徑(PyAV 可解碼 mp4/mkv/mov/webm 等)。
+    mode: "auto" | "biasing" | "align" | "speech"。
         - "align" 且 reference_lyrics 非空 -> 走強制對齊(完整歌詞,接近完美)。
         - "biasing" -> 用 build_bias_prompt 組 initial_prompt 餵給辨識器偏置。
+        - "speech" -> 影片→字幕模式:純語音辨識,無任何偏置;預設不做人聲分離
+          (separate 由呼叫端決定,通常為 False)。modeUsed 回 "speech"。
         - 其他("auto")-> 純辨識。
     reference_lyrics: 完整歌詞(多行,line break 有意義),供 align 使用,亦作偏置素材。
     reference_content: 自由形式提示文字,供 biasing 使用。
@@ -270,13 +273,15 @@ def run(
     engine: 目前僅 "whisper"。
     refine: 是否在強制對齊後把每個詞的邊界吸附到最近的人聲起點(預設 True)。
     demucs_model: Demucs 模型名稱 — "htdemucs"(標準)或 "htdemucs_ft"(高品質微調版,較慢)。
+    task: faster-whisper 任務("transcribe"/"translate");None == "transcribe"。
+        目前僅供 "speech" 模式前向掛鉤未來在地翻譯之用;本管線不附帶翻譯模型。
     progress: progress(stage, pct, msg) 全域進度回報。
 
     回傳
     ----
     {
       "language": str,
-      "modeUsed": "auto" | "biasing" | "align",
+      "modeUsed": "auto" | "biasing" | "align" | "speech",
       "segments": [ {"id","start","end","text","words":[...]} ],
       "meta": {"modelSize","separated","durationSec","engine"}
     }
@@ -390,6 +395,20 @@ def run(
             )
             mode_used = "biasing"
 
+    elif mode == "speech":
+        # 影片→字幕模式:純語音辨識,無任何偏置;task 透傳給辨識器(未來翻譯前向掛鉤)。
+        _safe_progress(progress, "recognize", 41.0, "辨識語音 · Transcribing speech")
+        recog = _fallback_transcribe(
+            vocals_path,
+            language=language,
+            initial_prompt=None,
+            model_size=model_size,
+            device=resolved_device,
+            task=task,
+            progress=recog_progress,
+        )
+        mode_used = "speech"
+
     elif mode == "biasing":
         initial_prompt = _safe_bias_prompt(style_keys, reference_content, reference_lyrics)
         _safe_progress(progress, "recognize", 41.0, "偏置辨識 · Biased recognition")
@@ -482,6 +501,7 @@ def _fallback_transcribe(
     initial_prompt: Optional[str],
     model_size: str,
     device: str,
+    task: Optional[str] = None,
     progress: Optional[ProgressFn],
 ) -> dict:
     """呼叫 transcribe.transcribe;任何例外回傳空結果結構,不讓管線崩潰。"""
@@ -492,6 +512,7 @@ def _fallback_transcribe(
             initial_prompt=initial_prompt,
             model_size=model_size,
             device=device,
+            task=task,
             progress=progress,
         )
         if isinstance(out, dict):

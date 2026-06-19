@@ -6,7 +6,10 @@
 設計重點：
 - 依 (model_size, device, compute_type) 全域快取 WhisperModel，避免重複載入權重。
 - compute_type="auto" 會依裝置自動挑選：cuda→float16（8GB OOM 時退回 int8_float16），cpu→int8。
+  CPU 路徑（int8 + 合理的 cpu_threads）在 Intel Core Ultra 等無獨顯機器上即為 CTranslate2 的快速路徑。
 - word_timestamps=True、vad_filter=True、condition_on_previous_text=False（歌曲容易漂移）。
+- 可選的 task 參數（"transcribe"/"translate"）會原樣傳給 faster-whisper；預設 None == "transcribe"。
+  這是未來在地翻譯模組的前向掛鉤（forward hook），本模組本身不載入任何翻譯模型。
 - 任何重型相依（faster_whisper）皆以 try/except 包覆，缺失時拋出清楚錯誤但絕不讓整個 server 崩潰。
 
 回傳格式（與 align.transcribe 對齊，符合 API_CONTRACT 的子結構）：
@@ -25,6 +28,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import threading
 from typing import Any, Callable, Optional
 
@@ -62,7 +66,7 @@ def _resolve_compute_type(compute_type: str, device: str) -> str:
     """將 compute_type='auto' 解析為裝置對應的實際精度。
 
     - cuda → float16（後續若 OOM 會退回 int8_float16，由 transcribe 處理）
-    - cpu  → int8
+    - cpu  → int8（CTranslate2 在 CPU 上的快速量化路徑，Core Ultra 等機器最實用）
     其他值（已明確指定）原樣回傳。
     """
     if compute_type and compute_type != "auto":
@@ -70,6 +74,20 @@ def _resolve_compute_type(compute_type: str, device: str) -> str:
     if device == "cuda":
         return "float16"
     return "int8"
+
+
+def _cpu_threads() -> int:
+    """為 CPU 解碼挑一個合理的執行緒數。
+
+    在無獨顯的機器上，faster-whisper / CTranslate2 的吞吐量幾乎完全取決於可用核心數。
+    取 ``os.cpu_count()``（含超執行緒的邏輯核），下限 4 確保至少有基本平行度，
+    上限 16 避免在多核工作站上過度切換而拖慢（CTranslate2 的擴展性在此之後遞減）。
+    """
+    try:
+        cores = int(os.cpu_count() or 8)
+    except Exception:  # noqa: BLE001
+        cores = 8
+    return max(4, min(16, cores))
 
 
 def _get_model(model_size: str, device: str, compute_type: str) -> "WhisperModel":
@@ -93,13 +111,18 @@ def _get_model(model_size: str, device: str, compute_type: str) -> "WhisperModel
         model = _MODEL_CACHE.get(key)
         if model is not None:
             return model
+        # CPU 路徑指定 cpu_threads 讓 CTranslate2 充分利用所有核心；CUDA 路徑不需要。
+        kwargs: dict[str, Any] = {"device": device, "compute_type": compute_type}
+        if device == "cpu":
+            kwargs["cpu_threads"] = _cpu_threads()
         logger.info(
-            "載入 WhisperModel：size=%s device=%s compute_type=%s",
+            "載入 WhisperModel：size=%s device=%s compute_type=%s%s",
             model_size,
             device,
             compute_type,
+            f" cpu_threads={kwargs['cpu_threads']}" if device == "cpu" else "",
         )
-        model = WhisperModel(model_size, device=device, compute_type=compute_type)
+        model = WhisperModel(model_size, **kwargs)
         _MODEL_CACHE[key] = model
         return model
 
@@ -173,15 +196,18 @@ def _run_transcribe(
     language: Optional[str],
     initial_prompt: Optional[str],
     beam_size: int,
+    task: Optional[str],
     progress: ProgressFn,
 ) -> dict[str, Any]:
     """實際呼叫 model.transcribe 並把生成器收斂為固定格式 dict。
 
     segments 是「生成器」，逐段迭代時才真正進行解碼，因此這裡也順勢回報進度。
+    task 為 None 時等同 faster-whisper 預設的 "transcribe"。
     """
     segments_gen, info = model.transcribe(
         audio_path,
         language=language,
+        task=(task or "transcribe"),
         initial_prompt=initial_prompt,
         word_timestamps=True,
         vad_filter=True,
@@ -232,6 +258,7 @@ def transcribe(
     device: str = "cuda",
     compute_type: str = "auto",
     beam_size: int = 5,
+    task: Optional[str] = None,
     progress: ProgressFn = None,
 ) -> dict[str, Any]:
     """用 faster-whisper 對音訊做帶逐字時間戳的辨識。
@@ -244,6 +271,8 @@ def transcribe(
         device: "cuda" 或 "cpu"。
         compute_type: "auto" 依裝置自動挑精度；或明確指定（如 "float16"/"int8"）。
         beam_size: beam search 寬度。
+        task: faster-whisper 任務（"transcribe"/"translate"）；None == "transcribe"。
+            這是未來在地翻譯的前向掛鉤，本模組不附帶任何翻譯模型。
         progress: progress(stage, pct, msg) 進度回呼；可為 None。
 
     Returns:
@@ -283,6 +312,7 @@ def transcribe(
             language=language,
             initial_prompt=initial_prompt,
             beam_size=beam_size,
+            task=task,
             progress=progress,
         )
     except Exception as exc:  # noqa: BLE001 - 需判斷是否為可重試的 CUDA OOM
@@ -313,6 +343,7 @@ def transcribe(
                     language=language,
                     initial_prompt=initial_prompt,
                     beam_size=beam_size,
+                    task=task,
                     progress=progress,
                 )
             except Exception as exc2:  # noqa: BLE001

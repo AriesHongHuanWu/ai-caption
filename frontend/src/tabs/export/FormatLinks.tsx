@@ -4,6 +4,7 @@ import {
   AlignLeft,
   Type as TypeIcon,
   Captions,
+  Subtitles,
   Sparkles,
   Braces,
 } from 'lucide-react';
@@ -19,7 +20,12 @@ export interface FormatChoice {
 export interface FormatLinksProps {
   value: FormatChoice;
   onChange: (choice: FormatChoice) => void;
+  /** Video → Subtitles mode: lead with SRT/VTT, de-emphasize LRC/ASS. */
+  subtitleMode?: boolean;
 }
+
+/** Broad family of a format — drives subtitle-mode ordering + emphasis. */
+type FormatFamily = 'subtitle' | 'lyric' | 'data';
 
 interface LinkDef {
   id: string;
@@ -29,6 +35,7 @@ interface LinkDef {
   icon: LucideIcon;
   fmt: ExportFormat;
   level: ExportLevel;
+  family: FormatFamily;
 }
 
 const LINKS: LinkDef[] = [
@@ -40,6 +47,7 @@ const LINKS: LinkDef[] = [
     icon: AlignLeft,
     fmt: 'lrc',
     level: 'line',
+    family: 'lyric',
   },
   {
     id: 'lrc-word',
@@ -49,6 +57,7 @@ const LINKS: LinkDef[] = [
     icon: TypeIcon,
     fmt: 'lrc',
     level: 'word',
+    family: 'lyric',
   },
   {
     id: 'srt',
@@ -58,6 +67,17 @@ const LINKS: LinkDef[] = [
     icon: Captions,
     fmt: 'srt',
     level: 'line',
+    family: 'subtitle',
+  },
+  {
+    id: 'webvtt',
+    name: 'WebVTT',
+    ext: '.vtt',
+    blurbKey: 'export.fmtWebVtt',
+    icon: Subtitles,
+    fmt: 'webvtt',
+    level: 'line',
+    family: 'subtitle',
   },
   {
     id: 'ass',
@@ -67,6 +87,7 @@ const LINKS: LinkDef[] = [
     icon: Sparkles,
     fmt: 'ass',
     level: 'word',
+    family: 'lyric',
   },
   {
     id: 'json',
@@ -76,6 +97,7 @@ const LINKS: LinkDef[] = [
     icon: Braces,
     fmt: 'json',
     level: 'word',
+    family: 'data',
   },
 ];
 
@@ -83,17 +105,30 @@ function sameChoice(l: LinkDef, v: FormatChoice): boolean {
   return l.fmt === v.fmt && l.level === v.level;
 }
 
-/** LRC line/word · SRT · ASS · JSON selector — a vertical list of typeset links. */
-export function FormatLinks({ value, onChange }: FormatLinksProps) {
+/** Order for subtitle (video) mode: subtitle formats first, then lyric, then data. */
+const FAMILY_ORDER: Record<FormatFamily, number> = { subtitle: 0, lyric: 1, data: 2 };
+
+/** LRC line/word · SRT · WebVTT · ASS · JSON selector — a vertical list of typeset links. */
+export function FormatLinks({ value, onChange, subtitleMode = false }: FormatLinksProps) {
   const t = useT();
   const listRef = useRef<HTMLDivElement>(null);
+
+  // In subtitle mode, surface SRT/WebVTT at the top and push lyric/karaoke
+  // formats down (and visually quieten them). Stable sort preserves the
+  // authored order within each family.
+  const links = subtitleMode
+    ? LINKS.map((l, i) => ({ l, i }))
+        .sort((a, b) => FAMILY_ORDER[a.l.family] - FAMILY_ORDER[b.l.family] || a.i - b.i)
+        .map((x) => x.l)
+    : LINKS;
+
   const activeIndex = Math.max(
     0,
-    LINKS.findIndex((l) => sameChoice(l, value)),
+    links.findIndex((l) => sameChoice(l, value)),
   );
 
   const focusIndex = (i: number) => {
-    const clamped = (i + LINKS.length) % LINKS.length;
+    const clamped = (i + links.length) % links.length;
     const node = listRef.current?.querySelectorAll<HTMLButtonElement>(
       '.al-formatlink',
     )[clamped];
@@ -112,7 +147,7 @@ export function FormatLinks({ value, onChange }: FormatLinksProps) {
       focusIndex(0);
     } else if (e.key === 'End') {
       e.preventDefault();
-      focusIndex(LINKS.length - 1);
+      focusIndex(links.length - 1);
     }
   };
 
@@ -123,15 +158,19 @@ export function FormatLinks({ value, onChange }: FormatLinksProps) {
       aria-label={t('export.fmtAriaLabel')}
       ref={listRef}
     >
-      {LINKS.map((l, i) => {
+      {links.map((l, i) => {
         const active = sameChoice(l, value);
         const Icon = l.icon;
+        // De-emphasize lyric/karaoke formats in subtitle mode (still usable).
+        const muted = subtitleMode && l.family === 'lyric' && !active;
         return (
           <button
             key={l.id}
             type="button"
             role="radio"
-            className={`al-formatlink ${active ? 'al-formatlink--active' : ''}`}
+            className={`al-formatlink ${active ? 'al-formatlink--active' : ''}${
+              muted ? ' al-formatlink--muted' : ''
+            }`}
             onClick={() => onChange({ fmt: l.fmt, level: l.level })}
             onKeyDown={(e) => onKeyDown(e, i)}
             aria-checked={active}

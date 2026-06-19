@@ -4,7 +4,7 @@
    SPLITTING RULE: old inline bilingual string → ONE Entry { zh, en }.
    The UI shows ONLY the active language.
 
-   Do NOT translate: 'AutoLyrics', 'Python', 'PyTorch', version numbers,
+   Do NOT translate: 'Ai Caption', 'Python', 'PyTorch', version numbers,
    units (GB), URLs, file paths.
    ────────────────────────────────────────────────────────────────── */
 
@@ -18,8 +18,8 @@ export const setup: Record<string, Entry> = {
     en: 'Welcome — first-run setup',
   },
   'setup.foot': {
-    zh: 'AutoLyrics · 本機優先 · 不需要網路帳號',
-    en: 'AutoLyrics · Local-first · No account needed',
+    zh: 'Ai Caption · 本機優先 · 不需要網路帳號',
+    en: 'Ai Caption · Local-first · No account needed',
   },
 
   // ── Phase 1: Python missing ──
@@ -27,7 +27,7 @@ export const setup: Record<string, Entry> = {
   'setup.python.aria': { zh: '需要 Python', en: 'Python required' },
   'setup.python.heading': { zh: '需要 Python 3.10–3.12', en: 'Python 3.10–3.12 required' },
   'setup.python.body': {
-    zh: 'AutoLyrics 的辨識引擎需要系統安裝 Python 3.10、3.11 或 3.12，並已加入 PATH。',
+    zh: 'Ai Caption 的辨識引擎需要系統安裝 Python 3.10、3.11 或 3.12，並已加入 PATH。',
     en: 'The recognition engine requires Python 3.10–3.12 on your system PATH.',
   },
   'setup.python.recheck': { zh: '重新檢查', en: 'Re-check' },
@@ -37,7 +37,7 @@ export const setup: Record<string, Entry> = {
   'setup.install.aria': { zh: '準備安裝', en: 'Ready to install' },
   'setup.install.heading': { zh: '安裝辨識引擎', en: 'Install the engine' },
   'setup.install.body': {
-    zh: 'AutoLyrics 將在本機建立一個獨立的 Python 環境，並下載 PyTorch 辨識引擎（需數 GB）。安裝完成後即可開始使用，之後啟動無需再次下載。',
+    zh: 'Ai Caption 將在本機建立一個獨立的 Python 環境，並下載 PyTorch 辨識引擎（需數 GB）。安裝完成後即可開始使用，之後啟動無需再次下載。',
     en: "We'll create a local Python venv and download the PyTorch engine (a few GB). This is a one-time setup — future launches start instantly.",
   },
   'setup.install.dirLabel': { zh: '目錄', en: 'Dir' },

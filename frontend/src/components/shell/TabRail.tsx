@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { TABS } from './tabs';
 import type { TabKey } from './tabs';
+import { ModeSwitch } from './ModeSwitch';
 import { useT } from '../../i18n';
 
 export interface TabRailProps {
@@ -47,6 +48,10 @@ export function TabRail({ active, onChange, collapsed = false }: TabRailProps) {
         <div className="al-rail__title">{t('common.appName')}</div>
         <div className="al-rail__sub">{t('common.appTagline')}</div>
       </div>
+
+      {/* Top-level product mode — stays visible (icons-only) when collapsed,
+          so it sits OUTSIDE the head (which is hidden in the collapsed rail). */}
+      <ModeSwitch collapsed={collapsed} />
 
       {TABS.map((tab, i) => {
         const Icon = tab.icon;

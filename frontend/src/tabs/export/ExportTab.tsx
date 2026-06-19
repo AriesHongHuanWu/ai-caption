@@ -13,10 +13,12 @@ import { formatClock } from '../../lib/timecode';
 import { useResultStore } from '../../state/useResultStore';
 import { useAudio } from '../../state/useAudio';
 import { useJob } from '../../state/useJob';
+import { useMode } from '../../state/useMode';
 import { useT } from '../../i18n';
 
 export function ExportTab() {
   const t = useT();
+  const mode = useMode((s) => s.mode);
   const result = useResultStore((s) => s.result);
   const dirty = useResultStore((s) => s.dirty);
   const currentTime = useAudio((s) => s.currentTime);
@@ -27,7 +29,13 @@ export function ExportTab() {
   const seek = useAudio((s) => s.seek);
   const jobId = useJob((s) => s.jobId);
 
-  const [config, setConfig] = useState<ExportConfig>(DEFAULT_CONFIG);
+  // In "video" mode subtitles are the point, so default to SRT (and surface
+  // VTT/SRT first in FormatLinks); song mode keeps the LRC default.
+  const [config, setConfig] = useState<ExportConfig>(() =>
+    mode === 'video'
+      ? { ...DEFAULT_CONFIG, fmt: 'srt', level: 'line' }
+      : DEFAULT_CONFIG,
+  );
 
   const patch = (p: Partial<ExportConfig>) =>
     setConfig((c) => ({ ...c, ...p }));
@@ -76,7 +84,11 @@ export function ExportTab() {
           <section>
             <Eyebrow num={1}>{t('export.sectionFormat')}</Eyebrow>
             <div className="al-export__group">
-              <FormatLinks value={choice} onChange={onChoice} />
+              <FormatLinks
+                value={choice}
+                onChange={onChoice}
+                subtitleMode={mode === 'video'}
+              />
             </div>
           </section>
 

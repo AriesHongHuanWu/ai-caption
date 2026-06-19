@@ -61,6 +61,13 @@
   color: var(--al-ink);
   border-color: var(--al-hairline-strong);
 }
+/* Subtitle mode quietens lyric/karaoke formats — present, not primary. */
+.al-formatlink--muted {
+  opacity: 0.5;
+}
+.al-formatlink--muted:hover {
+  opacity: 1;
+}
 /* gold left edge marks the live selection (accent discipline). */
 .al-formatlink__edge {
   position: absolute;

@@ -51,6 +51,7 @@ REASON_CODES: tuple[str, ...] = (
     "gpu_4gb",    # CUDA + VRAM 4000–7000   -> medium   (cuda)
     "gpu_2gb",    # CUDA + VRAM 2000–4000   -> small    (cuda)
     "gpu_low",    # CUDA but VRAM < 2000    -> small    (cpu — GPU too small)
+    "cpu_fast",   # no CUDA, capable machine -> large-v3-turbo (cpu — fast distilled)
     "cpu_only",   # no CUDA, ordinary machine -> small  (cpu — slower)
     "cpu_weak",   # no CUDA, very weak machine -> base  (cpu)
 )
@@ -67,20 +68,61 @@ _VRAM_SMALL = 2000   # >= -> small    (cuda)
 _WEAK_CPU_COUNT = 4    # logical cores <= 4
 _WEAK_RAM_MB = 6000    # RAM < ~6GB
 
+# "Capable CPU" heuristic (no GPU) — machines that can comfortably run the fast
+# distilled large-v3-turbo on CPU (e.g. Intel Core Ultra: many cores, ample RAM).
+# Below this we stay on the lighter `small` model. RAM unknown is treated as OK so
+# we don't needlessly downgrade a well-specced box whose RAM probe failed.
+_FAST_CPU_COUNT = 8     # logical cores >= 8 (turbo benefits from parallelism)
+_FAST_RAM_MB = 8000     # RAM >= ~8GB (turbo weights + KV cache are comfortable)
+
+# The CPU-fast model id + size. Kept in sync with pipeline.config.CPU_FAST_MODEL
+# and the _TIERS entry above; resolved through the registry check below so we
+# gracefully fall back to `small` if the turbo model is ever absent.
+_CPU_FAST_MODEL_ID = "whisper-large-v3-turbo"
+_CPU_FAST_WHISPER_SIZE = "large-v3-turbo"
+
+
+def _turbo_in_registry() -> bool:
+    """Is large-v3-turbo present in pipeline.models.REGISTRY? Import-safe.
+
+    The registry is pure data (no heavy deps), but we still guard the import so a
+    transient failure can never crash hardware detection. Default True on failure:
+    turbo is a known constant of this codebase, and recommend_model() only reaches
+    here for the CPU-fast path, which independently degrades to `small` anyway.
+    """
+    try:
+        from . import models  # type: ignore
+
+        registry = getattr(models, "REGISTRY", None)
+        if not isinstance(registry, (list, tuple)):
+            return True
+        for entry in registry:
+            try:
+                if entry.get("whisperSize") == _CPU_FAST_WHISPER_SIZE:
+                    return True
+            except AttributeError:
+                continue
+        return False
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("registry turbo check failed; assuming present: %r", exc)
+        return True
+
 # Whisper tiers this machine can run *well*. Each maps to a models.REGISTRY id.
 # minVramMB are conservative load estimates (MB), in ascending order. Every size
 # the frontend picker offers must appear here so the picker always has an
 # authoritative fit indicator instead of silently defaulting to fits=True.
 #
 # cpuOk marks the sizes that are practical to run on CPU (no GPU). base/small are
-# light enough to be usable on CPU; medium runs but is slow; the large sizes are
-# too slow on CPU to recommend. _build_tiers() uses cpuOk when there is no CUDA
-# (or the GPU is too small to use), and minVramMB when CUDA is in play.
+# light enough to be usable on CPU; medium runs but is slow; large-v3-turbo is the
+# 8× distilled large model and IS practical on a modern CPU (e.g. Intel Core Ultra),
+# so it's cpuOk; only the full large-v3 is too slow on CPU to recommend.
+# _build_tiers() uses cpuOk when there is no CUDA (or the GPU is too small to use),
+# and minVramMB when CUDA is in play.
 _TIERS: list[dict[str, Any]] = [
     {"model": "whisper-base", "whisperSize": "base", "minVramMB": 0, "cpuOk": True},
     {"model": "whisper-small", "whisperSize": "small", "minVramMB": _VRAM_SMALL, "cpuOk": True},
     {"model": "whisper-medium", "whisperSize": "medium", "minVramMB": _VRAM_MEDIUM, "cpuOk": True},
-    {"model": "whisper-large-v3-turbo", "whisperSize": "large-v3-turbo", "minVramMB": 4500, "cpuOk": False},
+    {"model": "whisper-large-v3-turbo", "whisperSize": "large-v3-turbo", "minVramMB": 4500, "cpuOk": True},
     {"model": "whisper-large-v3", "whisperSize": "large-v3", "minVramMB": _VRAM_LARGE, "cpuOk": False},
 ]
 
@@ -267,8 +309,15 @@ def recommend_model(
       * CUDA + VRAM 4000–7000   -> medium   (cuda)        reasonCode=gpu_4gb
       * CUDA + VRAM 2000–4000   -> small    (cuda)        reasonCode=gpu_2gb
       * CUDA but VRAM < 2000    -> small    (cpu, too small) reasonCode=gpu_low
+      * no CUDA, capable box    -> large-v3-turbo (cpu)   reasonCode=cpu_fast
       * no CUDA, ordinary box   -> small    (cpu, slower) reasonCode=cpu_only
-      * no CUDA, very weak box   -> base    (cpu)         reasonCode=cpu_weak
+      * no CUDA, very weak box  -> base     (cpu)         reasonCode=cpu_weak
+
+    The CPU-fast path targets modern no-discrete-GPU laptops (e.g. Intel Core
+    Ultra: many cores + ample RAM). On such a box the 8× distilled large-v3-turbo
+    runs fast enough to be the best CPU pick — far more usable than the full
+    large-v3, which is unusably slow on CPU and never recommended there. If turbo
+    is somehow absent from the registry we degrade to `small`.
 
     If cuda=True but VRAM is unreadable, conservatively recommend small (cuda).
     """
@@ -292,7 +341,10 @@ def recommend_model(
         return {"model": "whisper-small", "device": "cpu",
                 "whisperSize": "small", "reasonCode": "gpu_low"}
 
-    # No CUDA -> CPU path. Very weak machines drop to base; otherwise small.
+    # No CUDA -> CPU path.
+    #   * very weak machine            -> base   (cpu_weak)
+    #   * capable machine + turbo avail -> large-v3-turbo (cpu_fast)
+    #   * otherwise                    -> small  (cpu_only)
     weak = (
         0 < cpu_count <= _WEAK_CPU_COUNT
         and ram_total_mb is not None
@@ -301,6 +353,16 @@ def recommend_model(
     if weak:
         return {"model": "whisper-base", "device": "cpu",
                 "whisperSize": "base", "reasonCode": "cpu_weak"}
+
+    # "Capable" = enough cores AND (RAM unknown OR RAM >= threshold). The fast
+    # distilled turbo is the standout CPU pick on these (Intel Core Ultra, etc.).
+    capable = cpu_count >= _FAST_CPU_COUNT and (
+        ram_total_mb is None or ram_total_mb >= _FAST_RAM_MB
+    )
+    if capable and _turbo_in_registry():
+        return {"model": _CPU_FAST_MODEL_ID, "device": "cpu",
+                "whisperSize": _CPU_FAST_WHISPER_SIZE, "reasonCode": "cpu_fast"}
+
     return {"model": "whisper-small", "device": "cpu",
             "whisperSize": "small", "reasonCode": "cpu_only"}
 

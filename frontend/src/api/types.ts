@@ -16,7 +16,19 @@ export interface LanguageOption {
   iso3: string;
 }
 
-export type ModelSize = 'large-v3' | 'medium' | 'small';
+/**
+ * Whisper model sizes. The CPU-fast tiers (large-v3-turbo, base, tiny) are
+ * included so the "Video → Subtitles" mode can default to a fast model on
+ * GPU-less laptops; the backend advertises which it actually has installed
+ * via /api/meta modelSizes (and /api/models for install state).
+ */
+export type ModelSize =
+  | 'large-v3'
+  | 'large-v3-turbo'
+  | 'medium'
+  | 'small'
+  | 'base'
+  | 'tiny';
 export type Engine = 'whisper';
 
 export interface Meta {
@@ -32,7 +44,14 @@ export interface Meta {
 
 /* ── POST /api/jobs — params ── */
 
-export type JobMode = 'auto' | 'biasing' | 'align';
+/**
+ * Job modes.
+ *   auto / biasing / align — the song-lyrics pipeline (Demucs → Whisper → align).
+ *   speech                 — plain video/audio caption transcription
+ *                            (no separation, no forced-align). Added for the
+ *                            "Video → Subtitles" product mode.
+ */
+export type JobMode = 'auto' | 'biasing' | 'align' | 'speech';
 export type Device = 'auto' | 'cuda' | 'cpu';
 
 export interface JobParams {
@@ -49,6 +68,13 @@ export interface JobParams {
   refine: boolean;
   /** Demucs model name. "htdemucs" (standard) | "htdemucs_ft" (fine-tuned, slower). */
   demucsModel: string;
+  /**
+   * Whisper task. "transcribe" (original language) is the only value used in
+   * v1; the field is a forward-compat hook so an optional local translate
+   * module can later request "translate" without a contract change. Optional
+   * — omitted/undefined means the backend default ("transcribe").
+   */
+  task?: string;
 }
 
 export interface CreateJobResponse {
@@ -166,7 +192,7 @@ export interface HardwareInfo {
 
 /* ── Export ── */
 
-export type ExportFormat = 'lrc' | 'srt' | 'ass' | 'json';
+export type ExportFormat = 'lrc' | 'srt' | 'ass' | 'json' | 'webvtt';
 export type ExportLevel = 'line' | 'word';
 
 export interface ExportEditedBody {

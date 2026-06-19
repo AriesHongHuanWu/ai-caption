@@ -1,6 +1,6 @@
-# Contributing to AutoLyrics · LocalAiLyrics
+# Contributing to Ai Caption
 
-感謝你願意貢獻!Thanks for helping make local-first lyric recognition better.
+感謝你願意貢獻!Thanks for helping make local-first captioning (video → subtitles) and lyric recognition better.
 
 ## 專案結構 / Project layout
 
@@ -56,6 +56,6 @@ cd frontend && npm install && npm run tauri dev
 
 ## 回報問題 / Issues
 
-附上:作業系統、GPU、Python/Node 版本、重現步驟,以及(若辨識相關)歌曲語言與模式(自動/偏置/強制對齊)。
+附上:作業系統、CPU/GPU、Python/Node 版本、重現步驟,以及(若辨識相關)模式(影片轉字幕 / 歌曲轉歌詞)、語言,歌詞模式再附子模式(自動/偏置/強制對齊)。
 
 歡迎一起讓它更好 🎧

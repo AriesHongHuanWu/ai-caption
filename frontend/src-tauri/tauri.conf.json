@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "AutoLyrics",
+  "productName": "Ai Caption",
   "version": "0.1.0",
   "identifier": "com.autolyrics.desktop",
   "build": {
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "AutoLyrics",
+        "title": "Ai Caption",
         "width": 1280,
         "height": 820,
         "minWidth": 1000,
@@ -33,7 +33,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/AriesHongHuanWu/LocalAiLyrics/releases/latest/download/latest.json"
+        "https://github.com/AriesHongHuanWu/ai-caption/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhGQzEzQ0ZCRkM1MjM5QTUKUldTbE9WTDgrenpCajdZZXZEaCtOYVYrTjBNV1RtMk9hdis2MXhEK1ZsTVRnTE91L2RobHlHQXoK"
     }
@@ -51,7 +51,8 @@
       "../../backend/run.sh": "backend/run.sh",
       "../../backend/test_e2e.py": "backend/test_e2e.py",
       "../../backend/pipeline/**/*": "backend/pipeline/",
-      "../../backend/web/*": "backend/web/"
+      "../../backend/web/*": "backend/web/",
+      "resources/python/**/*": "python/"
     },
     "icon": [
       "icons/32x32.png",

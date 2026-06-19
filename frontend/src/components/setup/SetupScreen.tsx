@@ -82,7 +82,7 @@ export function SetupScreen() {
       {/* ── Logo / heading ── */}
       <header className="al-setup-screen__head">
         <div className="al-setup-screen__mark">◆</div>
-        <h1 className="al-setup-screen__title">AutoLyrics</h1>
+        <h1 className="al-setup-screen__title">{t('common.appName')}</h1>
         <p className="al-setup-screen__sub">{t('setup.sub')}</p>
       </header>
 

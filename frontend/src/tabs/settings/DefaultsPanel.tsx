@@ -26,6 +26,7 @@ const AUTO = '__auto__';
 const FMT_LABEL: Record<ExportFormat, string> = {
   lrc: 'LRC',
   srt: 'SRT',
+  webvtt: 'WebVTT',
   ass: 'ASS karaoke',
   json: 'JSON',
 };

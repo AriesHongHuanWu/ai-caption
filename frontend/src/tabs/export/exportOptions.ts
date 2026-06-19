@@ -70,6 +70,9 @@ export function capabilitiesFor(fmt: ExportFormat): FormatCapabilities {
       return { level: true, precision: true, sweep: false, encoding: true };
     case 'srt':
       return { level: false, precision: true, sweep: false, encoding: true };
+    case 'webvtt':
+      // WebVTT is millisecond-native, so no precision toggle to offer.
+      return { level: false, precision: false, sweep: false, encoding: true };
     case 'ass':
       return { level: false, precision: true, sweep: true, encoding: true };
     case 'json':

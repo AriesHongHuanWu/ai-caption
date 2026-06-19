@@ -49,6 +49,7 @@ export const exportStrings: Record<string, Entry> = {
   'export.fmtLrcLine': { zh: '逐行', en: 'line' },
   'export.fmtLrcWord': { zh: '逐字', en: 'enhanced' },
   'export.fmtSrt': { zh: '字幕', en: 'subtitles' },
+  'export.fmtWebVtt': { zh: 'WebVTT 字幕', en: 'WebVTT subtitles' },
   'export.fmtAss': { zh: '\\k 卡拉OK', en: '\\k karaoke' },
   'export.fmtJson': { zh: '原始結果', en: 'raw' },
 

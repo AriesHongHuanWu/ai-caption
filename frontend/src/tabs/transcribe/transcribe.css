@@ -368,15 +368,19 @@
 }
 
 /* ─────────────────────────── Run row ─────────────────────────── */
-.al-runrow {
+/* NOTE: named .al-runbar (NOT .al-runrow) on purpose — the Library tab defines
+   a global .al-runrow as a 7-column grid, and since all CSS is bundled, that
+   same-specificity rule would override this flex row and squeeze the Run button
+   into a tiny grid track (clipping long labels like "Generate subtitles"). */
+.al-runbar {
   display: flex;
   align-items: center;
   gap: var(--al-space-3);
 }
-.al-runrow__spacer {
+.al-runbar__spacer {
   flex: 1;
 }
-.al-runrow__note {
+.al-runbar__note {
   font-size: var(--al-text-sm);
   color: var(--al-ink-faint);
 }
@@ -688,6 +692,184 @@
 }
 .al-align-precision__row--select .al-field {
   max-width: 340px;
+}
+
+/* ──────────────────────── Video → Subtitles mode ─────────────────────────
+   The subtitle face reuses the same column + sections; these styles cover the
+   "runs on any laptop" reassurance, the framed video preview with its caption
+   overlay, and the click-to-seek cue list. All on the locked palette. */
+
+/* No-GPU reassurance (video empty state) */
+.al-nogpu {
+  display: flex;
+  gap: var(--al-space-3);
+  margin-top: var(--al-space-3);
+  padding: var(--al-space-3) var(--al-space-4);
+  border-radius: var(--al-radius-panel);
+  background: var(--al-surface);
+  border: 1px solid var(--al-hairline);
+}
+.al-nogpu__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--al-gold);
+}
+.al-nogpu__title {
+  font-size: var(--al-text-md);
+  font-weight: 500;
+  color: var(--al-ink);
+}
+.al-nogpu__text {
+  margin-top: 3px;
+  font-size: var(--al-text-sm);
+  line-height: 1.5;
+  color: var(--al-ink-muted);
+  max-width: 56ch;
+}
+
+/* Framed video preview */
+.al-vpreview {
+  width: 100%;
+}
+.al-vpreview__frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--al-radius-panel);
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--al-hairline);
+  box-shadow: var(--al-shadow-panel);
+}
+.al-vpreview__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+/* Active-caption overlay (lower third) */
+.al-suboverlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--al-space-5) clamp(10px, 6%, 28px);
+  pointer-events: none;
+}
+.al-suboverlay__cue {
+  max-width: 90%;
+  padding: 5px 12px;
+  border-radius: var(--al-radius-ctrl);
+  background: rgba(10, 8, 11, 0.62);
+  backdrop-filter: blur(2px);
+  color: var(--al-ink);
+  font-family: var(--al-font-display);
+  font-size: clamp(15px, 2.6vw, 22px);
+  line-height: 1.35;
+  text-align: center;
+  text-wrap: balance;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+/* Cue list (click-to-seek) */
+.al-cuelist {
+  margin-top: var(--al-space-4);
+  border: 1px solid var(--al-hairline);
+  border-radius: var(--al-radius-panel);
+  background: var(--al-surface);
+  overflow: hidden;
+}
+.al-cuelist__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--al-space-3) var(--al-space-4);
+  border-bottom: 1px solid var(--al-hairline);
+}
+.al-cuelist__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  letter-spacing: var(--al-tracking-caps);
+  text-transform: uppercase;
+  color: var(--al-ink-muted);
+}
+.al-cuelist__title svg {
+  color: var(--al-gold);
+}
+.al-cuelist__count {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-faint);
+}
+.al-cuelist__rows {
+  list-style: none;
+  margin: 0;
+  padding: var(--al-space-1);
+  max-height: 320px;
+  overflow-y: auto;
+}
+.al-cuelist__empty {
+  margin-top: var(--al-space-4);
+  padding: var(--al-space-4);
+  border: 1px dashed var(--al-hairline);
+  border-radius: var(--al-radius-panel);
+  font-size: var(--al-text-sm);
+  color: var(--al-ink-faint);
+  text-align: center;
+}
+
+.al-cue {
+  display: flex;
+  gap: var(--al-space-3);
+  width: 100%;
+  padding: 9px var(--al-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--al-radius-ctrl);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--al-dur-snap) var(--al-ease-snap),
+    color var(--al-dur-snap) var(--al-ease-snap);
+}
+.al-cue:hover {
+  background: var(--al-surface-2);
+}
+.al-cue:focus-visible {
+  outline: 1px solid var(--al-gold);
+  outline-offset: -1px;
+}
+.al-cue--active {
+  background: var(--al-gold-glow);
+}
+.al-cue__time {
+  flex-shrink: 0;
+  width: 92px;
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-faint);
+  padding-top: 2px;
+}
+.al-cue--active .al-cue__time {
+  color: var(--al-gold);
+}
+.al-cue__text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--al-text-md);
+  line-height: 1.45;
+  color: var(--al-ink-dim);
+}
+.al-cue--active .al-cue__text {
+  color: var(--al-ink);
 }
 
 /* ─────────────────────────── Narrow window ─────────────────────────── */

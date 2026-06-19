@@ -25,9 +25,9 @@ function lrcStamp(sec: number): string {
 
 export function toLrc(result: Result, level: ExportLevel): string {
   const header = [
-    `[ti:AutoLyrics]`,
+    `[ti:Ai Caption]`,
     `[la:${result.language}]`,
-    `[re:AutoLyrics]`,
+    `[re:Ai Caption]`,
     ``,
   ];
   const lines = result.segments.map((seg) => {
@@ -60,6 +60,53 @@ export function toSrt(result: Result): string {
     .join('\n\n');
 }
 
+/* ── WebVTT ── "WEBVTT" header, hh:mm:ss.mmm timestamps (dot ms) ── */
+
+function vttStamp(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  const ms = Math.round((sec - Math.floor(sec)) * 1000);
+  return `${pad(h, 2)}:${pad(m, 2)}:${pad(s, 2)}.${pad(ms === 1000 ? 0 : ms, 3)}`;
+}
+
+/**
+ * WebVTT captions. Mirrors toSrt but with the "WEBVTT" header and
+ * dot-millisecond times. For the live preview we keep a light client-side
+ * line-wrap (~42 chars) so long caption lines read like real subtitles; the
+ * backend remains the authoritative formatter for the saved file.
+ */
+export function toWebVtt(result: Result): string {
+  const head = ['WEBVTT', ''];
+  const cues = result.segments.map((seg, i) => {
+    const text = wrapCaption(seg.text);
+    return `${i + 1}\n${vttStamp(seg.start)} --> ${vttStamp(seg.end)}\n${text}`;
+  });
+  return [...head, ...cues].join('\n');
+}
+
+/** Soft-wrap a caption to at most two lines around a ~42-char target.
+ *  Leaves CJK (no spaces) untouched — it has no word boundaries to break on. */
+function wrapCaption(text: string, max = 42): string {
+  const t = text.trim();
+  if (t.length <= max || !t.includes(' ')) return t;
+  const words = t.split(/\s+/);
+  let best = words.length;
+  let bestDelta = Infinity;
+  // pick the split point whose first line is closest to `max`
+  let acc = 0;
+  for (let i = 0; i < words.length - 1; i++) {
+    acc += (i === 0 ? 0 : 1) + words[i].length;
+    const delta = Math.abs(acc - max);
+    if (delta < bestDelta) {
+      bestDelta = delta;
+      best = i + 1;
+    }
+  }
+  if (best >= words.length) return t;
+  return `${words.slice(0, best).join(' ')}\n${words.slice(best).join(' ')}`;
+}
+
 /* ── ASS karaoke ── \k centisecond durations per word ── */
 
 function assStamp(sec: number): string {
@@ -83,7 +130,7 @@ function assKaraokeLine(seg: Segment): string {
 export function toAss(result: Result): string {
   const head = [
     '[Script Info]',
-    'Title: AutoLyrics',
+    'Title: Ai Caption',
     'ScriptType: v4.00+',
     'PlayResX: 1920',
     'PlayResY: 1080',
@@ -120,6 +167,8 @@ export function renderExport(
       return toLrc(result, options.level);
     case 'srt':
       return toSrt(result);
+    case 'webvtt':
+      return toWebVtt(result);
     case 'ass':
       return toAss(result);
     case 'json':
@@ -129,9 +178,14 @@ export function renderExport(
   }
 }
 
+/** File extension for a format (webvtt → .vtt; everything else is its id). */
+export function exportExtension(fmt: ExportFormat): string {
+  return fmt === 'webvtt' ? 'vtt' : fmt;
+}
+
 /** Suggested filename for a format. */
 export function exportFilename(fmt: ExportFormat, level: ExportLevel): string {
   const base = 'lyrics';
   if (fmt === 'lrc') return `${base}.${level}.lrc`;
-  return `${base}.${fmt}`;
+  return `${base}.${exportExtension(fmt)}`;
 }

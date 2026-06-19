@@ -1,0 +1,84 @@
+/* ──────────────────────────────────────────────────────────────────
+   ModeSwitch — top-level product-mode toggle in the TabRail head.
+
+   A two-up segmented control: one hairline-strong outline, gold-tinted
+   active segment with a soft glow. Reads as a deliberate, primary choice
+   (a touch louder than the StatusStrip 中/EN toggle) but stays inside the
+   "ink on dark stock" system — no new colors, no new shapes.
+   ────────────────────────────────────────────────────────────────── */
+
+.al-modesw {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  margin: 0 var(--al-space-3) var(--al-space-5);
+  padding: 3px;
+  border: 1px solid var(--al-hairline-strong);
+  border-radius: var(--al-radius-ctrl);
+  background: var(--al-surface);
+}
+
+.al-modesw__seg {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--al-radius-chip);
+  background: transparent;
+  color: var(--al-ink-muted);
+  font-family: var(--al-font-body);
+  font-size: var(--al-text-sm);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    color var(--al-dur-focus) var(--al-ease-ink),
+    background var(--al-dur-focus) var(--al-ease-ink);
+}
+
+.al-modesw__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.al-modesw__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.al-modesw__seg:hover:not(.al-modesw__seg--active) {
+  color: var(--al-ink-dim);
+  background: var(--al-surface-2);
+}
+
+.al-modesw__seg--active {
+  color: var(--al-gold);
+  background: var(--al-gold-glow);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--al-gold) 32%, transparent) inset;
+}
+.al-modesw__seg--active .al-modesw__icon {
+  color: var(--al-gold);
+}
+
+.al-modesw__seg:focus-visible {
+  outline: 1px solid var(--al-gold);
+  outline-offset: 1px;
+}
+
+/* Collapsed rail (narrow window) — icons only, stacked compactly. */
+.al-modesw--collapsed {
+  margin: 0 0 var(--al-space-4);
+}
+.al-modesw--collapsed .al-modesw__label {
+  display: none;
+}
+.al-modesw--collapsed .al-modesw__seg {
+  padding: 0;
+}

@@ -1,8 +1,8 @@
-# Releasing AutoLyrics
+# Releasing Ai Caption
 
 A concise runbook for cutting a signed, auto-updating desktop release.
 
-AutoLyrics ships in-app auto-update via Tauri v2's official (signed) updater. On
+Ai Caption ships in-app auto-update via Tauri v2's official (signed) updater. On
 startup the app fetches a `latest.json` from the GitHub release, compares its
 `version` to the running build, and — if newer — downloads the signed installer,
 verifies it against the bundled public key, installs it, and relaunches. After
@@ -43,7 +43,7 @@ git commit -am "release: v0.2.0"
 git tag v0.2.0
 git push origin v0.2.0
 # 4. Watch Actions → Release. When all legs are green, open Releases, review the
-#    DRAFT "AutoLyrics v0.2.0", confirm latest.json has all platform keys, and
+#    DRAFT "Ai Caption v0.2.0", confirm latest.json has all platform keys, and
 #    PUBLISH it (which flips it to "Latest" → the updater starts serving it).
 #    (The "Draft ready — review + PUBLISH" job posts this reminder to the
 #    Actions run summary.)
@@ -73,7 +73,7 @@ You can also re-run a release for an existing tag manually: Actions → **Releas
 
 ## GitHub secrets
 
-Set these on the repo (`AriesHongHuanWu/LocalAiLyrics`) once. The signing
+Set these on the repo (`AriesHongHuanWu/ai-caption`) once. The signing
 secrets are **required** for the updater `.sig` files; the Apple ones are
 optional (see §6).
 
@@ -167,16 +167,54 @@ in-app update banner.
 
 ---
 
+## Portable Python (bundled interpreter — "no Python install required")
+
+The installer bundles a [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
+interpreter so **end users do not need to install Python**. On first launch the
+setup wizard creates the backend `.venv` from this bundled interpreter (the Rust
+shell's `embedded_python()` finds it under the app's Resource dir); only if it is
+absent does it fall back to a system Python on `PATH`.
+
+- **CI** does this automatically — `release.yml` runs `scripts/fetch-portable-python.{ps1,sh}`
+  on each runner before the Tauri build (see the "Fetch portable Python" steps).
+- **Local/manual builds** must fetch it first, or the bundle ships **without** the
+  interpreter (the app then needs system Python — same as v0.1.0):
+
+  ```powershell
+  # Windows — from the repo root, before `npm run tauri build`:
+  pwsh scripts/fetch-portable-python.ps1        # or: powershell -File scripts\fetch-portable-python.ps1
+  ```
+  ```bash
+  # macOS / Linux:
+  ./scripts/fetch-portable-python.sh
+  ```
+
+The interpreter is staged into `frontend/src-tauri/resources/python/` (gitignored;
+~150 MB on disk) and picked up by the `resources/python/**/*` glob in
+`tauri.conf.json`. A `.gitkeep` keeps the glob valid on a fresh clone so the build
+never breaks when the fetch is skipped.
+
+> **macOS note.** Bundled interpreter binaries are unsigned like the rest of an
+> ad-hoc build; for a notarized release they are signed/notarized along with the
+> `.app`. The minisign updater `.sig` is unaffected either way.
+
+---
+
 ## 2. Build the signed bundle
 
 From `frontend/`, with the signing env vars set, run the Tauri build. The private
 key path and the (empty) password must be exported so Tauri produces the `.sig`
 artifacts (`bundle.createUpdaterArtifacts` is already `true` in `tauri.conf.json`).
 
+> First fetch the portable Python (see the section above) so it gets bundled:
+> `pwsh scripts/fetch-portable-python.ps1`.
+
 PowerShell (Windows):
 
 ```powershell
-cd C:\dev\LocalAiLyrics\frontend
+cd C:\dev\LocalAiLyrics
+pwsh scripts\fetch-portable-python.ps1   # bundle the portable interpreter
+cd frontend
 $env:TAURI_SIGNING_PRIVATE_KEY = "$PWD\.tauri-keys\autolyrics.key"
 $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
 npm run tauri build
@@ -185,7 +223,9 @@ npm run tauri build
 Bash (Git Bash):
 
 ```bash
-cd /c/dev/LocalAiLyrics/frontend
+cd /c/dev/LocalAiLyrics
+./scripts/fetch-portable-python.sh        # bundle the portable interpreter
+cd frontend
 export TAURI_SIGNING_PRIVATE_KEY="$PWD/.tauri-keys/autolyrics.key"
 export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""
 npm run tauri build
@@ -197,9 +237,9 @@ npm run tauri build
 Artifacts land under
 `frontend/src-tauri/target/release/bundle/`:
 
-- `nsis/AutoLyrics_<version>_x64-setup.exe`        ← the updater installer
-- `nsis/AutoLyrics_<version>_x64-setup.exe.sig`    ← its detached signature
-- `msi/AutoLyrics_<version>_x64_en-US.msi`         ← manual-install MSI
+- `nsis/Ai Caption_<version>_x64-setup.exe`        ← the updater installer
+- `nsis/Ai Caption_<version>_x64-setup.exe.sig`    ← its detached signature
+- `msi/Ai Caption_<version>_x64_en-US.msi`         ← manual-install MSI
 
 If the `.sig` files are missing, the signing env vars were not set — fix and
 rebuild before proceeding.
@@ -233,7 +273,7 @@ By default it writes
 | `--version X.Y.Z`| override the version (default: from `tauri.conf.json`)      |
 | `--tag vX.Y.Z`   | tag used in the download URL (default: `v<version>`)       |
 | `--notes "..."`  | inline release notes (instead of `--notes-file`)           |
-| `--repo o/r`     | GitHub `owner/repo` (default: `AriesHongHuanWu/LocalAiLyrics`) |
+| `--repo o/r`     | GitHub `owner/repo` (default: `AriesHongHuanWu/ai-caption`) |
 | `--out PATH`     | output path for `latest.json`                              |
 | `--setup PATH`   | explicit installer path (skips auto-discovery)             |
 
@@ -245,7 +285,7 @@ cat frontend/src-tauri/target/release/bundle/latest.json
 
 The `url` MUST be the exact filename you will upload, under the tag you will
 create:
-`https://github.com/AriesHongHuanWu/LocalAiLyrics/releases/download/v<version>/<setup.exe>`
+`https://github.com/AriesHongHuanWu/ai-caption/releases/download/v<version>/<setup.exe>`
 
 ---
 
@@ -253,8 +293,8 @@ create:
 
 Create a release tagged **`v<version>`** and upload exactly these three files:
 
-1. `AutoLyrics_<version>_x64-setup.exe`      (the updater installer)
-2. `AutoLyrics_<version>_x64_en-US.msi`      (manual install)
+1. `Ai Caption_<version>_x64-setup.exe`      (the updater installer)
+2. `Ai Caption_<version>_x64_en-US.msi`      (manual install)
 3. `latest.json`                             (the updater manifest)
 
 ### Option A — GitHub CLI (`gh`)
@@ -263,10 +303,10 @@ Create a release tagged **`v<version>`** and upload exactly these three files:
 cd C:/dev/LocalAiLyrics
 BUNDLE=frontend/src-tauri/target/release/bundle
 gh release create v0.2.0 \
-  "$BUNDLE/nsis/AutoLyrics_0.2.0_x64-setup.exe" \
-  "$BUNDLE/msi/AutoLyrics_0.2.0_x64_en-US.msi" \
+  "$BUNDLE/nsis/Ai Caption_0.2.0_x64-setup.exe" \
+  "$BUNDLE/msi/Ai Caption_0.2.0_x64_en-US.msi" \
   "$BUNDLE/latest.json" \
-  --title "AutoLyrics v0.2.0" \
+  --title "Ai Caption v0.2.0" \
   --notes-file NOTES.md
 ```
 
@@ -274,12 +314,12 @@ gh release create v0.2.0 \
 
 1. Repo → **Releases** → **Draft a new release**.
 2. **Choose a tag** → type `v0.2.0` → **Create new tag on publish**.
-3. Title `AutoLyrics v0.2.0`; paste the notes.
+3. Title `Ai Caption v0.2.0`; paste the notes.
 4. Drag the three files into the assets area.
 5. Ensure **Set as the latest release** is checked, then **Publish**.
 
 > **Critical — the `latest` pointer.** The updater endpoint is
-> `https://github.com/AriesHongHuanWu/LocalAiLyrics/releases/latest/download/latest.json`.
+> `https://github.com/AriesHongHuanWu/ai-caption/releases/latest/download/latest.json`.
 > GitHub resolves `/releases/latest/` to the release marked **"Latest"**. So the
 > newest release MUST be flagged as latest (it is by default for the highest
 > non-prerelease SemVer tag). Do **not** mark the release as a *pre-release* or
