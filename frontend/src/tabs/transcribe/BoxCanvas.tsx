@@ -59,8 +59,6 @@ export function BoxCanvas({ imageUrl, width, height, regions, onChange }: BoxCan
   const [drag, setDrag] = useState<Drag | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
 
-  const aspect = width > 0 && height > 0 ? `${width} / ${height}` : '16 / 9';
-
   /** Mouse position → normalized 0..1 within the surface. */
   const toNorm = useCallback((e: { clientX: number; clientY: number }) => {
     const el = surfaceRef.current;
@@ -118,7 +116,6 @@ export function BoxCanvas({ imageUrl, width, height, regions, onChange }: BoxCan
     <div
       ref={surfaceRef}
       className="al-boxcanvas"
-      style={{ aspectRatio: aspect }}
       role="application"
       aria-label={t('clean.box.ariaLabel')}
       tabIndex={0}
@@ -127,7 +124,14 @@ export function BoxCanvas({ imageUrl, width, height, regions, onChange }: BoxCan
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
     >
-      <img className="al-boxcanvas__img" src={imageUrl} alt="" draggable={false} />
+      <img
+        className="al-boxcanvas__img"
+        src={imageUrl}
+        alt=""
+        draggable={false}
+        width={width}
+        height={height}
+      />
 
       {regions.map((rgn, i) => (
         <div

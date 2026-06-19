@@ -15,8 +15,14 @@
 /* ─────────────────────────── Box canvas ─────────────────────────── */
 .al-boxcanvas {
   position: relative;
-  width: 100%;
-  max-height: 60vh;
+  /* Shrink-wrap the frame image so the surface bounds === the rendered image.
+     Box coords are normalized to this element, so any letterbox (image smaller
+     than the surface) would offset them → erased region lands in the wrong
+     place. fit-content + the image's own max-width/max-height keep them 1:1. */
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
   border-radius: var(--al-radius-panel);
   overflow: hidden;
   background: var(--al-surface-2);
@@ -32,9 +38,10 @@
 }
 .al-boxcanvas__img {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  max-width: 100%;
+  max-height: 60vh;
+  width: auto;
+  height: auto;
   pointer-events: none;
   -webkit-user-drag: none;
 }
