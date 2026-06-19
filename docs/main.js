@@ -284,6 +284,11 @@
       'cost.local.hw.val':         '你已有的電腦（+ 電費）',
       'cost.local.hw.note':        'GPU 可加快速度，但非必需——CPU 模式也能跑',
 
+      // Support / donate
+      'support.eyebrow': '支持開發',
+      'support.title':   '它幫上忙了嗎？',
+      'support.copy':    'Ai Caption 永遠免費、MIT 開源，100% 在你自己的電腦上執行。如果它幫上了忙，你可以選擇小額贊助，支持後續開發——完全隨意，不打擾。',
+
       // Footer
       'foot.tagline':  'Built for video, subtitles & lyrics',
       'foot.license':  'MIT 授權',
@@ -554,6 +559,11 @@
       'cost.local.hw.name':        'Hardware cost',
       'cost.local.hw.val':         'A PC you already own (+ electricity)',
       'cost.local.hw.note':        'A GPU speeds things up but is not required — CPU-only mode works',
+
+      // Support / donate
+      'support.eyebrow': 'Support Development',
+      'support.title':   'Did it help you?',
+      'support.copy':    'Ai Caption is free forever, MIT open-source, and runs 100% on your own machine. If it helped, you can optionally chip in to support ongoing development — entirely up to you, never pushy.',
 
       'foot.tagline':  'Built for video, subtitles & lyrics',
       'foot.license':  'MIT License',

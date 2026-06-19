@@ -372,6 +372,17 @@ backend/.venv/Scripts/python.exe -X utf8 backend/test_e2e.py "song.mp3" --lyrics
 
 [MIT](LICENSE) © 2026 **Aries HongHuan Wu**
 
+---
+
+## 💛 Support / 贊助
+
+Ai Caption is **free forever, MIT open-source, and runs 100% on your own machine.** If it helped you, you can optionally chip in to support ongoing development — entirely up to you, never required.
+Ai Caption **永遠免費、MIT 開源,100% 在你自己的電腦上執行。** 如果它幫上了忙,歡迎選擇性小額贊助支持後續開發 —— 完全隨意,不強求。
+
+- ☕ [Ko-fi](https://ko-fi.com/arieswu)
+- 💳 [PayPal](https://paypal.me/Arieshonghuan)
+- 💛 [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu)
+
 <div align="center">
 <sub>Built with ❤️ for video creators, subtitle editors, musicians, lyric-video makers, karaoke fans, and language learners.</sub>
 </div>
