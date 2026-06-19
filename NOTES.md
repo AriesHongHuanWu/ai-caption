@@ -1,13 +1,22 @@
-# Ai Caption v0.1.3
+# Ai Caption v0.1.4
 
-Robustness & housekeeping — Ai Caption now looks after its own engine and storage.
+Each mode now gets its own tailored interface — and Clean Text can erase text or objects that **move** through the frame.
 
 ### New
-- **🩺 Self-healing engine** — on launch the app checks that everything it needs is present (Python deps, CUDA, and each model). If something is **missing or was deleted**, it tells you exactly what, and **auto re-fetches only the missing pieces** — reusing whatever is already cached, never re-downloading what you already have.
-- **🗂️ Storage management** (Settings → 儲存空間) — see where your disk is going (engine, each model, caches) and free space in tiers: delete a single model · clear all models (keep the app) · full reset keeping your models · full reset wiping everything. Every option confirms first and shows how much it frees.
-- **🔔 Smarter update prompts** — when a new version is found, a tidy dialog now pops up with the **full release notes** and a one-click **Update now** (defer with Later).
+- **🎬 Per-mode interfaces** — the app now reshapes itself around what you're doing:
+  - **🎵 Song lyrics** keeps the full word-level editor.
+  - **🎬 Video → Subtitles** gets a dedicated **video-editor-style** workspace — preview alongside an editable cue list (edit text, nudge start/end by ±0.1 s, click a cue to seek, active cue highlighted; falls back gracefully for audio-only sources).
+  - **🧹 Clean Text** collapses to just the steps it needs (no more lyric/subtitle tabs cluttering it).
+- **✨ Moving text/object removal** — Clean Text now offers **固定** (fixed position) or **會移動 (追蹤)**: draw the box once on the first frame and Ai Caption **tracks the region as it moves** through the video, erasing it frame-by-frame with LaMa inpainting.
+
+### Fixed
+- Version number now reads the **real app version** (it was showing a stale value).
+- **Mode switcher is icon-only** — no more cramped, truncated labels.
+- Health check **no longer downloads all three models** up front — it only fetches what the mode you're using actually needs.
 
 ### Unchanged
-- 🎵 Song lyrics · 🎬 Video → Subtitles · 🧹 Clean Text modes all as before.
+- 100% local — nothing is uploaded. Runs on no-GPU laptops (CPU int8 / Intel Core Ultra).
 
-100% local — nothing is uploaded. MIT © 2026 Aries HongHuan Wu.
+If you'd like to support development: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
+
+MIT © 2026 Aries HongHuan Wu.
