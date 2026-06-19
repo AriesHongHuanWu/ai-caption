@@ -10,7 +10,10 @@
    ────────────────────────────────────────────────────────────────── */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Disc3, UploadCloud, Sparkles, Download, Loader2, Music2 } from 'lucide-react';
+import {
+  Disc3, UploadCloud, Sparkles, Download, Loader2, Music2,
+  SlidersHorizontal, ChevronRight, ChevronDown,
+} from 'lucide-react';
 import { Button, Eyebrow } from '../../components/primitives';
 import { createMasterJob, getMasterJob, masterResultUrl } from '../../api/master';
 import type { MasterLoudness, MasterMeta } from '../../api/master';
@@ -40,6 +43,21 @@ export function MasteringFlow() {
   const [reference, setReference] = useState<File | null>(null);
   const [genre, setGenre] = useState('auto');
   const [loudness, setLoudness] = useState<MasterLoudness>('streaming');
+
+  // Section macro-dynamics (−1 balance ↔ +1 punch) + advanced manual params.
+  const [dynamics, setDynamics] = useState(0);
+  const [showAdv, setShowAdv] = useState(false);
+  const [eqBass, setEqBass] = useState(0);
+  const [eqLowMid, setEqLowMid] = useState(0);
+  const [eqPresence, setEqPresence] = useState(0);
+  const [eqAir, setEqAir] = useState(0);
+  const [compScale, setCompScale] = useState(1);
+  const [width, setWidth] = useState(1);
+  const [ceiling, setCeiling] = useState(-1);
+  const resetAdv = useCallback(() => {
+    setEqBass(0); setEqLowMid(0); setEqPresence(0); setEqAir(0);
+    setCompScale(1); setWidth(1); setCeiling(-1);
+  }, []);
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [pct, setPct] = useState(0);
@@ -115,7 +133,16 @@ export function MasteringFlow() {
     setResultMeta(null);
     void (async () => {
       try {
-        const { jobId } = await createMasterJob(file, genre, loudness, reference);
+        const { jobId } = await createMasterJob(file, genre, loudness, reference, {
+          dynamics,
+          width,
+          eqBass,
+          eqLowMid,
+          eqPresence,
+          eqAir,
+          compScale,
+          ceiling,
+        });
         if (stoppedRef.current) return;
         pollTimer.current = setTimeout(() => void poll(jobId), POLL_MS);
       } catch (err: unknown) {
@@ -126,7 +153,7 @@ export function MasteringFlow() {
         setPhase('error');
       }
     })();
-  }, [file, genre, loudness, reference, poll, t]);
+  }, [file, genre, loudness, reference, dynamics, width, eqBass, eqLowMid, eqPresence, eqAir, compScale, ceiling, poll, t]);
 
   const running = phase === 'running';
   const isDone = phase === 'done' && !!resultUrl;
@@ -228,6 +255,62 @@ export function MasteringFlow() {
         </div>
       </section>
 
+      {/* 04 DYNAMICS — section-aware (verse/chorus) */}
+      <section className="al-section">
+        <Eyebrow num={4}>{t('master.section.dynamics')}</Eyebrow>
+        <div className="al-master__dynrow">
+          <span className="al-master__dynend">{t('master.dyn.balance')}</span>
+          <input
+            type="range"
+            min={-100}
+            max={100}
+            step={5}
+            value={Math.round(dynamics * 100)}
+            onChange={(e) => setDynamics(Number(e.target.value) / 100)}
+            className="al-master__range al-master__range--center"
+            disabled={running}
+            aria-label={t('master.section.dynamics')}
+          />
+          <span className="al-master__dynend">{t('master.dyn.punch')}</span>
+        </div>
+        <p className="al-master__hint">
+          {dynamics > 0.05
+            ? t('master.dyn.punchHint')
+            : dynamics < -0.05
+              ? t('master.dyn.balanceHint')
+              : t('master.dyn.offHint')}
+        </p>
+      </section>
+
+      {/* 05 ADVANCED — manual fine control */}
+      <section className="al-section">
+        <button
+          type="button"
+          className="al-master__advtoggle"
+          onClick={() => setShowAdv((v) => !v)}
+          aria-expanded={showAdv}
+        >
+          {showAdv ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+          <SlidersHorizontal size={14} /> {t('master.advanced')}
+        </button>
+        {showAdv && (
+          <div className="al-master__adv">
+            <p className="al-master__advgroup">{t('master.adv.eq')}</p>
+            <Slider label={t('master.adv.bass')} value={eqBass} onChange={setEqBass} min={-12} max={12} step={0.5} unit="dB" disabled={running} />
+            <Slider label={t('master.adv.lowMid')} value={eqLowMid} onChange={setEqLowMid} min={-12} max={12} step={0.5} unit="dB" disabled={running} />
+            <Slider label={t('master.adv.presence')} value={eqPresence} onChange={setEqPresence} min={-12} max={12} step={0.5} unit="dB" disabled={running} />
+            <Slider label={t('master.adv.air')} value={eqAir} onChange={setEqAir} min={-12} max={12} step={0.5} unit="dB" disabled={running} />
+            <p className="al-master__advgroup">{t('master.adv.dynamicsGroup')}</p>
+            <Slider label={t('master.adv.comp')} value={compScale} onChange={setCompScale} min={0} max={2} step={0.05} unit="×" disabled={running} />
+            <Slider label={t('master.adv.width')} value={width} onChange={setWidth} min={0.5} max={1.5} step={0.05} unit="×" disabled={running} />
+            <Slider label={t('master.adv.ceiling')} value={ceiling} onChange={setCeiling} min={-6} max={0} step={0.1} unit="dBTP" disabled={running} />
+            <button type="button" className="al-master__advreset" onClick={resetAdv} disabled={running}>
+              {t('master.adv.reset')}
+            </button>
+          </div>
+        )}
+      </section>
+
       {/* RUN */}
       <section className="al-section">
         <Button
@@ -297,6 +380,41 @@ export function MasteringFlow() {
         </section>
       )}
     </div>
+  );
+}
+
+function Slider({
+  label, value, onChange, min, max, step, unit, disabled,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step: number;
+  unit: string;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="al-master__slider">
+      <span className="al-master__sliderlabel">{label}</span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="al-master__range"
+        disabled={disabled}
+        aria-label={label}
+      />
+      <span className="al-master__sliderval">
+        {value > 0 && unit === 'dB' ? '+' : ''}
+        {value}
+        <span className="al-master__sliderunit">{unit}</span>
+      </span>
+    </label>
   );
 }
 

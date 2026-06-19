@@ -43,12 +43,30 @@ export interface CreateMasterJobResponse {
   jobId: string;
 }
 
+/** Optional advanced (進階) overrides — all default to the genre preset. */
+export interface MasterAdvanced {
+  /** Stereo width 0.5..1.5 (1 = unchanged). */
+  width?: number;
+  /** Section macro-dynamics −1..1 (>0 = punch/chorus impact, <0 = balance). */
+  dynamics?: number;
+  /** 4-band EQ offsets in dB (−12..12), added on top of the preset. */
+  eqBass?: number;
+  eqLowMid?: number;
+  eqPresence?: number;
+  eqAir?: number;
+  /** Compression intensity 0..2 (0 = none, 1 = preset, 2 = double). */
+  compScale?: number;
+  /** True-peak ceiling override dBTP (−6..0). */
+  ceiling?: number;
+}
+
 /** POST /api/master — spawn the background mastering job. */
 export async function createMasterJob(
   audio: File,
   genre: string,
   loudness: MasterLoudness,
   reference?: File | null,
+  advanced?: MasterAdvanced,
   signal?: AbortSignal,
 ): Promise<CreateMasterJobResponse> {
   const form = new FormData();
@@ -56,6 +74,20 @@ export async function createMasterJob(
   form.append('genre', genre);
   form.append('loudness', loudness);
   if (reference) form.append('reference', reference, reference.name);
+  if (advanced) {
+    const a = advanced;
+    const add = (k: string, v: number | undefined) => {
+      if (v !== undefined && Number.isFinite(v)) form.append(k, String(v));
+    };
+    add('width', a.width);
+    add('dynamics', a.dynamics);
+    add('eqBass', a.eqBass);
+    add('eqLowMid', a.eqLowMid);
+    add('eqPresence', a.eqPresence);
+    add('eqAir', a.eqAir);
+    add('compScale', a.compScale);
+    add('ceiling', a.ceiling);
+  }
 
   let res: Response;
   try {

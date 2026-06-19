@@ -1,22 +1,23 @@
-# Local Studio v0.1.12
+# Local Studio v0.1.13
 
-🎚️ **New: Auto-Mastering** — turn a mix into a release-ready master, 100% locally. And the app is now **Local Studio**.
+🎚️ **Auto-Mastering** — now with section-aware dynamics and full manual control. Plus a redesigned sidebar.
 
-### New
-- **🎚️ Auto-Mastering (母帶) mode** — drop a mix and the local DSP chain makes it sound finished:
-  - **Genre presets** — Pop · Hip-Hop · EDM · Rock · R&B · Acoustic · Ballad · Lo-fi (each with a tuned EQ + compression character), or **Auto**.
-  - **Reference track** (optional) — upload a song you want to sound like; it matches that track's tonal balance (FFT-matched EQ).
-  - **Loudness target** — **Streaming** (−14 LUFS) · **Balanced** (−12) · **Social** (−9, punchier for phones) — all true-peak-limited so nothing clips.
-  - Chain: tonal EQ → compression → stereo width → loudness-normalize → brickwall limiter → **24-bit WAV**. A/B the original vs master, see the loudness/peak numbers, and download.
-- **🏷️ Renamed to “Local Studio”** — it's now a full local AI studio (lyrics · subtitles · text removal · mastering). A 4th mode joins the (icon-only) switcher.
+### New — Auto-Mastering (母帶) mode
+Drop a mix and get a release-ready master, 100% local:
+- **Section dynamics (主歌/副歌)** — a Balance ↔ Punch control that reads the song's energy and **automatically rides chorus vs verse levels**: push toward Punch to make choruses hit harder, or Balance for a more even, consistent listen. *(Verified: Punch widens chorus/verse contrast, Balance narrows it, both holding the loudness target.)*
+- **Genre presets** (Pop · Hip-Hop · EDM · Rock · R&B · Acoustic · Ballad · Lo-fi) **or a reference track** (matches its tonal balance).
+- **Loudness targets** — Streaming (−14 LUFS) · Balanced (−12) · Social (−9), all true-peak limited.
+- **Advanced (manual) panel** — fine-tune 4-band EQ (Bass / Low-mid / Presence / Air), compression amount, stereo width, and the true-peak ceiling.
+- A/B the original vs master, see loudness/peak/gain numbers, download a 24-bit WAV.
 
-### Notes
-- Mastering needs two small extra packages (scipy + pyloudnorm). If the 母帶 mode says they're missing, open **Settings → 修復** to install them.
-- The internal app identifier is unchanged, so your auto-updates keep working.
+### Changed
+- **🧭 Redesigned the sidebar** — the mode switcher is now a clean **vertical list** (icon + label) instead of cramped squares, so the 4 modes don't pile up and it looks right on wide/landscape screens too.
+- **🔢 Version is now correct everywhere** — the engine also reports the real installed version (no more stale `0.1.0`).
+- App is **Local Studio** across the app + landing page.
 
 ### Unchanged
-- 100% local — nothing is uploaded. All v0.1.11 features + the backend-restart fix as before.
+- 100% local. Mastering uses two small extra packages (scipy + pyloudnorm) — if 母帶 mode says they're missing, hit **Settings → 修復**.
 
-Support development: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
+Support: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
 
 MIT © 2026 Aries HongHuan Wu.

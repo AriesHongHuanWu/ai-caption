@@ -361,6 +361,56 @@ def _limit(data: "np.ndarray", sr: int, ceiling_db: float) -> "np.ndarray":
 
 
 # --------------------------------------------------------------------------- #
+# 區段感知巨觀動態(主歌/副歌自動增減)+ 進階手動 EQ
+# --------------------------------------------------------------------------- #
+def _macro_dynamics(data: "np.ndarray", sr: int, amount: float, max_db: float = 5.0) -> "np.ndarray":
+    """以「短時能量包絡」當作歌曲結構代理(副歌通常較大聲/較滿),在**區段尺度**上
+    自動增減音量:
+
+      amount > 0  =「爆發力 / Punch」—— 把較大聲的段落(副歌)推得更大、較小聲的段落
+                    (主歌)壓得更小 → 動態對比更強、副歌更有衝擊力。
+      amount < 0  =「平衡 / Balance」—— 反向,把段落拉向整體平均 → 整首更一致耐聽。
+      amount = 0  = 關閉。
+
+    與快速壓縮/限幅器不同:這條增益在 ~秒級平滑(避免抽吸感)。處理後整體響度會變,
+    由後續 LUFS 正規化重新校到目標。純 numpy、O(n)。
+    """
+    if abs(amount) < 1e-3 or data.shape[0] < sr:
+        return data
+    mono = np.mean(data, axis=1)
+    n = mono.shape[0]
+    hop = max(1, int(sr * 0.1))            # 每 100ms 一個包絡點
+    half = max(hop, int(sr * 0.75))        # ±0.75s = 1.5s 短時能量窗
+    centers = np.arange(0, n, hop)
+    # 用平方累積和向量化算每個窗的 RMS(快)
+    csum = np.concatenate([[0.0], np.cumsum(mono.astype(np.float64) ** 2)])
+    a = np.clip(centers - half, 0, n)
+    b = np.clip(centers + half, 0, n)
+    ms = (csum[b] - csum[a]) / np.maximum(1, (b - a))
+    env_db = 20.0 * np.log10(np.sqrt(ms + 1e-12) + 1e-9)
+    dev = env_db - np.median(env_db)       # 相對整體中位數的偏差(副歌>0、主歌<0)
+    gain_db = np.clip(float(amount) * 0.6 * dev, -max_db, max_db)
+    # 秒級平滑(~2s)避免段落邊界抽吸
+    gain_db = uniform_filter1d(gain_db, size=max(3, int(2.0 / (hop / sr))))
+    gain_full = np.interp(np.arange(n), centers, gain_db)
+    return data * (10 ** (gain_full / 20.0))[:, None]
+
+
+def _advanced_eq(data: "np.ndarray", sr: int, eq: dict) -> "np.ndarray":
+    """使用者進階手動 EQ —— 4 段(低頻/低中/臨場/空氣),疊加在曲風/參考 EQ 之上。"""
+    bands: list[tuple] = []
+    if abs(float(eq.get("bass") or 0)) > 1e-3:
+        bands.append(("low_shelf", 80, float(eq["bass"]), 0.7))
+    if abs(float(eq.get("lowMid") or 0)) > 1e-3:
+        bands.append(("peak", 400, float(eq["lowMid"]), 1.0))
+    if abs(float(eq.get("presence") or 0)) > 1e-3:
+        bands.append(("peak", 3000, float(eq["presence"]), 1.0))
+    if abs(float(eq.get("air") or 0)) > 1e-3:
+        bands.append(("high_shelf", 12000, float(eq["air"]), 0.7))
+    return _apply_eq(data, sr, bands) if bands else data
+
+
+# --------------------------------------------------------------------------- #
 # 主流程
 # --------------------------------------------------------------------------- #
 def master(
@@ -371,49 +421,72 @@ def master(
     loudness: str = "streaming",
     reference_path: Optional[str] = None,
     width: Optional[float] = None,
+    dynamics: float = 0.0,
+    eq: Optional[dict] = None,
+    comp_scale: float = 1.0,
+    ceiling_db: Optional[float] = None,
     progress: Optional[ProgressFn] = None,
 ) -> dict:
-    """把 input 處理成母帶寫到 output(24-bit WAV)。回傳量測/設定摘要 dict。"""
+    """把 input 處理成母帶寫到 output(24-bit WAV)。回傳量測/設定摘要 dict。
+
+    進階(皆選用,None/預設 = 用曲風預設):
+      width      立體聲寬度(0.5..1.5,1=不變)
+      dynamics   區段巨觀動態 -1..1(>0 副歌更有爆發力、<0 整體更平衡、0 關閉)
+      eq         {"bass","lowMid","presence","air"} 額外 dB,疊加在曲風/參考 EQ 上
+      comp_scale 壓縮強度倍率(0=不壓、1=預設、2=加倍)
+      ceiling_db 真峰天花板覆寫(否則用 loudness 目標的 -1 dBTP)
+    """
     if not _HAS_DSP:
         raise RuntimeError("母帶 DSP 相依不可用(需 scipy + pyloudnorm)")
 
     preset = GENRE_PRESETS.get(genre, GENRE_PRESETS["auto"])
-    tgt_lufs, ceiling_db = LOUDNESS_TARGETS.get(loudness, LOUDNESS_TARGETS["streaming"])
+    tgt_lufs, preset_ceiling = LOUDNESS_TARGETS.get(loudness, LOUDNESS_TARGETS["streaming"])
+    ceil = float(ceiling_db) if ceiling_db is not None else preset_ceiling
 
     _emit(progress, 3.0, "讀取音訊 · Loading")
     data, sr = _load_audio(input_path)
     in_lufs = _measure_lufs(data, sr)
     in_peak = _peak_db(data)
 
-    # 1) 音色:參考曲匹配 或 曲風 EQ
+    # 1) 音色:參考曲匹配 或 曲風 EQ,再疊上進階手動 EQ
     ref_used = False
     if reference_path and os.path.isfile(reference_path):
-        _emit(progress, 25.0, "比對參考曲音色 · Matching reference")
+        _emit(progress, 22.0, "比對參考曲音色 · Matching reference")
         ref, rsr = _load_audio(reference_path)
         data = _match_eq(data, sr, ref, rsr)
         ref_used = True
     else:
-        _emit(progress, 25.0, f"套用曲風 EQ · {preset['label']}")
+        _emit(progress, 22.0, f"套用曲風 EQ · {preset['label']}")
         data = _apply_eq(data, sr, preset["eq"])
+    if eq:
+        data = _advanced_eq(data, sr, eq)
 
-    # 2) 壓縮膠合
-    _emit(progress, 50.0, "動態壓縮 · Compression")
-    data = _compress(data, sr, **preset["comp"])
+    # 2) 壓縮膠合(comp_scale 縮放強度:把 ratio 往 1 拉或放大)
+    _emit(progress, 45.0, "動態壓縮 · Compression")
+    comp = dict(preset["comp"])
+    cs = max(0.0, float(comp_scale))
+    comp["ratio"] = 1.0 + (comp["ratio"] - 1.0) * cs
+    comp["makeup_db"] = comp["makeup_db"] * cs
+    data = _compress(data, sr, **comp)
 
-    # 3) 立體聲寬度
+    # 3) 區段感知巨觀動態(主歌/副歌自動增減)
+    if abs(float(dynamics)) > 1e-3:
+        _emit(progress, 60.0, "區段動態 · Macro dynamics")
+        data = _macro_dynamics(data, sr, float(dynamics))
+
+    # 4) 立體聲寬度
     w = float(width) if width is not None else float(preset["width"])
     data = _stereo_width(data, w)
 
-    # 4) 響度正規化到目標(微推 0.3,補限幅器的些微響度損失,但寧可略低於目標也不超過 ——
-    #    串流平台會把超過目標的音量轉小,等於白做)。
-    _emit(progress, 70.0, f"響度正規化 · {loudness} ({tgt_lufs:g} LUFS)")
+    # 5) 響度正規化到目標(微推 0.3,補限幅器的些微響度損失,但寧可略低於目標也不超過)。
+    _emit(progress, 72.0, f"響度正規化 · {loudness} ({tgt_lufs:g} LUFS)")
     data = _normalize_lufs(data, sr, tgt_lufs + 0.3)
 
-    # 5) 真峰限幅
+    # 6) 真峰限幅
     _emit(progress, 85.0, "限幅器 · Limiting")
-    data = _limit(data, sr, ceiling_db)
+    data = _limit(data, sr, ceil)
 
-    # 6) 限幅後微調:若仍超過目標就往下修(只降不升,避免重新破峰)。
+    # 7) 限幅後微調:若仍超過目標就往下修(只降不升,避免重新破峰)。
     post = _measure_lufs(data, sr)
     if post > tgt_lufs + 0.2:
         data = data * (10 ** ((tgt_lufs - post) / 20.0))
@@ -432,10 +505,11 @@ def master(
         "loudness": loudness,
         "referenceUsed": ref_used,
         "width": round(w, 3),
+        "dynamics": round(float(dynamics), 3),
         "inputLufs": round(in_lufs, 2),
         "outputLufs": round(out_lufs, 2),
         "targetLufs": tgt_lufs,
         "inputPeakDb": round(in_peak, 2),
         "outputPeakDb": round(out_peak, 2),
-        "ceilingDb": ceiling_db,
+        "ceilingDb": round(ceil, 2),
     }

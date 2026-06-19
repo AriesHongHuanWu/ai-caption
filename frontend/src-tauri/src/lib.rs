@@ -543,7 +543,12 @@ fn try_spawn_backend(app: &AppHandle) -> Option<SpawnedBackend> {
         log::warn!("準備後端工作目錄失敗: {} —— 前端將顯示離線狀態。", e);
         // 即便複製失敗,仍嘗試啟動 (也許目錄部份存在);多半會在 venv 缺席時優雅放棄。
     }
-    let env = cache_env(app);
+    let mut env = cache_env(app);
+    // 把真實 App 版本傳給後端 → /api/meta 的 version 也會是現在的版本(不再寫死 0.1.0)。
+    env.push((
+        "APP_VERSION".into(),
+        app.package_info().version.to_string(),
+    ));
     spawn_backend_at(&backend_dir, &env)
 }
 

@@ -46,7 +46,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("autolyrics.app")
 
-VERSION = "0.1.0"
+# 由 Tauri 殼層在 spawn 時以 APP_VERSION 環境變數注入真實 App 版本;獨立執行時退回。
+VERSION = os.environ.get("APP_VERSION", "0.1.0-dev")
 HOST = "127.0.0.1"
 PORT = 8756
 
@@ -1825,6 +1826,7 @@ def _run_master_job(
     genre: str,
     loudness: str,
     reference_path: Optional[str],
+    opts: dict,
 ) -> None:
     progress = _make_master_progress(job_id)
     try:
@@ -1837,6 +1839,11 @@ def _run_master_job(
             genre=genre,
             loudness=loudness,
             reference_path=reference_path,
+            width=opts.get("width"),
+            dynamics=opts.get("dynamics", 0.0),
+            eq=opts.get("eq"),
+            comp_scale=opts.get("comp_scale", 1.0),
+            ceiling_db=opts.get("ceiling_db"),
             progress=progress,
         )
         with _MASTER_JOBS_LOCK:
@@ -1872,10 +1879,42 @@ async def api_master(
     genre: str = Form("auto"),
     loudness: str = Form("streaming"),
     reference: Optional[UploadFile] = File(None),
+    # 進階(皆選用):立體聲寬度 / 區段動態 / 4 段 EQ / 壓縮倍率 / 真峰天花板
+    width: Optional[float] = Form(None),
+    dynamics: Optional[float] = Form(None),
+    eqBass: Optional[float] = Form(None),
+    eqLowMid: Optional[float] = Form(None),
+    eqPresence: Optional[float] = Form(None),
+    eqAir: Optional[float] = Form(None),
+    compScale: Optional[float] = Form(None),
+    ceiling: Optional[float] = Form(None),
 ) -> JSONResponse:
-    """建立母帶工作。multipart:audio=混音檔,genre,loudness,選用 reference=參考曲。
-    回傳 { jobId };背景跑 mastering.master → 暫存 master_<jobId>.wav。"""
+    """建立母帶工作。multipart:audio=混音檔,genre,loudness,選用 reference=參考曲,
+    以及選用的進階參數(width/dynamics/eq*/compScale/ceiling)。
+    回傳 { jobId };背景跑 mastering.master → 暫存 mastered_<jobId>.wav。"""
     _require_mastering()
+
+    def _f(v: Optional[float], lo: float, hi: float) -> Optional[float]:
+        if v is None:
+            return None
+        try:
+            return max(lo, min(hi, float(v)))
+        except (TypeError, ValueError):
+            return None
+
+    eq_bands = {
+        "bass": _f(eqBass, -12, 12) or 0.0,
+        "lowMid": _f(eqLowMid, -12, 12) or 0.0,
+        "presence": _f(eqPresence, -12, 12) or 0.0,
+        "air": _f(eqAir, -12, 12) or 0.0,
+    }
+    opts = {
+        "width": _f(width, 0.0, 2.0),
+        "dynamics": _f(dynamics, -1.0, 1.0) or 0.0,
+        "eq": eq_bands if any(abs(v) > 1e-3 for v in eq_bands.values()) else None,
+        "comp_scale": _f(compScale, 0.0, 2.0) if compScale is not None else 1.0,
+        "ceiling_db": _f(ceiling, -6.0, 0.0),
+    }
 
     valid_genres = [g["key"] for g in mastering.genres()] if mastering is not None else ["auto"]  # type: ignore[union-attr]
     g = (genre or "auto").strip().lower()
@@ -1923,7 +1962,7 @@ async def api_master(
 
     thread = threading.Thread(
         target=_run_master_job,
-        args=(job_id, str(src), str(out), g, loud, ref_path),
+        args=(job_id, str(src), str(out), g, loud, ref_path, opts),
         name=f"autolyrics-master-{job_id[:8]}",
         daemon=True,
     )

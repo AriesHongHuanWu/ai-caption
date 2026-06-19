@@ -1,4 +1,4 @@
-/* ─── Ai Caption — Landing Page JS ───────────────────────────────────────────
+/* ─── Local Studio — Landing Page JS ───────────────────────────────────────────
    Responsibilities:
    • Bilingual toggle (zh / en) + localStorage + ?lang= / navigator.language
    • Mobile hamburger nav
@@ -25,15 +25,17 @@
       'nav.lang':      'EN',
 
       // Top-level modes (headline)
-      'topmodes.eyebrow': '三大模式',
-      'topmodes.title':   '一個 App，三件事。',
-      'topmodes.sub':     '歌詞、字幕、清字——挑你需要的那一個，全部在你自己的電腦上完成。',
+      'topmodes.eyebrow': '四大模式',
+      'topmodes.title':   '一個 App，四件事。',
+      'topmodes.sub':     '歌詞、字幕、清字、母帶——挑你需要的那一個，全部在你自己的電腦上完成。',
       'topmodes.a.name':  '歌詞模式',
       'topmodes.a.desc':  'Demucs 人聲分離 → faster-whisper → 強制對齊，產出逐字時間軸歌詞。匯出 LRC / SRT / ASS 卡拉 OK / JSON。',
       'topmodes.b.name':  '影片轉字幕',
       'topmodes.b.desc':  '任何影片或音訊直接語音轉寫，產出乾淨字幕——自動斷行、每段 ≤2 行、依閱讀速度切分。不需要人聲分離。',
       'topmodes.c.name':  '清除字幕（Clean Text）',
       'topmodes.c.desc':  '框選你自己影片裡誤燒進去的固定位置文字，LaMa AI 修補逐格抹除，原始聲音原封保留。（固定位置；模型首次使用時下載。）',
+      'topmodes.d.name':  '母帶處理（Mastering）',
+      'topmodes.d.desc':  '上傳混音，依曲風或參考曲自動 EQ／壓縮／立體聲寬度，副歌／主歌區段動態自動增減，正規化到目標響度（串流／社群），輸出 24-bit WAV。可進階手動細調。',
 
       // Hero
       'hero.eyebrow':  '免費 · 開源 · 本地優先 · 免獨立顯卡',
@@ -97,7 +99,7 @@
       // Who it's for
       'who.eyebrow':   '為誰打造',
       'who.title':     '不論你做影片還是音樂，都適合。',
-      'who.sub':       '從影片字幕到逐字歌詞，Ai Caption 讓字幕與歌詞不再是門檻。',
+      'who.sub':       '從影片字幕到逐字歌詞，Local Studio 讓字幕與歌詞不再是門檻。',
       'who.1.name':    '音樂製作人・詞曲創作者',
       'who.1.desc':    '把自己的 demo 或 rough mix 直接拿來對齊歌詞，精確到每個字，不再靠耳朵逐字計時。',
       'who.2.name':    '歌詞影片・卡拉 OK 製作者',
@@ -121,7 +123,7 @@
       // Comparison
       'cmp.eyebrow':        '與其他方式比較',
       'cmp.title':          '不藏私的誠實比較。',
-      'cmp.sub':            'Ai Caption 不是萬能的，但在本地、精確、免費這三點上，沒有妥協。',
+      'cmp.sub':            'Local Studio 不是萬能的，但在本地、精確、免費這三點上，沒有妥協。',
       'cmp.col.feature':    '功能 / 特性',
       'cmp.col.cloud':      '雲端歌詞服務',
       'cmp.col.rawwhisper': '裸 Whisper CLI',
@@ -173,7 +175,7 @@
       // Roadmap
       'road.eyebrow':        '持續開發',
       'road.title':          '路線圖',
-      'road.sub':            'Ai Caption 仍在積極開發中——以下是正在進行或計劃中的項目。',
+      'road.sub':            'Local Studio 仍在積極開發中——以下是正在進行或計劃中的項目。',
       'road.status.done':    '已完成',
       'road.status.wip':     '進行中',
       'road.status.planned': '計劃中',
@@ -204,23 +206,23 @@
       'priv.p4':       '不需要網路連線即可使用',
       'priv.p5':       '沒有第三方追蹤器',
       'priv.p6':       '完全在裝置本地執行',
-      'priv.net':      '<span class="amber-dot"></span><strong>唯一的網路活動：</strong>當你選擇下載 AI 模型時，程式會從官方來源（Hugging Face、pytorch.org）取得模型檔案。除此之外，Ai Caption 不向任何伺服器傳送任何使用資料。',
+      'priv.net':      '<span class="amber-dot"></span><strong>唯一的網路活動：</strong>當你選擇下載 AI 模型時，程式會從官方來源（Hugging Face、pytorch.org）取得模型檔案。除此之外，Local Studio 不向任何伺服器傳送任何使用資料。',
       'priv.date':     '最後更新：2026 年 6 月',
       'priv.full':     '閱讀完整隱私政策 →',
 
       // FAQ
       'faq.eyebrow':   '常見問題',
       'faq.title':     '還有疑問？',
-      'faq.q1':        'Ai Caption 免費嗎？',
+      'faq.q1':        'Local Studio 免費嗎？',
       'faq.a1':        '完全免費，MIT 開源授權。你可以自由使用、修改、再發布，商業用途亦可。',
       'faq.q2':        '它會上傳我的影片或歌曲嗎？',
-      'faq.a2':        '不會。所有影片與音訊處理均在你的裝置本地完成。Ai Caption 不與任何伺服器通訊，除非你主動觸發模型下載。',
+      'faq.a2':        '不會。所有影片與音訊處理均在你的裝置本地完成。Local Studio 不與任何伺服器通訊，除非你主動觸發模型下載。',
       'faq.q3':        '支援 Mac / Linux 嗎？',
       'faq.a3':        '目前提供 Windows 安裝包。Mac 和 Linux 使用者可從原始碼建置——Python 後端跨平台，Tauri 前端支援三大系統。',
       'faq.q4':        '支援哪些語言？',
       'faq.a4':        '支援 faster-whisper large-v3 能辨識的所有語言，包括中文（國語/粵語）、英語、日語、韓語及更多。可在設定中選擇語言或使用自動偵測。',
       'faq.q5':        '一定需要獨立顯卡嗎？',
-      'faq.a5':        '不需要。Ai Caption 在純 CPU / 內顯筆電（如 Intel Core Ultra）上也能跑——影片轉字幕模式預設挑選適合 CPU 的快速 int8 模型，反應俐落。NVIDIA GPU 是可選的，只是加快速度，尤其是較重的歌詞管線。',
+      'faq.a5':        '不需要。Local Studio 在純 CPU / 內顯筆電（如 Intel Core Ultra）上也能跑——影片轉字幕模式預設挑選適合 CPU 的快速 int8 模型，反應俐落。NVIDIA GPU 是可選的，只是加快速度，尤其是較重的歌詞管線。',
       'faq.q6':        '模型有多大？需要下載多少？',
       'faq.a6':        'Demucs htdemucs 約 320 MB，faster-whisper large-v3 約 3.1 GB，torchaudio MMS_FA 對齊模型約 1.2 GB，清字模式的 LaMa 修補模型約 200 MB。各模型在首次使用對應功能時才下載，之後完全離線。',
       'faq.q7':        '「清除字幕」能去掉什麼？',
@@ -270,7 +272,7 @@
       'cost.cloud.privacy.note':   '請參閱各服務的隱私政策與資料保留條款',
       'cost.cloud.quota.name':     '執行次數',
       'cost.cloud.quota.val':      '受配額或計費上限約束',
-      'cost.local.label':          'Ai Caption（本地）',
+      'cost.local.label':          'Local Studio（本地）',
       'cost.local.persong.name':   '每首歌費用',
       'cost.local.persong.val':    '$0',
       'cost.local.persong.note':   '模型一次下載（~5 GB），之後完全離線——無論跑幾次',
@@ -287,7 +289,7 @@
       // Support / donate
       'support.eyebrow': '支持開發',
       'support.title':   '它幫上忙了嗎？',
-      'support.copy':    'Ai Caption 永遠免費、MIT 開源，100% 在你自己的電腦上執行。如果它幫上了忙，你可以選擇小額贊助，支持後續開發——完全隨意，不打擾。',
+      'support.copy':    'Local Studio 永遠免費、MIT 開源，100% 在你自己的電腦上執行。如果它幫上了忙，你可以選擇小額贊助，支持後續開發——完全隨意，不打擾。',
 
       // Footer
       'foot.tagline':  'Built for video, subtitles & lyrics',
@@ -307,15 +309,17 @@
       'nav.lang':      '中文',
 
       // Top-level modes (headline)
-      'topmodes.eyebrow': 'Three Modes',
-      'topmodes.title':   'One app, three jobs.',
-      'topmodes.sub':     'Lyrics, subtitles, clean-up — pick the one you need. Every job runs on your own machine.',
+      'topmodes.eyebrow': 'Four Modes',
+      'topmodes.title':   'One app, four jobs.',
+      'topmodes.sub':     'Lyrics, subtitles, clean-up, mastering — pick the one you need. Every job runs on your own machine.',
       'topmodes.a.name':  'Song Lyrics',
       'topmodes.a.desc':  'Demucs vocal separation → faster-whisper → forced alignment for word-level timed lyrics. Export LRC / SRT / ASS karaoke / JSON.',
       'topmodes.b.name':  'Video → Subtitles',
       'topmodes.b.desc':  'Transcribe any video or audio into clean captions — auto line-wrapping, ≤2 lines per cue, reading-speed splitting. No vocal separation needed.',
       'topmodes.c.name':  'Clean Text',
       'topmodes.c.desc':  'Box fixed-position text you accidentally burned into your own video; LaMa AI inpainting erases it every frame and keeps the original audio. (Fixed-position; the model downloads on first use.)',
+      'topmodes.d.name':  'Auto-Mastering',
+      'topmodes.d.desc':  'Drop a mix: genre/reference EQ, compression & stereo width, section (chorus/verse) dynamics, normalized to a loudness target (Streaming / Social) and exported as a 24-bit WAV. Deep manual controls too.',
 
       'hero.eyebrow':  'Free · Open Source · Local-First · No dGPU',
       'hero.tagline':  'Any video or song becomes\nperfect subtitles and lyrics.',
@@ -374,7 +378,7 @@
 
       // Who it's for
       'who.eyebrow':   'Who It\'s For',
-      'who.title':     'Whether you work in video or music, Ai Caption fits.',
+      'who.title':     'Whether you work in video or music, Local Studio fits.',
       'who.sub':       'From video subtitles to word-level lyrics, captions are no longer a bottleneck.',
       'who.1.name':    'Music Producers & Songwriters',
       'who.1.desc':    'Align your own demo or rough mix to lyrics word-for-word — no more ear-timing every syllable by hand.',
@@ -399,7 +403,7 @@
       // Comparison
       'cmp.eyebrow':        'How It Compares',
       'cmp.title':          'An honest comparison, nothing hidden.',
-      'cmp.sub':            'Ai Caption isn\'t a magic bullet, but on privacy, precision, and price there\'s no compromise.',
+      'cmp.sub':            'Local Studio isn\'t a magic bullet, but on privacy, precision, and price there\'s no compromise.',
       'cmp.col.feature':    'Feature',
       'cmp.col.cloud':      'Cloud Lyric Services',
       'cmp.col.rawwhisper': 'Raw Whisper CLI',
@@ -451,7 +455,7 @@
       // Roadmap
       'road.eyebrow':        'Active Development',
       'road.title':          'Roadmap',
-      'road.sub':            'Ai Caption is under active development — here\'s what\'s shipped and what\'s coming.',
+      'road.sub':            'Local Studio is under active development — here\'s what\'s shipped and what\'s coming.',
       'road.status.done':    'Done',
       'road.status.wip':     'In Progress',
       'road.status.planned': 'Planned',
@@ -481,28 +485,28 @@
       'priv.p4':       'Works entirely offline',
       'priv.p5':       'No third-party trackers',
       'priv.p6':       'All processing runs locally on your device',
-      'priv.net':      '<span class="amber-dot"></span><strong>One honest exception:</strong> when you choose to download AI models, Ai Caption fetches them from official sources (Hugging Face, pytorch.org). Beyond that, no usage data is sent anywhere.',
+      'priv.net':      '<span class="amber-dot"></span><strong>One honest exception:</strong> when you choose to download AI models, Local Studio fetches them from official sources (Hugging Face, pytorch.org). Beyond that, no usage data is sent anywhere.',
       'priv.date':     'Last updated: June 2026',
       'priv.full':     'Read the full Privacy Policy →',
 
       'faq.eyebrow':   'FAQ',
       'faq.title':     'Questions?',
-      'faq.q1':        'Is Ai Caption free?',
+      'faq.q1':        'Is Local Studio free?',
       'faq.a1':        'Completely free, MIT licensed. Use it, modify it, redistribute it — including for commercial purposes.',
       'faq.q2':        'Does it upload my videos or songs?',
-      'faq.a2':        'No. All video and audio processing happens locally on your device. Ai Caption does not communicate with any server, except when you explicitly trigger a model download.',
+      'faq.a2':        'No. All video and audio processing happens locally on your device. Local Studio does not communicate with any server, except when you explicitly trigger a model download.',
       'faq.q3':        'Does it work on Mac / Linux?',
       'faq.a3':        'Pre-built installers are Windows-only for now. Mac and Linux users can build from source — the Python backend is cross-platform and the Tauri frontend supports all three.',
       'faq.q4':        'Which languages are supported?',
       'faq.a4':        'All languages supported by faster-whisper large-v3, including Mandarin, Cantonese, English, Japanese, Korean, and many more. Pick a language in settings or use auto-detection.',
       'faq.q5':        'Do I need a discrete GPU?',
-      'faq.a5':        'No. Ai Caption runs on CPU-only / iGPU laptops (e.g. an Intel Core Ultra) — the Video → Subtitles mode auto-picks a fast int8 model that stays snappy. An NVIDIA GPU is optional and only adds speed, especially for the heavier lyrics pipeline.',
+      'faq.a5':        'No. Local Studio runs on CPU-only / iGPU laptops (e.g. an Intel Core Ultra) — the Video → Subtitles mode auto-picks a fast int8 model that stays snappy. An NVIDIA GPU is optional and only adds speed, especially for the heavier lyrics pipeline.',
       'faq.q6':        'How large are the models?',
       'faq.a6':        'Demucs htdemucs ~320 MB, faster-whisper large-v3 ~3.1 GB, torchaudio MMS_FA alignment model ~1.2 GB, and the Clean Text LaMa inpainting model ~200 MB. Each downloads once when you first use the corresponding feature, then runs fully offline.',
       'faq.q7':        'What can Clean Text remove?',
       'faq.a7':        'Clean Text targets fixed-position text you accidentally burned into your own video (e.g. hardcoded subtitles or a text watermark). You box a region, and LaMa AI inpaints it away frame by frame while keeping the original audio untouched. It only handles fixed-position text — not moving objects. The LaMa model downloads on first use.',
       'faq.q8':        'Do I need to install Python first? Which version is this?',
-      'faq.a8':        'No. A portable Python is bundled, and the first launch sets up the engine and dependencies for you — nothing to install yourself. The current release is v0.1.3, with one-click auto-update built into the app.',
+      'faq.a8':        'No. A portable Python is bundled, and the first launch sets up the engine and dependencies for you — nothing to install yourself. The current release is v0.1.13, with one-click auto-update built into the app.',
 
       // System Requirements
       'sysreq.eyebrow':    'System Requirements',
@@ -546,7 +550,7 @@
       'cost.cloud.privacy.note':   'Check each service\'s privacy policy and data-retention terms',
       'cost.cloud.quota.name':     'Run count',
       'cost.cloud.quota.val':      'Capped by quota or billing limits',
-      'cost.local.label':          'Ai Caption (local)',
+      'cost.local.label':          'Local Studio (local)',
       'cost.local.persong.name':   'Cost per song',
       'cost.local.persong.val':    '$0',
       'cost.local.persong.note':   'Models download once (~5 GB total), then run entirely offline — however many times you like',
@@ -563,7 +567,7 @@
       // Support / donate
       'support.eyebrow': 'Support Development',
       'support.title':   'Did it help you?',
-      'support.copy':    'Ai Caption is free forever, MIT open-source, and runs 100% on your own machine. If it helped, you can optionally chip in to support ongoing development — entirely up to you, never pushy.',
+      'support.copy':    'Local Studio is free forever, MIT open-source, and runs 100% on your own machine. If it helped, you can optionally chip in to support ongoing development — entirely up to you, never pushy.',
 
       'foot.tagline':  'Built for video, subtitles & lyrics',
       'foot.license':  'MIT License',

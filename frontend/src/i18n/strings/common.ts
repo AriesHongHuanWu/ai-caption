@@ -89,6 +89,36 @@ export const common: Record<string, Entry> = {
   'master.error.job': { zh: '母帶處理失敗', en: 'Mastering failed' },
   'master.error.offline': { zh: '連不上本機後端', en: 'Cannot reach local backend' },
 
+  // ── Section dynamics (verse/chorus) ──
+  'master.section.dynamics': { zh: '區段動態（主歌／副歌）', en: 'Section dynamics' },
+  'master.dyn.balance': { zh: '平衡', en: 'Balance' },
+  'master.dyn.punch': { zh: '爆發力', en: 'Punch' },
+  'master.dyn.punchHint': {
+    zh: '把副歌（較滿的段落）推得更大、主歌壓小 → 對比更強、更有衝擊力。',
+    en: 'Pushes the chorus louder and verses softer → stronger contrast, more impact.',
+  },
+  'master.dyn.balanceHint': {
+    zh: '把各段落音量拉近 → 整首更一致、更耐聽。',
+    en: 'Levels sections toward each other → more consistent, easier listen.',
+  },
+  'master.dyn.offHint': {
+    zh: '保持原本的段落動態（不主動增減）。',
+    en: 'Keeps the original section dynamics (no riding).',
+  },
+
+  // ── Advanced (manual) ──
+  'master.advanced': { zh: '進階手動調整', en: 'Advanced (manual)' },
+  'master.adv.eq': { zh: 'EQ 等化（疊加在預設上）', en: 'EQ (added on top of preset)' },
+  'master.adv.bass': { zh: '低頻', en: 'Bass' },
+  'master.adv.lowMid': { zh: '低中頻', en: 'Low-mid' },
+  'master.adv.presence': { zh: '臨場', en: 'Presence' },
+  'master.adv.air': { zh: '空氣感', en: 'Air' },
+  'master.adv.dynamicsGroup': { zh: '動態與空間', en: 'Dynamics & space' },
+  'master.adv.comp': { zh: '壓縮強度', en: 'Compression' },
+  'master.adv.width': { zh: '立體聲寬度', en: 'Stereo width' },
+  'master.adv.ceiling': { zh: '真峰天花板', en: 'True-peak ceiling' },
+  'master.adv.reset': { zh: '重設進階', en: 'Reset advanced' },
+
   // ── Window controls (titlebar) ──
   'common.window.minimize': { zh: '最小化', en: 'Minimize' },
   'common.window.maximize': { zh: '最大化', en: 'Maximize' },

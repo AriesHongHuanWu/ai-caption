@@ -7,8 +7,11 @@
    "ink on dark stock" system — no new colors, no new shapes.
    ────────────────────────────────────────────────────────────────── */
 
+/* A VERTICAL list of mode rows (icon + label), full rail width. Scales past
+   4 modes cleanly and reads as primary nav — no cramped horizontal squares. */
 .al-modesw {
   display: flex;
+  flex-direction: column;
   align-items: stretch;
   gap: 2px;
   margin: 0 var(--al-space-3) var(--al-space-5);
@@ -19,14 +22,14 @@
 }
 
 .al-modesw__seg {
-  flex: 1;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 9px;
+  width: 100%;
   min-width: 0;
-  height: 28px;
-  padding: 0 8px;
+  height: 32px;
+  padding: 0 10px;
   border: none;
   border-radius: var(--al-radius-chip);
   background: transparent;
@@ -35,6 +38,7 @@
   font-size: var(--al-text-sm);
   font-weight: 500;
   letter-spacing: 0.01em;
+  text-align: left;
   cursor: pointer;
   transition:
     color var(--al-dur-focus) var(--al-ease-ink),
@@ -80,5 +84,6 @@
   display: none;
 }
 .al-modesw--collapsed .al-modesw__seg {
+  justify-content: center;
   padding: 0;
 }

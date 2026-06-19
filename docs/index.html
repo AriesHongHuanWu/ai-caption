@@ -4,17 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Ai Caption — 本地 AI 影片轉字幕與逐字歌詞 · Local AI Video Subtitles & Word-Level Lyrics</title>
-  <meta name="description" content="Ai Caption 是免費開源的桌面應用：把任何影片或音訊轉成字幕（SRT/WebVTT），或把歌曲轉成逐字時間軸歌詞（LRC/SRT/ASS/JSON），全程本地執行，不上傳、不追蹤，免獨立顯卡。Free, open-source, local-first AI captioning — video → subtitles (SRT/WebVTT) and song → word-level lyrics. Runs on any laptop, no discrete GPU required.">
+  <title>Local Studio — 本地 AI 影片轉字幕與逐字歌詞 · Local AI Video Subtitles & Word-Level Lyrics</title>
+  <meta name="description" content="Local Studio 是免費開源的桌面應用：把任何影片或音訊轉成字幕（SRT/WebVTT），或把歌曲轉成逐字時間軸歌詞（LRC/SRT/ASS/JSON），全程本地執行，不上傳、不追蹤，免獨立顯卡。Free, open-source, local-first AI captioning — video → subtitles (SRT/WebVTT) and song → word-level lyrics. Runs on any laptop, no discrete GPU required.">
 
   <!-- Open Graph / Twitter Card -->
   <meta property="og:type"        content="website">
-  <meta property="og:title"       content="Ai Caption — 本地 AI 影片轉字幕與逐字歌詞">
+  <meta property="og:title"       content="Local Studio — 本地 AI 影片轉字幕與逐字歌詞">
   <meta property="og:description" content="免費 · MIT 開源 · 不上傳 · 100% 本地執行 · 免獨立顯卡。影片轉字幕（SRT/WebVTT）+ 歌曲轉逐字歌詞（LRC/SRT/ASS/JSON）。">
   <meta property="og:url"         content="https://arieshonghuanwu.github.io/ai-caption/">
-  <meta property="og:site_name"   content="Ai Caption">
+  <meta property="og:site_name"   content="Local Studio">
   <meta name="twitter:card"       content="summary">
-  <meta name="twitter:title"      content="Ai Caption — Local AI Subtitles & Lyrics">
+  <meta name="twitter:title"      content="Local Studio — Local AI Subtitles & Lyrics">
   <meta name="twitter:description" content="Video → subtitles and song → word-level lyrics, on your own machine. Free, open-source, no upload, no tracking, no discrete GPU required.">
 
   <!-- Theme & icon -->
@@ -39,7 +39,7 @@
   <nav id="site-nav" role="navigation" aria-label="Main navigation">
     <div class="nav-inner">
       <!-- Wordmark -->
-      <a href="#" class="nav-wordmark" aria-label="Ai Caption home">
+      <a href="#" class="nav-wordmark" aria-label="Local Studio home">
         <span class="diamond" aria-hidden="true">◆</span>
         AI CAPTION
       </a>
@@ -146,7 +146,7 @@
   </div>
 
   <!-- Right: App mockup (CSS/HTML, no images) -->
-  <div class="lyric-mockup" role="img" aria-label="Ai Caption app screenshot showing the caption reading view with gold word-sweep animation">
+  <div class="lyric-mockup" role="img" aria-label="Local Studio app screenshot showing the caption reading view with gold word-sweep animation">
     <!-- Titlebar chrome -->
     <div class="mockup-titlebar" aria-hidden="true">
       <div class="mockup-dot"></div>
@@ -193,8 +193,8 @@
 <section id="modes" aria-labelledby="modes-heading">
   <div class="section-wrap">
     <header class="section-header reveal">
-      <span class="eyebrow" data-i18n="topmodes.eyebrow">三大模式</span>
-      <h2 id="modes-heading" class="section-title" data-i18n="topmodes.title">一個 App，三件事。</h2>
+      <span class="eyebrow" data-i18n="topmodes.eyebrow">四大模式</span>
+      <h2 id="modes-heading" class="section-title" data-i18n="topmodes.title">一個 App，四件事。</h2>
       <p class="section-sub" data-i18n="topmodes.sub">歌詞、字幕、清字——挑你需要的那一個，全部在你自己的電腦上完成。</p>
     </header>
 
@@ -227,6 +227,16 @@
         <p class="mode-desc" data-i18n="topmodes.c.desc">框選你自己影片裡誤燒進去的固定位置文字，LaMa AI 修補逐格抹除，原始聲音原封保留。（固定位置；模型首次使用時下載。）</p>
         <div class="topmode-formats" aria-hidden="true">
           <span class="fmt-chip">MP4</span><span class="fmt-chip">LaMa</span>
+        </div>
+      </article>
+
+      <!-- Mode D: Auto-Mastering -->
+      <article class="mode-card topmode-card">
+        <span class="topmode-emoji" aria-hidden="true">🎚️</span>
+        <div class="mode-name" data-i18n="topmodes.d.name">母帶處理（Mastering）</div>
+        <p class="mode-desc" data-i18n="topmodes.d.desc">上傳混音，依曲風或參考曲自動 EQ／壓縮／立體聲寬度，副歌／主歌區段動態自動增減，正規化到目標響度（串流／社群），輸出 24-bit WAV。可進階手動細調。</p>
+        <div class="topmode-formats" aria-hidden="true">
+          <span class="fmt-chip">EQ</span><span class="fmt-chip">LUFS</span><span class="fmt-chip">WAV</span>
         </div>
       </article>
 
@@ -421,7 +431,7 @@
     <header class="section-header reveal">
       <span class="eyebrow" data-i18n="who.eyebrow">為誰打造</span>
       <h2 id="who-heading" class="section-title" data-i18n="who.title">不論你做影片還是音樂，都適合。</h2>
-      <p class="section-sub" data-i18n="who.sub">從影片字幕到逐字歌詞，Ai Caption 讓字幕與歌詞不再是門檻。</p>
+      <p class="section-sub" data-i18n="who.sub">從影片字幕到逐字歌詞，Local Studio 讓字幕與歌詞不再是門檻。</p>
     </header>
 
     <div class="who-grid reveal">
@@ -531,17 +541,17 @@
     <header class="section-header reveal">
       <span class="eyebrow" data-i18n="cmp.eyebrow">與其他方式比較</span>
       <h2 id="compare-heading" class="section-title" data-i18n="cmp.title">不藏私的誠實比較。</h2>
-      <p class="section-sub" data-i18n="cmp.sub">Ai Caption 不是萬能的，但在本地、精確、免費這三點上，沒有妥協。</p>
+      <p class="section-sub" data-i18n="cmp.sub">Local Studio 不是萬能的，但在本地、精確、免費這三點上，沒有妥協。</p>
     </header>
 
     <div class="compare-wrap reveal">
-      <table class="compare-table" aria-label="Comparison of Ai Caption vs cloud services vs raw Whisper">
+      <table class="compare-table" aria-label="Comparison of Local Studio vs cloud services vs raw Whisper">
         <thead>
           <tr>
             <th scope="col" data-i18n="cmp.col.feature">功能 / 特性</th>
             <th scope="col" class="col-highlight">
               <span class="diamond" aria-hidden="true">◆</span>
-              Ai Caption
+              Local Studio
             </th>
             <th scope="col" data-i18n="cmp.col.cloud">雲端歌詞服務</th>
             <th scope="col" data-i18n="cmp.col.rawwhisper">裸 Whisper CLI</th>
@@ -698,10 +708,10 @@
           </div>
         </div>
 
-        <!-- Ai Caption column -->
+        <!-- Local Studio column -->
         <div class="cost-card cost-local">
           <div class="cost-card-label cost-label-local">
-            <span class="diamond" aria-hidden="true">◆</span> <span data-i18n="cost.local.label">Ai Caption（本地）</span>
+            <span class="diamond" aria-hidden="true">◆</span> <span data-i18n="cost.local.label">Local Studio（本地）</span>
           </div>
 
           <div class="cost-row">
@@ -759,7 +769,7 @@
       <a class="download-card featured"
          href="https://github.com/AriesHongHuanWu/ai-caption/releases/latest"
          target="_blank" rel="noopener noreferrer"
-         aria-label="Download Ai Caption Windows EXE installer — recommended">
+         aria-label="Download Local Studio Windows EXE installer — recommended">
         <div class="dl-card-head">
           <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -781,7 +791,7 @@
       <a class="download-card dl-msi"
          href="https://github.com/AriesHongHuanWu/ai-caption/releases/latest"
          target="_blank" rel="noopener noreferrer"
-         aria-label="Download Ai Caption Windows MSI installer">
+         aria-label="Download Local Studio Windows MSI installer">
         <div class="dl-card-head">
           <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="2" y="3" width="20" height="14" rx="2"/>
@@ -822,7 +832,7 @@
       <a class="download-card secondary-platform dl-row2"
          href="https://github.com/AriesHongHuanWu/ai-caption#readme"
          target="_blank" rel="noopener noreferrer"
-         aria-label="Ai Caption macOS — build from source">
+         aria-label="Local Studio macOS — build from source">
         <div class="dl-card-head">
           <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
@@ -843,7 +853,7 @@
       <a class="download-card secondary-platform dl-row2"
          href="https://github.com/AriesHongHuanWu/ai-caption#readme"
          target="_blank" rel="noopener noreferrer"
-         aria-label="Ai Caption Linux — build from source">
+         aria-label="Local Studio Linux — build from source">
         <div class="dl-card-head">
           <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 2a7 7 0 0 0-7 7c0 2.38.94 4.53 2.47 6.12C8.48 16.29 9 17.1 9 18v1h6v-1c0-.9.52-1.71 1.53-2.88A7 7 0 0 0 12 2z"/>
@@ -942,7 +952,7 @@
     <header class="section-header reveal">
       <span class="eyebrow" data-i18n="road.eyebrow">持續開發</span>
       <h2 id="roadmap-heading" class="section-title" data-i18n="road.title">路線圖</h2>
-      <p class="section-sub" data-i18n="road.sub">Ai Caption 仍在積極開發中——以下是正在進行或計劃中的項目。</p>
+      <p class="section-sub" data-i18n="road.sub">Local Studio 仍在積極開發中——以下是正在進行或計劃中的項目。</p>
     </header>
 
     <div class="roadmap-list reveal" role="list">
@@ -1069,7 +1079,7 @@
       </ul>
 
       <div class="privacy-network-note" data-i18n="priv.net">
-        <span class="amber-dot"></span><strong>唯一的網路活動：</strong>當你選擇下載 AI 模型時，程式會從官方來源（Hugging Face、pytorch.org）取得模型檔案。除此之外，Ai Caption 不向任何伺服器傳送任何使用資料。
+        <span class="amber-dot"></span><strong>唯一的網路活動：</strong>當你選擇下載 AI 模型時，程式會從官方來源（Hugging Face、pytorch.org）取得模型檔案。除此之外，Local Studio 不向任何伺服器傳送任何使用資料。
       </div>
 
       <time class="privacy-date" data-i18n="priv.date">最後更新：2026 年 6 月</time>
@@ -1096,7 +1106,7 @@
       <!-- Q1 -->
       <div class="faq-item" role="listitem">
         <button class="faq-question" aria-expanded="false" aria-controls="faq-a1" id="faq-q1" type="button">
-          <span data-i18n="faq.q1">Ai Caption 免費嗎？</span>
+          <span data-i18n="faq.q1">Local Studio 免費嗎？</span>
           <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="6,9 12,15 18,9"/>
           </svg>
@@ -1115,7 +1125,7 @@
           </svg>
         </button>
         <div class="faq-answer" id="faq-a2" role="region" aria-labelledby="faq-q2">
-          <div class="faq-answer-inner" data-i18n="faq.a2">不會。所有影片與音訊處理均在你的裝置本地完成。Ai Caption 不與任何伺服器通訊，除非你主動觸發模型下載。</div>
+          <div class="faq-answer-inner" data-i18n="faq.a2">不會。所有影片與音訊處理均在你的裝置本地完成。Local Studio 不與任何伺服器通訊，除非你主動觸發模型下載。</div>
         </div>
       </div>
 
@@ -1154,7 +1164,7 @@
           </svg>
         </button>
         <div class="faq-answer" id="faq-a5" role="region" aria-labelledby="faq-q5">
-          <div class="faq-answer-inner" data-i18n="faq.a5">不需要。Ai Caption 在純 CPU / 內顯筆電（如 Intel Core Ultra）上也能跑——影片轉字幕模式預設挑選適合 CPU 的快速 int8 模型，反應俐落。NVIDIA GPU 是可選的，只是加快速度，尤其是較重的歌詞管線。</div>
+          <div class="faq-answer-inner" data-i18n="faq.a5">不需要。Local Studio 在純 CPU / 內顯筆電（如 Intel Core Ultra）上也能跑——影片轉字幕模式預設挑選適合 CPU 的快速 int8 模型，反應俐落。NVIDIA GPU 是可選的，只是加快速度，尤其是較重的歌詞管線。</div>
         </div>
       </div>
 
@@ -1211,7 +1221,7 @@
     <header class="section-header reveal">
       <span class="eyebrow" data-i18n="support.eyebrow">支持開發</span>
       <h2 id="support-heading" class="section-title" data-i18n="support.title">它幫上忙了嗎？</h2>
-      <p class="section-sub" data-i18n="support.copy">Ai Caption 永遠免費、MIT 開源，100% 在你自己的電腦上執行。如果它幫上了忙，你可以選擇小額贊助，支持後續開發——完全隨意，不打擾。</p>
+      <p class="section-sub" data-i18n="support.copy">Local Studio 永遠免費、MIT 開源，100% 在你自己的電腦上執行。如果它幫上了忙，你可以選擇小額贊助，支持後續開發——完全隨意，不打擾。</p>
     </header>
 
     <div class="support-buttons reveal">

@@ -92,11 +92,12 @@ export function ModeSwitch({ collapsed = false }: ModeSwitchProps) {
             title={t(m.titleKey)}
             aria-label={t(m.labelKey)}
           >
-            {/* Icon-only — labels were too cramped in the narrow rail and got
-                truncated ("歌.."). The mode name lives in title + aria-label. */}
+            {/* Vertical rail rows: icon + label, comfortable at any width.
+                Collapsed (narrow window) hides the label, leaving just the icon. */}
             <span className="al-modesw__icon" aria-hidden="true">
               <Icon size={16} strokeWidth={1.9} />
             </span>
+            <span className="al-modesw__label">{t(m.labelKey)}</span>
           </button>
         );
       })}

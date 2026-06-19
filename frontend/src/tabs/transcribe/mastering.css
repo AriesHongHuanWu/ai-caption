@@ -224,3 +224,96 @@
   font-size: var(--al-text-xs);
   color: var(--al-ink-muted);
 }
+
+/* ── section dynamics (balance ↔ punch) ── */
+.al-master__dynrow {
+  display: flex;
+  align-items: center;
+  gap: var(--al-space-3);
+}
+.al-master__dynend {
+  font-size: var(--al-text-sm);
+  color: var(--al-ink-muted);
+  min-width: 3.2em;
+  text-align: center;
+}
+.al-master__range {
+  flex: 1;
+  width: 100%;
+  accent-color: var(--al-gold);
+  cursor: pointer;
+}
+.al-master__range--center {
+  background: transparent;
+}
+
+/* ── advanced panel ── */
+.al-master__advtoggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--al-ink-dim);
+  font-size: var(--al-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 0;
+}
+.al-master__advtoggle:hover {
+  color: var(--al-gold);
+}
+.al-master__adv {
+  display: flex;
+  flex-direction: column;
+  gap: var(--al-space-2);
+  margin-top: var(--al-space-3);
+  padding: var(--al-pad-panel);
+  border-radius: var(--al-radius-panel);
+  background: var(--al-surface);
+  border: 1px solid var(--al-hairline);
+  animation: al-reveal var(--al-dur-focus) var(--al-ease-ink);
+}
+.al-master__advgroup {
+  margin: var(--al-space-2) 0 2px;
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--al-tracking-caps);
+  color: var(--al-ink-faint);
+}
+.al-master__slider {
+  display: grid;
+  grid-template-columns: 6.5em 1fr 4.5em;
+  align-items: center;
+  gap: var(--al-space-3);
+}
+.al-master__sliderlabel {
+  font-size: var(--al-text-sm);
+  color: var(--al-ink-dim);
+}
+.al-master__sliderval {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink);
+  text-align: right;
+}
+.al-master__sliderunit {
+  color: var(--al-ink-faint);
+  margin-left: 2px;
+}
+.al-master__advreset {
+  align-self: flex-start;
+  margin-top: var(--al-space-2);
+  border: 1px solid var(--al-hairline-strong);
+  background: transparent;
+  color: var(--al-ink-muted);
+  font-size: var(--al-text-sm);
+  padding: 4px 12px;
+  border-radius: var(--al-radius-chip);
+  cursor: pointer;
+}
+.al-master__advreset:hover {
+  color: var(--al-ink);
+  border-color: var(--al-ink-faint);
+}
