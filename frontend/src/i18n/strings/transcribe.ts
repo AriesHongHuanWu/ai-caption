@@ -181,8 +181,8 @@ export const transcribe: Record<string, Entry> = {
   // ── Precision mode (advanced decoding toggle) ──
   'transcribe.precision.label': { zh: '精準模式', en: 'Precision mode' },
   'transcribe.precision.title': {
-    zh: '進階解碼：用參考歌詞做逐段詞級偏置 + 抑制唱歌幻覺迴圈 + 較寬 beam。較慢但更精準。',
-    en: 'Advanced decoding: per-window hotword biasing from your lyrics + anti-hallucination + wider beam. Slower but more accurate.',
+    zh: '更精準：逐段詞級偏置（用參考歌詞）+ 抑制唱歌幻覺 + 較寬 beam + 更乾淨人聲分離 + 收緊逐字時間。較慢，但辨識更準、字幕更卡拍。',
+    en: 'More accurate: per-window hotword biasing + anti-hallucination + wider beam + cleaner vocal separation + tightened word timing. Slower, but better words and tighter caption sync.',
   },
 
   // ── Alignment precision controls ──

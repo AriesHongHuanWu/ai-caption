@@ -1,16 +1,19 @@
-# Ai Caption v0.1.8
+# Ai Caption v0.1.9
 
-Stability fixes — no more crashes when GPU memory is tight, and the backend now heals itself.
+Accuracy upgrade — better words *and* tighter timing, with captions/karaoke that snap to the beat.
 
-### Fixed
-- **🧠 顯存不足 / Clean Text errors on a busy GPU** — if another app (e.g. DaVinci Resolve, a game) is using your graphics memory, Clean Text used to fail with out-of-memory. Now Ai Caption **checks free VRAM and automatically runs LaMa on the CPU when the GPU is tight** (slower, but it finishes instead of erroring), and it **survives an out-of-memory mid-render** by switching to CPU on the fly. It also frees GPU memory after each job.
-- **🔌 "Cannot reach local backend"** — added a **watchdog that automatically restarts the engine** if it ever crashes or gets killed, so the app recovers on its own instead of going permanently offline. (It stops cleanly when you quit, so no leftover processes.)
+### Improved
+- **🎯 Precision mode is now stronger** (the 精準模式 toggle):
+  - **Cleaner vocal separation** — on GPU with enough memory, Demucs runs with test-time augmentation, giving Whisper a cleaner vocal track to read → fewer wrong words. (VRAM-aware: skipped automatically when the GPU is tight, so it won't cause out-of-memory.)
+  - **Tighter word timing** — word starts are snapped to the actual vocal onsets on the recognition path too (forced-align already did this), so dynamic captions and karaoke land right on the beat.
+- **⏱️ Steadier per-word timing everywhere** — word timestamps are now cleaned up in **every mode**: no overlaps, no out-of-order or zero-length words, each word gets a sensible minimum length. This makes the **動態字幕燒錄** highlight stop flickering and track the words precisely.
 
-### Tip if your GPU is small (≤ 8 GB)
-- Closing other GPU-heavy apps (video editors, games) while running Ai Caption frees the most memory and keeps everything on the fast GPU path.
+### Notes
+- Forced-align timing is left exactly as-is (it's already accurate) — the cleanup only repairs broken cases.
+- Precision off = unchanged behaviour, just with the universal timing cleanup applied.
 
 ### Unchanged
-- 100% local — nothing is uploaded. All v0.1.7 features (動態字幕燒錄, 精準模式, 選硬碟…) as before.
+- 100% local — nothing is uploaded. All v0.1.8 stability + features as before.
 
 If you'd like to support development: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
 

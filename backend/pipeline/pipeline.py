@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any, Callable, Optional
 
 from . import config
@@ -233,6 +234,115 @@ def _normalize_segments(raw_segments: Any) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# 逐字時間軸精修(讓字幕/卡拉OK 跳色更貼拍)
+# ---------------------------------------------------------------------------
+_MIN_WORD_DUR = 0.04  # 每個字至少給 40ms,讓逐字高亮不會「閃過」
+
+
+def _finite(x: float, fallback: float) -> float:
+    """非有限值(NaN / inf)→ 回 fallback。Whisper 偶發 NaN 時間戳的安全網。"""
+    return x if math.isfinite(x) else fallback
+
+
+def _clean_word_timing(segments: list[dict], extend_min_dur: bool = True) -> None:
+    """就地把每段的逐字時間整理成「單調、不重疊、夾在句界內、值有限」。
+
+    Whisper 的逐字時間戳偶爾會重疊 / 倒退 / 零長度 / NaN,直接拿去做動態字幕會
+    跳色錯亂或讓時間格式化爆掉。這個純後處理對**所有模式**都套用(是修正):
+      - 修掉 NaN/inf(換成上一個 end)
+      - start 不早於上一個字的 end(去重疊、維持單調)、夾在 [seg.start, seg.end]
+      - (extend_min_dur=True)給每個字至少 _MIN_WORD_DUR 長度,但不越過下一個字 start
+
+    extend_min_dur 在強制對齊(align)模式關閉 —— align 的時間本來就準確,
+    只做去重疊/夾界的修正(phase 1),不去動它的長度,保持逐字時間原樣。
+    整段每句各自 try/except,絕不讓收尾步驟崩潰一個 job。
+    """
+    for seg in segments or []:
+        try:
+            words = seg.get("words") or []
+            if not words:
+                continue
+            s_lo = _finite(float(seg.get("start") or 0.0), 0.0)
+            s_hi = _finite(float(seg.get("end") or s_lo), s_lo)
+            if s_hi < s_lo:
+                s_hi = s_lo
+            # (1) 修 NaN/inf、單調、不重疊、夾在句界
+            prev_end = s_lo
+            for w in words:
+                try:
+                    ws = float(w.get("start") if w.get("start") is not None else prev_end)
+                    we = float(w.get("end") if w.get("end") is not None else ws)
+                except (TypeError, ValueError):
+                    ws, we = prev_end, prev_end
+                ws = _finite(ws, prev_end)
+                we = _finite(we, ws)
+                ws = min(max(ws, prev_end), s_hi)
+                we = min(max(we, ws), s_hi)
+                w["start"] = ws
+                w["end"] = we
+                prev_end = we
+            # (2) 補足最小長度(不越過下一個字 start);align 模式跳過以保留原時間
+            if extend_min_dur:
+                n = len(words)
+                for i, w in enumerate(words):
+                    nxt = float(words[i + 1]["start"]) if i + 1 < n else s_hi
+                    if w["end"] - w["start"] < _MIN_WORD_DUR:
+                        w["end"] = min(w["start"] + _MIN_WORD_DUR, max(nxt, w["start"]))
+            # 四捨五入(單調保序,不會因進位產生重疊)
+            for w in words:
+                w["start"] = round(float(w["start"]), 3)
+                w["end"] = round(float(w["end"]), 3)
+        except Exception:  # noqa: BLE001 - 收尾整理絕不崩潰
+            logger.debug("逐字時間整理失敗(已略過該段)", exc_info=True)
+
+
+def _snap_transcribe_onsets(audio_path: str, recog: dict) -> None:
+    """精準模式:把**辨識路徑**(非強制對齊)的逐字 start 吸附到人聲能量起音點。
+
+    重用 align 的 onset 偵測 / 吸附(純 numpy、O(N)),把 Whisper 較鬆的逐字 start
+    收緊到真實起音點 —— 對動態字幕 / 卡拉OK 的「卡拍感」有感。整段 try/except,
+    失敗就保留原時間(降級契約),絕不影響主流程。
+    """
+    segs = recog.get("segments") or []
+    words = [w for seg in segs for w in (seg.get("words") or [])]
+    if not words:
+        return
+    try:
+        wav = _align._load_waveform(audio_path, 16000)
+        import numpy as np  # type: ignore
+
+        wav_np = wav.numpy().reshape(-1) if hasattr(wav, "numpy") else np.asarray(wav).reshape(-1)
+        onsets = _align._compute_onsets(wav_np, 16000)
+        _align._snap_starts(words, onsets)
+    except Exception:
+        logger.debug("辨識路徑 onset 吸附失敗(已略過)", exc_info=True)
+
+
+def _cuda_free_mb() -> Optional[float]:
+    """目前 CUDA 可用 VRAM(MB);torch/CUDA 缺席或查詢失敗回 None。"""
+    try:
+        import torch  # type: ignore
+
+        if not torch.cuda.is_available():
+            return None
+        free, _total = torch.cuda.mem_get_info()
+        return float(free) / (1024.0 * 1024.0)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _empty_cuda_cache() -> None:
+    """釋放 torch CUDA 快取塊(分離/辨識之間騰出 VRAM),失敗無聲略過。"""
+    try:
+        import torch  # type: ignore
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:  # noqa: BLE001
+        pass
+
+
+# ---------------------------------------------------------------------------
 # 主協調器
 # ---------------------------------------------------------------------------
 def run(
@@ -313,13 +423,22 @@ def run(
                 sep_progress = _band_progress(progress, 0.0, 40.0, "separate")
                 # Validate demucs_model; fall back to htdemucs for unknown values.
                 safe_demucs = demucs_model if demucs_model in ("htdemucs", "htdemucs_ft") else "htdemucs"
+                # 精準模式 + GPU + 顯存充足:開 test-time augmentation(shifts=1)→ 人聲更
+                # 乾淨、辨識更準。VRAM 不足(< 3GB free)時不開 —— 避免分離的暫態 VRAM 和
+                # 後續 Whisper 疊起來 OOM(呼應 v0.1.8 的顯存守門);只在 cuda 開(CPU 已慢)。
+                free_mb = _cuda_free_mb() if resolved_device == "cuda" else None
+                sep_shifts = (
+                    1 if (precision and resolved_device == "cuda" and (free_mb or 0) > 3000) else 0
+                )
                 result_path = _separate.separate_vocals(
                     audio_path,
                     out_dir=_sep_out_dir(audio_path),
                     model_name=safe_demucs,
                     device=resolved_device,
+                    shifts=sep_shifts,
                     progress=sep_progress,
                 )
+                _empty_cuda_cache()  # 分離後釋放暫態 VRAM,降低後續辨識 OOM 機率
                 if result_path and result_path != audio_path:
                     vocals_path = result_path
                     separated = True
@@ -450,10 +569,18 @@ def run(
         logger.warning("辨識/對齊回傳非 dict(%r),改用空結果", type(recog))
         recog = {"language": "", "segments": []}
 
+    # 精準模式:辨識路徑(auto/biasing/speech)的逐字 start 吸附到人聲起音點。
+    # 強制對齊(align)在 align.align 內部已做吸附,故這裡只處理辨識路徑。
+    if precision and mode_used in ("auto", "biasing", "speech"):
+        _snap_transcribe_onsets(vocals_path, recog)
+
     # --- 4) 收尾:指派 id、算時長、組裝 Result(95-100)---------------------
     _safe_progress(progress, "finalize", 95.0, "整理結果 · Finalizing")
 
     segments = _normalize_segments(recog.get("segments"))
+    # 逐字時間整理:單調、不重疊、夾界、修 NaN —— 讓動態字幕/卡拉OK 跳色更穩。
+    # align 模式時間本就準 → 不做最小長度延伸,保留原逐字時間。
+    _clean_word_timing(segments, extend_min_dur=(mode_used != "align"))
     duration = _probe_duration(audio_path, segments)
     out_language = recog.get("language") or (language or "")
 
