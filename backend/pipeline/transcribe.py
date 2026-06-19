@@ -198,22 +198,54 @@ def _run_transcribe(
     beam_size: int,
     task: Optional[str],
     progress: ProgressFn,
+    precision: bool = False,
+    hotwords: Optional[str] = None,
 ) -> dict[str, Any]:
     """實際呼叫 model.transcribe 並把生成器收斂為固定格式 dict。
 
     segments 是「生成器」，逐段迭代時才真正進行解碼，因此這裡也順勢回報進度。
     task 為 None 時等同 faster-whisper 預設的 "transcribe"。
+
+    precision=True（精準模式）會疊上三個對「唱歌 / 長音檔」最有感的解碼槓桿：
+      1. hotwords —— 把參考歌詞當「每個 30s 視窗都重新套用」的詞級偏置。這是
+         關鍵差異:initial_prompt 只強烈影響第一段、之後被稀釋,hotwords 則對
+         每一段都生效,所以對長歌的部分歌詞偏置遠比 initial_prompt 有效。
+      2. no_repeat_ngram_size / repetition_penalty —— 壓制唱歌常見的「鬼打牆」
+         重複幻覺迴圈。
+      3. 較寬的 beam —— 多探幾條路徑提升疑難段落命中率(代價是較慢,故為可選)。
+    這些參數需要 faster-whisper >= 1.0;若安裝版本不支援(TypeError),自動退回
+    基本參數重跑,確保精準模式永不讓辨識變成空結果。
     """
-    segments_gen, info = model.transcribe(
-        audio_path,
-        language=language,
-        task=(task or "transcribe"),
-        initial_prompt=initial_prompt,
-        word_timestamps=True,
-        vad_filter=True,
-        beam_size=beam_size,
-        condition_on_previous_text=False,
-    )
+    base_kwargs: dict[str, Any] = {
+        "language": language,
+        "task": (task or "transcribe"),
+        "initial_prompt": initial_prompt,
+        "word_timestamps": True,
+        "vad_filter": True,
+        "beam_size": beam_size,
+        "condition_on_previous_text": False,
+    }
+    kwargs = dict(base_kwargs)
+    if precision:
+        kwargs["beam_size"] = max(beam_size, 8)
+        kwargs["no_repeat_ngram_size"] = 3
+        kwargs["repetition_penalty"] = 1.1
+        hw = (hotwords or "").strip()
+        if hw:
+            kwargs["hotwords"] = hw
+
+    try:
+        segments_gen, info = model.transcribe(audio_path, **kwargs)
+    except TypeError as exc:
+        # 舊版 faster-whisper 不認得某個精準參數 → 退回基本參數,不讓功能整個失敗。
+        if precision:
+            logger.warning(
+                "精準模式參數不被目前 faster-whisper 支援(%s),退回基本參數辨識。",
+                exc,
+            )
+            segments_gen, info = model.transcribe(audio_path, **base_kwargs)
+        else:
+            raise
 
     # 以 info.duration 估算進度（若可得）；否則僅回報「辨識中」。
     total_dur = float(getattr(info, "duration", 0.0) or 0.0)
@@ -260,6 +292,8 @@ def transcribe(
     beam_size: int = 5,
     task: Optional[str] = None,
     progress: ProgressFn = None,
+    precision: bool = False,
+    hotwords: Optional[str] = None,
 ) -> dict[str, Any]:
     """用 faster-whisper 對音訊做帶逐字時間戳的辨識。
 
@@ -314,6 +348,8 @@ def transcribe(
             beam_size=beam_size,
             task=task,
             progress=progress,
+            precision=precision,
+            hotwords=hotwords,
         )
     except Exception as exc:  # noqa: BLE001 - 需判斷是否為可重試的 CUDA OOM
         # 僅在「cuda + 並非已是 int8 系列」且看起來像 OOM 時退回較省記憶體的精度。
@@ -345,6 +381,8 @@ def transcribe(
                     beam_size=beam_size,
                     task=task,
                     progress=progress,
+                    precision=precision,
+                    hotwords=hotwords,
                 )
             except Exception as exc2:  # noqa: BLE001
                 logger.error("int8_float16 退回後仍失敗：%s", exc2)

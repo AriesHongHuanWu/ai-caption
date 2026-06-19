@@ -21,6 +21,8 @@ export interface Defaults {
   mode: JobMode;
   exportFormat: ExportFormat;
   separate: boolean;
+  /** Precision decoding (hotword biasing + anti-hallucination); slower, more accurate. */
+  precision: boolean;
 }
 
 const STORAGE_KEY = 'autolyrics.settings.v1';
@@ -33,6 +35,7 @@ const DEFAULTS: Defaults = {
   mode: 'auto',
   exportFormat: 'lrc',
   separate: true,
+  precision: false,
 };
 
 function load(): Defaults {

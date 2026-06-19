@@ -1,12 +1,16 @@
-# Ai Caption v0.1.5
+# Ai Caption v0.1.6
 
-Choose where the heavy stuff lives — put the engine and models on the drive you want.
+A new switchable **Precision mode** for noticeably more accurate lyrics/subtitles — old behaviour stays one click away.
 
 ### New
-- **🗂️ Choose your data drive** (Settings → 資料儲存位置). Running low on C:? Point Ai Caption at a roomier drive (e.g. D:) and the engine, downloaded models and caches all live there instead. Pick a folder, confirm, and the app restarts to apply — the first-run wizard then sets up at the new location and future model downloads land on that drive. Existing data isn't moved (the old location is left untouched for you to remove if you like). On the default location, nothing changes — behaviour is exactly as before.
+- **🎯 Precision mode** (精準模式) — a toggle on the 辨識 page (both 歌曲歌詞 and 影片字幕). When on, decoding is tuned for singing and long audio:
+  - **Hotword biasing from your reference lyrics** — and crucially it's **re-applied to every 30-second window**, unlike the old prompt which only nudged the first ~30s and then faded. This is the big fix for "I pasted some lyrics but it still got them wrong" on longer songs.
+  - **Anti-hallucination** — suppresses the repeat/loop "rambling" Whisper tends to do on sung vocals.
+  - **Wider beam search** — explores more candidates on tricky passages.
+  - Slower, but more accurate. **Off by default** — flip it on when you want the extra accuracy; everything else behaves exactly as before.
 
-### About choosing models
-- You already pick exactly which models to download in **Settings → 模型管理 (Model Manager)** — download or remove each one individually (Whisper sizes, Demucs, aligner, LaMa). Since v0.1.4 the health check no longer auto-pulls everything; it only fetches what the mode you're using needs, so nothing large downloads without you asking.
+### Tip for best accuracy
+- If you have the **complete** lyrics, use **強制對齊 (Forced align)** — it takes your lyrics as the truth and only solves the timing, so the words are 100% right. Precision mode helps most when you only have **partial** lyrics or none.
 
 ### Unchanged
 - 100% local — nothing is uploaded. Runs on no-GPU laptops (CPU int8 / Intel Core Ultra).

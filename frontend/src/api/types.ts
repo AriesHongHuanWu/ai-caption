@@ -75,6 +75,13 @@ export interface JobParams {
    * — omitted/undefined means the backend default ("transcribe").
    */
   task?: string;
+  /**
+   * Precision mode: advanced decoding tuned for singing / long audio —
+   * hotword biasing from the reference lyrics (re-applied every 30s window,
+   * unlike initial_prompt which fades), anti-hallucination loops, wider beam.
+   * Slower but more accurate. Optional; omitted/false = standard decoding.
+   */
+  precision?: boolean;
 }
 
 export interface CreateJobResponse {

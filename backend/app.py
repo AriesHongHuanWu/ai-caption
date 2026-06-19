@@ -235,6 +235,9 @@ class JobParams(BaseModel):
     # Precision options (forced-align mode)
     refine: bool = True  # snap word boundaries to nearest vocal onset
     demucsModel: str = "htdemucs"  # "htdemucs" | "htdemucs_ft"
+    # 精準模式:歌曲/長音檔的進階解碼(hotwords 詞級偏置 + 反幻覺迴圈 + 較寬 beam)。
+    # 預設關閉 → 維持舊行為,完全可切換。
+    precision: bool = False
     # Video→Subtitles (speech) options
     task: Optional[str] = None  # faster-whisper task; None == "transcribe" (translate hook, not impl)
 
@@ -292,6 +295,7 @@ def _run_job(job_id: str, audio_path: str, params: JobParams) -> None:
             refine=params.refine,
             demucs_model=params.demucsModel,
             task=params.task,
+            precision=params.precision,
             progress=progress,
         )
         with _JOBS_LOCK:

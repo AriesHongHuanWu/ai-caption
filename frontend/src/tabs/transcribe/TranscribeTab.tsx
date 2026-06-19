@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Play, RotateCcw, Scissors, Sparkles, Laptop } from 'lucide-react';
+import { Play, RotateCcw, Scissors, Sparkles, Laptop, Target } from 'lucide-react';
 import { AlignPrecision } from './AlignPrecision';
 import './transcribe.css';
 import { Button, Eyebrow, Pill, SelectField } from '../../components/primitives';
@@ -20,6 +20,7 @@ import { useResultStore } from '../../state/useResultStore';
 import { useModels } from '../../state/useModels';
 import { useAudio } from '../../state/useAudio';
 import { useMode } from '../../state/useMode';
+import { useSettings } from '../../state/useSettings';
 import { useT } from '../../i18n';
 import type { Device, JobMode, JobParams, ModelSize } from '../../api/types';
 
@@ -121,6 +122,17 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
   const [separate, setSeparate] = useState(meta.demucs);
   const [refine, setRefine] = useState(true);
   const [demucsModel, setDemucsModel] = useState('htdemucs');
+  // Precision mode (advanced decoding). Persisted so the choice sticks.
+  const precisionDefault = useSettings((s) => s.defaults.precision);
+  const setSettings = useSettings((s) => s.set);
+  const [precision, setPrecision] = useState(precisionDefault);
+  const togglePrecision = useCallback(() => {
+    setPrecision((v) => {
+      const next = !v;
+      setSettings({ precision: next });
+      return next;
+    });
+  }, [setSettings]);
 
   // keep model default valid if meta resolves after first paint
   useEffect(() => {
@@ -255,6 +267,7 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
           refine: false,
           demucsModel,
           task: 'transcribe',
+          precision,
         }
       : {
           mode,
@@ -268,6 +281,7 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
           engine: 'whisper',
           refine: mode === 'align' ? refine : true,
           demucsModel,
+          precision,
         };
     void submit(file, params);
   }, [
@@ -286,6 +300,7 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
     meta.demucs,
     refine,
     demucsModel,
+    precision,
     submit,
   ]);
 
@@ -451,9 +466,10 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
             </SelectField>
           </div>
 
-          {/* Vocal separation is a lyric/karaoke concern — hidden in video mode. */}
-          {!isVideo && (
-            <div className="al-chips">
+          {/* Vocal separation (lyric/karaoke, hidden in video) + precision
+              decoding (both modes). */}
+          <div className="al-chips">
+            {!isVideo && (
               <Pill
                 active={separate && meta.demucs}
                 onClick={() => meta.demucs && setSeparate((v) => !v)}
@@ -467,8 +483,16 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
               >
                 {t('transcribe.separate.label')}
               </Pill>
-            </div>
-          )}
+            )}
+            <Pill
+              active={precision}
+              onClick={togglePrecision}
+              icon={<Target size={12} strokeWidth={2} />}
+              title={t('transcribe.precision.title')}
+            >
+              {t('transcribe.precision.label')}
+            </Pill>
+          </div>
         </section>
 
         {/* VIDEO PREVIEW — shown once a file is loaded in subtitle mode; the

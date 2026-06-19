@@ -250,6 +250,7 @@ def run(
     refine: bool = True,
     demucs_model: str = "htdemucs",
     task: Optional[str] = None,
+    precision: bool = False,
     progress: Optional[ProgressFn] = None,
 ) -> dict:
     """跑完整辨識/對齊管線,回傳符合 API_CONTRACT 的 Result dict。
@@ -380,6 +381,8 @@ def run(
                     initial_prompt=_safe_bias_prompt(style_keys, reference_content, reference_lyrics),
                     model_size=model_size,
                     device=resolved_device,
+                    precision=precision,
+                    hotwords=reference_lyrics,
                     progress=recog_progress,
                 )
                 mode_used = "biasing"
@@ -391,6 +394,8 @@ def run(
                 initial_prompt=_safe_bias_prompt(style_keys, reference_content, reference_lyrics),
                 model_size=model_size,
                 device=resolved_device,
+                precision=precision,
+                hotwords=reference_lyrics,
                 progress=recog_progress,
             )
             mode_used = "biasing"
@@ -405,6 +410,8 @@ def run(
             model_size=model_size,
             device=resolved_device,
             task=task,
+            precision=precision,
+            hotwords=reference_lyrics,
             progress=recog_progress,
         )
         mode_used = "speech"
@@ -418,6 +425,8 @@ def run(
             initial_prompt=initial_prompt,
             model_size=model_size,
             device=resolved_device,
+            precision=precision,
+            hotwords=reference_lyrics,
             progress=recog_progress,
         )
         mode_used = "biasing"
@@ -431,6 +440,8 @@ def run(
             initial_prompt=None,
             model_size=model_size,
             device=resolved_device,
+            precision=precision,
+            hotwords=reference_lyrics,
             progress=recog_progress,
         )
         mode_used = "auto"
@@ -502,6 +513,8 @@ def _fallback_transcribe(
     model_size: str,
     device: str,
     task: Optional[str] = None,
+    precision: bool = False,
+    hotwords: Optional[str] = None,
     progress: Optional[ProgressFn],
 ) -> dict:
     """呼叫 transcribe.transcribe;任何例外回傳空結果結構,不讓管線崩潰。"""
@@ -513,6 +526,8 @@ def _fallback_transcribe(
             model_size=model_size,
             device=device,
             task=task,
+            precision=precision,
+            hotwords=hotwords,
             progress=progress,
         )
         if isinstance(out, dict):

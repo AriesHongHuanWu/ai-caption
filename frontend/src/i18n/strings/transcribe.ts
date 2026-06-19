@@ -178,6 +178,13 @@ export const transcribe: Record<string, Entry> = {
     en: 'Demucs unavailable on this machine',
   },
 
+  // ── Precision mode (advanced decoding toggle) ──
+  'transcribe.precision.label': { zh: '精準模式', en: 'Precision mode' },
+  'transcribe.precision.title': {
+    zh: '進階解碼：用參考歌詞做逐段詞級偏置 + 抑制唱歌幻覺迴圈 + 較寬 beam。較慢但更精準。',
+    en: 'Advanced decoding: per-window hotword biasing from your lyrics + anti-hallucination + wider beam. Slower but more accurate.',
+  },
+
   // ── Alignment precision controls ──
   'transcribe.precision.onsetSnapLabel': { zh: '吸附聲音起點', en: 'Snap to vocal onsets' },
   'transcribe.precision.onsetSnapTitle': {
