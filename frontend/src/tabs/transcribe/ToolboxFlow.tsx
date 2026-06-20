@@ -8,19 +8,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Mic, Activity, Music2, Gauge, Zap, Wind, Scissors, TrendingUp, Move,
-  Crosshair, FileAudio, UploadCloud, Loader2, Play, Wrench,
+  Crosshair, FileAudio, UploadCloud, Loader2, Play, Wrench, Download,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { listTools, runTool, type ToolDef } from '../../api/tools';
+import { listTools, runTool, fetchUrl, type ToolDef } from '../../api/tools';
 import { saveBinaryBlob } from '../export/saveFile';
 import { ApiError } from '../../api/client';
 import { useLang, useT } from '../../i18n';
 import './toolbox.css';
 
 const ICONS: Record<string, LucideIcon> = {
-  Mic, Activity, Music2, Gauge, Zap, Wind, Scissors, TrendingUp, Move, Crosshair, FileAudio,
+  Mic, Activity, Music2, Gauge, Zap, Wind, Scissors, TrendingUp, Move, Crosshair, FileAudio, Download,
 };
-const CAT_ORDER = ['analyze', 'loudness', 'repair', 'edit', 'stereo', 'export'];
+const CAT_ORDER = ['fetch', 'analyze', 'loudness', 'repair', 'edit', 'stereo', 'export'];
 
 export function ToolboxFlow() {
   const t = useT();
@@ -33,10 +33,14 @@ export function ToolboxFlow() {
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [url, setUrl] = useState('');
+  const [rights, setRights] = useState(false);
 
   useEffect(() => {
     const ac = new AbortController();
-    listTools(ac.signal).then(setTools).catch(() => { /* offline — empty grid */ });
+    listTools(ac.signal)
+      .then(({ tools: ts, fetchAvailable }) => setTools(fetchAvailable ? ts : ts.filter((x) => x.kind !== 'fetch')))
+      .catch(() => { /* offline — empty grid */ });
     return () => ac.abort();
   }, []);
 
@@ -51,19 +55,27 @@ export function ToolboxFlow() {
   };
 
   const run = useCallback(async () => {
-    if (!sel || !file) return;
+    if (!sel) return;
+    if (sel.kind === 'fetch' ? !(url.trim() && rights) : !file) return;
     setRunning(true);
     setErr(null);
     setResult(null);
     setMsg(null);
     try {
-      const r = await runTool(sel.id, file, params);
-      if (r.kind === 'analyze') {
-        setResult(r.result);
-      } else {
+      if (sel.kind === 'fetch') {
+        const r = await fetchUrl(url.trim(), String(params.format ?? 'wav'));
         const ext = r.filename.split('.').pop() || 'wav';
         const out = await saveBinaryBlob(r.blob, r.filename, { name: 'Audio', extensions: [ext] });
         setMsg(out.kind === 'cancelled' ? null : t('tools.saved'));
+      } else {
+        const r = await runTool(sel.id, file!, params);
+        if (r.kind === 'analyze') {
+          setResult(r.result);
+        } else {
+          const ext = r.filename.split('.').pop() || 'wav';
+          const out = await saveBinaryBlob(r.blob, r.filename, { name: 'Audio', extensions: [ext] });
+          setMsg(out.kind === 'cancelled' ? null : t('tools.saved'));
+        }
       }
     } catch (e) {
       setErr(e instanceof ApiError && e.offline ? t('tools.err.offline')
@@ -71,7 +83,7 @@ export function ToolboxFlow() {
     } finally {
       setRunning(false);
     }
-  }, [sel, file, params, t]);
+  }, [sel, file, params, url, rights, t]);
 
   const label = (tool: ToolDef) => (lang === 'en' ? tool.labelEn : tool.label);
   const desc = (tool: ToolDef) => (lang === 'en' ? tool.descEn : tool.desc);
@@ -120,17 +132,35 @@ export function ToolboxFlow() {
         <section className="al-section al-toolrun">
           <p className="al-toolrun__title">{label(sel)}</p>
 
-          <label className="al-master__drop">
-            <input
-              type="file"
-              accept="audio/*,.wav,.mp3,.flac,.m4a,.aac,.ogg"
-              className="al-master__file"
-              onChange={(e) => { setFile(e.target.files?.[0] ?? null); setResult(null); setMsg(null); }}
-            />
-            <UploadCloud size={22} />
-            <span className="al-master__dropmain">{file ? file.name : t('tools.drop')}</span>
-            <span className="al-master__drophint">WAV · MP3 · FLAC · M4A</span>
-          </label>
+          {sel.kind === 'fetch' ? (
+            <div className="al-toolfetch">
+              <input
+                type="url"
+                className="al-toolfetch__url"
+                placeholder={t('tools.fetch.urlPlaceholder')}
+                value={url}
+                disabled={running}
+                onChange={(e) => { setUrl(e.target.value); setMsg(null); }}
+              />
+              <label className="al-toolfetch__rights">
+                <input type="checkbox" checked={rights} disabled={running}
+                  onChange={(e) => setRights(e.target.checked)} />
+                <span>{t('tools.fetch.rights')}</span>
+              </label>
+            </div>
+          ) : (
+            <label className="al-master__drop">
+              <input
+                type="file"
+                accept="audio/*,.wav,.mp3,.flac,.m4a,.aac,.ogg"
+                className="al-master__file"
+                onChange={(e) => { setFile(e.target.files?.[0] ?? null); setResult(null); setMsg(null); }}
+              />
+              <UploadCloud size={22} />
+              <span className="al-master__dropmain">{file ? file.name : t('tools.drop')}</span>
+              <span className="al-master__drophint">WAV · MP3 · FLAC · M4A</span>
+            </label>
+          )}
 
           {sel.params.length > 0 && (
             <div className="al-toolrun__params">
@@ -165,9 +195,9 @@ export function ToolboxFlow() {
           )}
 
           <button type="button" className="al-btn al-btn--primary al-btn--lg al-toolrun__go"
-            disabled={running || !file} onClick={run}>
-            {running ? <Loader2 size={18} className="al-spin" /> : <Play size={18} />}
-            {sel.kind === 'analyze' ? t('tools.analyze') : t('tools.run')}
+            disabled={running || (sel.kind === 'fetch' ? !(url.trim() && rights) : !file)} onClick={run}>
+            {running ? <Loader2 size={18} className="al-spin" /> : sel.kind === 'fetch' ? <Download size={18} /> : <Play size={18} />}
+            {sel.kind === 'fetch' ? t('tools.fetch.go') : sel.kind === 'analyze' ? t('tools.analyze') : t('tools.run')}
           </button>
 
           {err && <p className="al-toolrun__err">{err}</p>}

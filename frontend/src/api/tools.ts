@@ -18,7 +18,7 @@ export interface ToolParam {
 }
 export interface ToolDef {
   id: string;
-  kind: 'analyze' | 'process';
+  kind: 'analyze' | 'process' | 'fetch';
   category: string;
   icon: string;
   label: string;
@@ -32,11 +32,37 @@ export type ToolResult =
   | { kind: 'analyze'; result: Record<string, unknown> }
   | { kind: 'process'; blob: Blob; filename: string };
 
-export async function listTools(signal?: AbortSignal): Promise<ToolDef[]> {
+export async function listTools(signal?: AbortSignal): Promise<{ tools: ToolDef[]; fetchAvailable: boolean }> {
   const res = await fetch(apiUrl('/api/tools'), { signal });
   if (!res.ok) throw new ApiError(`Tools list failed (${res.status})`, res.status);
-  const data = (await res.json()) as { tools: ToolDef[] };
-  return data.tools ?? [];
+  const data = (await res.json()) as { tools: ToolDef[]; fetchAvailable?: boolean };
+  return { tools: data.tools ?? [], fetchAvailable: !!data.fetchAvailable };
+}
+
+/** Download audio from a URL (YouTube etc.) → returns the audio Blob. */
+export async function fetchUrl(
+  url: string,
+  format: string,
+  signal?: AbortSignal,
+): Promise<{ blob: Blob; filename: string }> {
+  const form = new FormData();
+  form.append('url', url);
+  form.append('format', format);
+  let res: Response;
+  try {
+    res = await fetch(apiUrl('/api/tools/fetch'), { method: 'POST', body: form, signal });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'network error';
+    throw new ApiError(`Cannot reach local backend at ${API_BASE} (${message})`, 0, true);
+  }
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { const j = (await res.json()) as { detail?: string }; detail = j.detail ?? detail; } catch { /* */ }
+    throw new ApiError(detail || `Download failed (${res.status})`, res.status);
+  }
+  const cd = res.headers.get('content-disposition') ?? '';
+  const m = /filename="?([^"]+)"?/.exec(cd);
+  return { blob: await res.blob(), filename: m ? m[1] : `audio.${format}` };
 }
 
 export async function runTool(

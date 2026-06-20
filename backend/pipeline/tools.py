@@ -334,9 +334,22 @@ TOOLS: dict[str, dict] = {
 }
 
 
+# URL 下載器 —— 特殊工具(kind="fetch":輸入網址而非檔案,走 /api/tools/fetch)。
+# 前端依 kind 渲染網址欄 + 權利確認;只有 yt-dlp 可用時才顯示(API 回 fetchAvailable)。
+_FETCH_TOOL = {
+    "id": "url_download", "kind": "fetch", "category": "fetch", "icon": "Download",
+    "label": "YouTube / 網址 音訊下載", "labelEn": "YouTube / URL audio downloader",
+    "desc": "貼上網址,抓最佳音質音訊(WAV/FLAC/MP3),接著就能在工具箱/母帶處理。",
+    "descEn": "Paste a URL, grab the best-quality audio (WAV/FLAC/MP3), then process it here.",
+    "params": [{"key": "format", "label": "輸出格式", "type": "select", "default": "wav",
+                "options": [{"value": "wav", "label": "WAV(無損,適合再處理)"}, {"value": "flac", "label": "FLAC"},
+                            {"value": "mp3", "label": "MP3"}]}],
+}
+
+
 def list_tools() -> list[dict]:
     """給前端的工具清單(不含 fn)。"""
-    out = []
+    out = [_FETCH_TOOL]
     for tid, t in TOOLS.items():
         out.append({k: v for k, v in t.items() if k != "fn"} | {"id": tid})
     return out

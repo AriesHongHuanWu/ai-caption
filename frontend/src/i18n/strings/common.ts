@@ -64,6 +64,13 @@ export const common: Record<string, Entry> = {
   'tools.saved': { zh: '已儲存 ✓', en: 'Saved ✓' },
   'tools.err.offline': { zh: '連不到本機後端引擎。', en: 'Cannot reach the local engine.' },
   'tools.err.run': { zh: '工具執行失敗。', en: 'Tool failed.' },
+  'tools.cat.fetch': { zh: '下載', en: 'Download' },
+  'tools.fetch.urlPlaceholder': { zh: '貼上 YouTube 或音訊網址…', en: 'Paste a YouTube or audio URL…' },
+  'tools.fetch.rights': {
+    zh: '我確認我有權下載這段內容(我自己的作品、Creative Commons、免版稅,或已取得授權的 beats)。',
+    en: 'I confirm I have the right to download this content (my own work, Creative Commons, royalty-free, or licensed beats).',
+  },
+  'tools.fetch.go': { zh: '下載音訊', en: 'Download audio' },
   'tools.cat.analyze': { zh: '分析', en: 'Analyze' },
   'tools.cat.loudness': { zh: '響度', en: 'Loudness' },
   'tools.cat.repair': { zh: '修復 / 清理', en: 'Repair' },

@@ -142,6 +142,12 @@ except Exception as _e:  # pragma: no cover
     logger.error("無法載入 pipeline.tools:%r — 音訊工具箱停用,其餘 API 正常。", _e)
     audio_tools = None  # type: ignore[assignment]
 
+try:
+    from pipeline import fetch as url_fetch  # type: ignore[no-redef]
+except Exception as _e:  # pragma: no cover
+    logger.error("無法載入 pipeline.fetch:%r — URL 下載器停用,其餘 API 正常。", _e)
+    url_fetch = None  # type: ignore[assignment]
+
 
 def _mastering_available() -> bool:
     if mastering is None:
@@ -2278,9 +2284,42 @@ _TOOL_MIME = {"wav": "audio/wav", "mp3": "audio/mpeg", "flac": "audio/flac", "og
 @app.get("/api/tools")
 async def api_tools_list() -> JSONResponse:
     """音訊工具箱的工具清單(id / 類別 / 參數 schema),供前端泛用面板渲染。"""
-    if audio_tools is None:
-        return JSONResponse({"tools": []})
-    return JSONResponse({"tools": audio_tools.list_tools()})
+    tools = audio_tools.list_tools() if audio_tools is not None else []
+    return JSONResponse({"tools": tools, "fetchAvailable": bool(url_fetch is not None and url_fetch.is_available())})
+
+
+@app.post("/api/tools/fetch")
+async def api_tools_fetch(
+    url: str = Form(...),
+    format: str = Form("wav"),
+) -> Response:
+    """從 URL(YouTube 等)下載最佳音訊 → 轉成 format → 回音檔位元組。
+    使用者須對內容擁有權利(前端已要求確認);本端點只抓公開串流、不繞過 DRM。"""
+    if url_fetch is None or not url_fetch.is_available():
+        raise HTTPException(status_code=503, detail="URL 下載器不可用(yt-dlp 未安裝)")
+    fmt = (format or "wav").lower()
+    ext = url_fetch.fetch_ext(fmt)
+    uid = uuid.uuid4().hex
+    tout = UPLOAD_DIR / f"fetchout_{uid}.{ext}"
+    try:
+        meta = await run_in_threadpool(url_fetch.fetch_audio, url, str(tout), fmt)
+        out_bytes = tout.read_bytes()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:  # noqa: BLE001
+        logger.error("URL 下載失敗:%s\n%s", e, traceback.format_exc())
+        raise HTTPException(status_code=502, detail=f"下載失敗:{e}") from e
+    finally:
+        try:
+            if tout.exists():
+                tout.unlink()
+        except OSError:
+            pass
+    import re as _re
+    safe_title = _re.sub(r'[^\w\-. ]', '_', str(meta.get("title", "audio")))[:60] or "audio"
+    mime = _TOOL_MIME.get(fmt, "audio/wav")
+    return Response(content=out_bytes, media_type=mime,
+                    headers={"Content-Disposition": f'attachment; filename="{safe_title}.{ext}"'})
 
 
 @app.post("/api/tools/run")

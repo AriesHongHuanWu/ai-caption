@@ -40,6 +40,28 @@
   padding: var(--al-pad-panel);
 }
 .al-toolrun__title { margin: 0 0 10px; font-weight: 600; font-size: var(--al-text-md); color: var(--al-ink); }
+
+/* URL downloader (fetch) */
+.al-toolfetch { display: flex; flex-direction: column; gap: 10px; }
+.al-toolfetch__url {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--al-hairline);
+  border-radius: var(--al-radius-panel);
+  background: var(--al-surface);
+  color: var(--al-ink);
+  font-size: var(--al-text-sm);
+}
+.al-toolfetch__rights {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--al-text-xs);
+  line-height: 1.5;
+  color: var(--al-ink-faint);
+  cursor: pointer;
+}
+.al-toolfetch__rights input { margin-top: 2px; flex: none; accent-color: var(--al-accent); }
 .al-toolrun__params { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
 .al-toolrun__param { display: inline-flex; flex-direction: column; gap: 4px; font-size: var(--al-text-xs); color: var(--al-ink-faint); }
 .al-toolrun__param input,

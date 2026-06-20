@@ -50,3 +50,6 @@ opencv-python>=4.8.0
 # numpy 2.x / pillow 12 降版、連帶弄壞 torch。實測它在 numpy 2.x / pillow 12
 # 上運作完全正常,故以 --no-deps 跳過那些過時的版本釘選。
 # (av / PyAV 由 torch / faster-whisper 連帶帶入;影片解碼/編碼即靠它。)
+
+# URL 音訊下載器(工具箱):抓 YouTube/各站最佳音訊串流,再用 PyAV 解碼。
+yt-dlp>=2025.1.1

@@ -1,18 +1,19 @@
-# Local Studio v0.1.35
+# Local Studio v0.1.36
 
-🛠️ **Fixes: mastering download + no more black screens** — plus the new Audio Toolbox (11 tools, from v0.1.34) with its downloads now working.
+⬇️ **New: YouTube / URL audio downloader** in the Toolbox — pull a track in at the best available quality, then process or master it right here.
 
-### Fixed — "download failed" on masters (and toolbox audio)
-Saving a mastered WAV (and any processed audio from the Audio Toolbox) was failing with "download failed". The app had permission to write **text** files but not **binary** files, so writing the WAV bytes was blocked. Granting binary-file write permission fixes every audio download.
+### New — URL audio downloader
+A new **Download** tool at the top of the Audio Toolbox:
+- Paste a **YouTube (or other site) URL**, pick **WAV / FLAC / MP3**, and it grabs the **best-quality audio** stream and saves it.
+- Built on the widely-used open-source **yt-dlp**, decoded locally — no cloud, no account.
+- Then drop the result straight into the other Toolbox tools or the Mastering mode to clean it up, master it, or pre-process your beats.
 
-### Fixed — black screen / crash recovery
-If something in the UI ever errored (e.g. on certain actions), the whole window could go black with no way back. There's now an **error boundary**: instead of a black screen you get a recoverable message with **Try again** / **Reload**, and your files are never affected. (If you still hit an error after a specific action like uploading a reference track, it'll now show what went wrong instead of vanishing — please send that text so it can be pinned down.)
+**Please use it responsibly.** This is a download tool — you must have the right to download the content (your own work, Creative Commons, royalty-free, or beats you're licensed to use). The app asks you to confirm that before each download, and it doesn't bypass any paywalls or DRM.
 
-### New (from v0.1.34) — Audio Toolbox
-A new **Toolbox** tool under Audio with 11 utilities: **de-ess analyzer** (tells you which frequency to filter), loudness meter, key & BPM, loudness normalizer, hum removal, noise reduction, silence trim, fade, stereo width, DC removal, and format conversion (WAV/FLAC/MP3/OGG). Downloads from it now work (see the fix above).
+> Note: the downloader needs the local engine to include `yt-dlp`. Fresh installs get it automatically; if you updated from an older version and don't see the Download tool, re-run the engine setup (Settings → repair/reinstall engine).
 
-### Coming next
-A high-quality YouTube/URL audio downloader (for beats you have the rights to), so you can pull a track in and process/master it right away.
+### Fixed (from v0.1.35)
+- Mastering / Toolbox audio downloads now save correctly, and a UI error shows a recoverable message instead of a black screen.
 
 Support: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
 
