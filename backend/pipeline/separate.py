@@ -69,6 +69,8 @@ except Exception as exc:
 # 模型快取(權重不小,避免每個 job 重載)
 _MODEL_CACHE: dict[str, Any] = {}
 _MODEL_LOCK = threading.Lock()
+# 重型推論一次只能跑一個:共用快取模型 + 單一(8GB)GPU,並行會 race model.to() 或爆 VRAM。
+_INFER_SEM = threading.BoundedSemaphore(1)
 
 
 def _emit(progress: Optional[ProgressFn], pct: float, msg: str) -> None:
@@ -299,3 +301,103 @@ def separate_vocals(
         logger.warning("人聲分離發生未預期錯誤:%s;改用原始音檔", exc, exc_info=True)
         _emit(progress, 100.0, "人聲分離發生錯誤，使用原始音檔")
         return audio_path
+
+
+def separate_stems(
+    audio_path: str,
+    model_name: str = "htdemucs",
+    device: str = "cuda",
+    shifts: int = 0,
+    progress: Optional[ProgressFn] = None,
+) -> Optional[dict]:
+    """分離成 4 軌(drums / bass / other / vocals),供 AI 分軌母帶用。
+    回 {"sr": int, "stems": {name: (n, ch) float32}};任何失敗 → None(呼叫端降級為不分軌)。
+    VRAM 不足或 CUDA OOM 時自動退回 CPU;結束清快取。"""
+    if not audio_path or not os.path.isfile(audio_path) or not _DEMUCS_AVAILABLE:
+        return None
+    import numpy as np  # type: ignore
+    try:
+        dev = _resolve_device(device)
+        req_model = (model_name or "htdemucs").strip() or "htdemucs"
+        try:
+            model = _get_model(req_model)
+        except Exception:
+            model = _get_model("htdemucs")
+        sr = int(model.samplerate)
+        ch = int(model.audio_channels)
+        _emit(progress, 6.0, "讀取音檔…")
+        wav = _load_audio_tensor(audio_path, sr, ch)
+        ref = wav.mean(0)
+        std = ref.std() + 1e-8
+        wav_n = (wav - ref.mean()) / std
+
+        # VRAM 預檢:粗估工作集(樣本數×~600B/sample,含 split buffers)> 可用顯存 → 直接走 CPU,
+        # 避免「先試 GPU → OOM → 退 CPU」白跑一趟。
+        if dev == "cuda":
+            try:
+                free, _total = torch.cuda.mem_get_info()  # type: ignore[union-attr]
+                need = int(wav_n.shape[-1]) * 600
+                if free < need * 1.5:
+                    logger.info("可用 VRAM 不足(free=%dMB,估需~%dMB)→ 直接用 CPU 分軌", free >> 20, (need * 1.5) >> 20)
+                    dev = "cpu"
+            except Exception:
+                logger.debug("VRAM 預檢失敗(忽略)", exc_info=True)
+
+        # 進度心跳:apply_model 內部不回報(progress=False),用背景執行緒讓進度條在這 1–3 分鐘內前進。
+        _hb_stop = threading.Event()
+
+        def _heartbeat():
+            p = 14.0
+            while not _hb_stop.wait(3.0):
+                p = min(95.0, p + 4.0)
+                _emit(progress, p, "分離 4 軌中… · Separating")
+
+        def _run(on_dev: str):
+            model.to(on_dev)
+            with torch.no_grad():  # type: ignore[union-attr]
+                out = apply_model(  # type: ignore[misc]
+                    model, wav_n[None], device=on_dev, split=True, overlap=0.25,
+                    shifts=max(0, int(shifts)), progress=False)[0]
+            return out * std + ref.mean()
+
+        _emit(progress, 12.0, f"以 {dev.upper()} 分離 4 軌中…")
+        hb = threading.Thread(target=_heartbeat, daemon=True)
+        hb.start()
+        # 一次只跑一個重型推論(共用模型 + 單 GPU),序列化避免 race / 並行 OOM
+        with _INFER_SEM:
+            try:
+                sources = _run(dev)
+            except Exception as exc:  # CUDA OOM 等 → 退 CPU
+                if dev != "cpu":
+                    logger.warning("GPU 分軌失敗(%s)→ 退回 CPU(較慢)", exc)
+                    try:
+                        torch.cuda.empty_cache()  # type: ignore[union-attr]
+                    except Exception:
+                        pass
+                    _emit(progress, 14.0, "GPU 不足,改用 CPU 分軌(較慢)…")
+                    sources = _run("cpu")
+                else:
+                    _hb_stop.set()
+                    raise
+        _hb_stop.set()
+
+        stems: dict = {}
+        for i, name in enumerate(model.sources):
+            arr = sources[i].cpu().numpy().T.astype(np.float32)  # (ch, n) -> (n, ch)
+            stems[str(name)] = np.ascontiguousarray(arr)
+        try:
+            if dev == "cuda":
+                torch.cuda.empty_cache()  # type: ignore[union-attr]
+        except Exception:
+            pass
+        _emit(progress, 100.0, "分軌完成")
+        logger.info("4 軌分離完成:%s", list(stems.keys()))
+        return {"sr": sr, "stems": stems}
+    except Exception as exc:
+        logger.warning("4 軌分離失敗:%s;將不分軌", exc, exc_info=True)
+        try:
+            if torch is not None:
+                torch.cuda.empty_cache()  # type: ignore[union-attr]
+        except Exception:
+            pass
+        return None

@@ -335,6 +335,17 @@
 }
 .al-master__switch--mt { margin-top: var(--al-space-3); }
 
+/* AI stem rebalance (Pro) */
+.al-stem { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding: 10px 12px;
+  border: 1px solid var(--al-hairline); border-radius: var(--al-radius-panel); background: var(--al-surface-2, var(--al-surface)); }
+.al-stem__note { margin: 4px 0 0; font-size: var(--al-text-xs); line-height: 1.5; color: var(--al-ink-faint); }
+.al-stem__result {
+  display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 12px;
+  border-radius: var(--al-radius-panel); border: 1px solid var(--al-hairline);
+  background: var(--al-surface-2, var(--al-surface)); font-size: var(--al-text-sm); color: var(--al-ink);
+}
+.al-stem__result--skip { color: var(--al-warn, #b4690e); border-color: var(--al-warn, #b4690e); background: transparent; }
+
 /* Manual multiband compressor (Pro) */
 .al-mb { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 .al-mb__head { display: flex; align-items: center; justify-content: space-between; }

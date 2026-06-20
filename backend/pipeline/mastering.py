@@ -1958,6 +1958,7 @@ def master(
     param_eq: Optional[list] = None,
     adaptive_eq: Optional[bool] = None,
     automation_eq: Optional[list] = None,
+    stem_rebalance: Optional[dict] = None,
     matched_output_path: Optional[str] = None,
     analyze_result: bool = True,
     progress: Optional[ProgressFn] = None,
@@ -1985,8 +1986,64 @@ def master(
 
     _emit(progress, 3.0, "讀取音訊 · Loading")
     data, sr = _load_audio(input_path)
-    raw = data.copy()  # 保留原始輸入(未處理)供「響度匹配 A/B」用
-    in_lufs = _measure_lufs(data, sr)
+
+    # AI 分軌重新平衡(Pro):Demucs 拆 4 軌 → 各自套增益 → 重新混合,再進母帶鏈。
+    # 失敗/不可用 → 優雅降級為不分軌(用原始混音)。
+    stem_info: Optional[dict] = None
+    raw: Optional["np.ndarray"] = None
+    _gains = (stem_rebalance or {}).get("gains", {}) or {}
+    _stem_keys = ("drums", "bass", "vocals", "other")
+    _wants_stems = bool(stem_rebalance and isinstance(stem_rebalance, dict)
+                        and stem_rebalance.get("enabled")
+                        and any(abs(float(_gains.get(k, 0.0))) >= 1e-2 for k in _stem_keys))  # 全 0dB → 跳過(省幾分鐘)
+    if _wants_stems:
+        try:
+            from . import separate as _separate  # 延遲匯入(torch 重;避免 mastering 硬相依)
+            if _separate.is_available():
+                _emit(progress, 6.0, "AI 分軌中(約需 1–3 分鐘)· Separating stems")
+                src_orig = data  # 真正的原始混音(供公平 A/B,非 Demucs 重建)
+                src_sr = sr
+                sep = _separate.separate_stems(
+                    input_path, device="cuda",
+                    progress=(lambda st, p, m: _emit(progress, 6.0 + 0.30 * p, m)) if progress else None)
+                if sep and sep.get("stems"):
+                    sr = int(sep["sr"])
+                    stems = sep["stems"]
+                    gains = stem_rebalance.get("gains", {}) or {}
+                    n_stem = next(iter(stems.values())).shape[0]
+                    data = np.zeros((n_stem, 2), dtype=np.float64)
+                    recon = np.zeros((n_stem, 2), dtype=np.float64)  # 各軌和(unity)→ 增益分級基準
+                    applied = {}
+                    for name, arr in stems.items():
+                        a64 = _to_stereo(arr.astype(np.float64))
+                        recon += a64
+                        g = float(np.clip(gains.get(name, 0.0), -24.0, 24.0))
+                        data += a64 * (10.0 ** (g / 20.0))
+                        applied[name] = round(g, 1)
+                    # 增益分級:把重新平衡後的混音縮回「原始工作電平」(保留相對平衡),避免過熱訊號
+                    # 在 LUFS 正規化『之前』就把壓縮器/飽和推爆 → 失真。
+                    r_rms = float(np.sqrt(np.mean(recon ** 2)) + 1e-12)
+                    d_rms = float(np.sqrt(np.mean(data ** 2)) + 1e-12)
+                    data *= float(np.clip(r_rms / d_rms, 0.25, 4.0))
+                    data = _to_stereo(data)
+                    # 真原始(重採樣到分軌取樣率)當 A/B 基準 —— 公平、非重建
+                    if src_sr != sr:
+                        raw = _to_stereo(sps.resample_poly(src_orig, sr, src_sr, axis=0).astype(np.float64))
+                    else:
+                        raw = _to_stereo(src_orig.astype(np.float64))
+                    if raw.shape[0] != data.shape[0]:  # 重採樣四捨五入差 → 對齊長度
+                        m = min(raw.shape[0], data.shape[0])
+                        raw, data = raw[:m], data[:m]
+                    stem_info = {"applied": applied, "stems": list(stems.keys())}
+                    _emit(progress, 38.0, "分軌重新平衡完成 · Stems rebalanced")
+        except Exception:
+            logger.warning("AI 分軌重新平衡失敗(改用原始混音)", exc_info=True)
+            stem_info = None
+            raw = None
+
+    if raw is None:  # 未分軌 → 原始輸入即基準
+        raw = data.copy()  # 保留原始輸入(未處理)供「響度匹配 A/B」用
+    in_lufs = _measure_lufs(raw, sr)  # 以真原始量響度 → A/B 匹配增益對齊真原始
     in_peak = _peak_db(data)
 
     # 智慧分析(auto 或要回傳 before 分析時跑)
@@ -2259,6 +2316,7 @@ def master(
         "matchedLufs": matched_lufs,
         "matchGainDb": match_gain_db,
         "hasMatched": matched_lufs is not None,
+        "stemRebalance": stem_info,
         "before": analysis_before,
         "after": analysis_after,
         "meters": _finite_scrub(meters),

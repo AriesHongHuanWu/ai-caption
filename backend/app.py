@@ -1886,6 +1886,23 @@ def _parse_automation_eq(raw: Optional[str]) -> Optional[list]:
     return out or None
 
 
+def _parse_stem_rebalance(raw: Optional[str]) -> Optional[dict]:
+    """Parse the stemRebalance JSON form field → {enabled, gains:{stem:db}} or None.
+    Gains finite-clamped ±24 dB; only known stems kept. Parse error → None (no rebalance)."""
+    if not raw:
+        return None
+    try:
+        obj = json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(obj, dict) or not obj.get("enabled"):
+        return None
+    raw_gains = obj.get("gains") if isinstance(obj.get("gains"), dict) else {}
+    gains = {k: _mb_finite(raw_gains.get(k), 0.0, -24.0, 24.0)
+             for k in ("drums", "bass", "vocals", "other")}
+    return {"enabled": True, "gains": gains}
+
+
 def _require_mastering() -> None:
     if not _mastering_available():
         raise HTTPException(
@@ -1946,6 +1963,7 @@ def _run_master_job(
             multiband=opts.get("multiband"),
             multiband_manual=opts.get("multiband_manual"),
             automation_eq=opts.get("automation_eq"),
+            stem_rebalance=opts.get("stem_rebalance"),
             saturation=opts.get("saturation", 0.0),
             residual_eq=opts.get("residual_eq"),
             param_eq=opts.get("param_eq"),
@@ -2005,6 +2023,7 @@ async def api_master(
     adaptiveEq: Optional[bool] = Form(None),
     multibandManual: Optional[str] = Form(None),
     automationEq: Optional[str] = Form(None),
+    stemRebalance: Optional[str] = Form(None),
 ) -> JSONResponse:
     """建立母帶工作。multipart:audio=混音檔,genre,loudness,選用 reference=參考曲,
     以及選用的進階參數(width/dynamics/eq*/compScale/ceiling)。
@@ -2042,6 +2061,7 @@ async def api_master(
         "adaptive_eq": bool(adaptiveEq) if adaptiveEq is not None else None,
         "multiband_manual": _parse_multiband(multibandManual),
         "automation_eq": _parse_automation_eq(automationEq),
+        "stem_rebalance": _parse_stem_rebalance(stemRebalance),
     }
 
     valid_genres = [g["key"] for g in mastering.genres()] if mastering is not None else ["auto"]  # type: ignore[union-attr]

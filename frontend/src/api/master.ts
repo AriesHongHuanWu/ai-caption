@@ -194,6 +194,8 @@ export interface MasterMeta {
   goniometer?: GoniometerData;
   /** Which stages ran + their amounts. */
   chain?: ChainState;
+  /** AI stem rebalance result: which stems + applied gains. null if not run / skipped. */
+  stemRebalance?: { applied: Record<string, number>; stems: string[] } | null;
 }
 
 export interface MasterJobStatus {
@@ -241,6 +243,8 @@ export interface MasterAdvanced {
   multibandManual?: string;
   /** Pro mode: JSON-stringified EQ automation lanes [{freq,q,points}]. */
   automationEq?: string;
+  /** Pro mode: JSON-stringified AI stem rebalance {enabled, gains:{drums,bass,vocals,other}}. */
+  stemRebalance?: string;
 }
 
 /** POST /api/master — spawn the background mastering job. */
@@ -281,6 +285,7 @@ export async function createMasterJob(
     if (a.adaptiveEq) form.append('adaptiveEq', 'true');
     if (a.multibandManual) form.append('multibandManual', a.multibandManual);
     if (a.automationEq) form.append('automationEq', a.automationEq);
+    if (a.stemRebalance) form.append('stemRebalance', a.stemRebalance);
   }
 
   let res: Response;

@@ -73,6 +73,8 @@ export function MasteringFlow() {
   const [autoEnabled, setAutoEnabled] = useState(false);
   const [autoLanes, setAutoLanes] = useState<AutoLane[]>([]);
   const [audioDuration, setAudioDuration] = useState(0);
+  const [stemEnabled, setStemEnabled] = useState(false);
+  const [stemGains, setStemGains] = useState<Record<string, number>>({ drums: 0, bass: 0, vocals: 0, other: 0 });
 
   // Section macro-dynamics (−1 balance ↔ +1 punch) + advanced manual params.
   const [dynamics, setDynamics] = useState(0);
@@ -253,6 +255,9 @@ export function MasteringFlow() {
           adaptiveEq: adaptiveEq || undefined,
           multibandManual: proMode && mbEnabled ? toBackendMultiband(mbCrossovers, mbBands) : undefined,
           automationEq: proMode && autoEnabled && hasAutomation(autoLanes) ? toBackendAutomation(autoLanes) : undefined,
+          stemRebalance: proMode && stemEnabled && meta.demucs
+            ? JSON.stringify({ enabled: true, gains: stemGains })
+            : undefined,
         });
         if (stoppedRef.current) return;
         pollTimer.current = setTimeout(() => void poll(jobId), POLL_MS);
@@ -264,7 +269,7 @@ export function MasteringFlow() {
         setPhase('error');
       }
     })();
-  }, [file, genre, loudness, reference, dynamics, width, eqBass, eqLowMid, eqPresence, eqAir, compScale, ceiling, autoStrength, proMode, paramBands, adaptiveEq, mbEnabled, mbCrossovers, mbBands, autoEnabled, autoLanes, poll, t]);
+  }, [file, genre, loudness, reference, dynamics, width, eqBass, eqLowMid, eqPresence, eqAir, compScale, ceiling, autoStrength, proMode, paramBands, adaptiveEq, mbEnabled, mbCrossovers, mbBands, autoEnabled, autoLanes, stemEnabled, stemGains, poll, t]);
 
   // Three-way A/B/C: upload an external master → loudness-match it to OUR
   // master's output LUFS → add as the C source for an original/ours/theirs shoot-out.
@@ -608,6 +613,41 @@ export function MasteringFlow() {
                 disabled={running}
               />
             )}
+
+            <label className="al-master__switch al-master__switch--mt">
+              <input
+                type="checkbox"
+                checked={stemEnabled && meta.demucs}
+                onChange={(e) => setStemEnabled(e.target.checked)}
+                disabled={running || !meta.demucs}
+              />
+              <span className="al-master__switchbody">
+                <span className="al-master__switchtitle">
+                  <Wand2 size={14} /> {t('master.stem.toggle')}
+                </span>
+                <span className="al-master__switchhint">
+                  {meta.demucs ? t('master.stem.hint') : t('master.stem.unavailable')}
+                </span>
+              </span>
+            </label>
+            {stemEnabled && meta.demucs && (
+              <div className="al-stem">
+                {(['drums', 'bass', 'vocals', 'other'] as const).map((s) => (
+                  <Slider
+                    key={s}
+                    label={t(`master.stem.${s}`)}
+                    value={stemGains[s]}
+                    onChange={(v) => setStemGains((g) => ({ ...g, [s]: v }))}
+                    min={-12}
+                    max={12}
+                    step={0.5}
+                    unit="dB"
+                    disabled={running}
+                  />
+                ))}
+                <p className="al-stem__note">{t('master.stem.note')}</p>
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -678,6 +718,26 @@ export function MasteringFlow() {
                 {extErr && <span className="al-ab__exterr">{extErr}</span>}
               </div>
             </div>
+
+            {resultMeta?.stemRebalance && (
+              <div className="al-stem__result">
+                <Wand2 size={14} />
+                <span>
+                  {t('master.stem.applied')}{' '}
+                  {Object.entries(resultMeta.stemRebalance.applied)
+                    .filter(([, g]) => Math.abs(g) >= 0.05)
+                    .map(([s, g]) => `${t(`master.stem.${s}`)} ${g > 0 ? '+' : ''}${g}`)
+                    .join(' · ') || t('master.stem.none')}
+                </span>
+              </div>
+            )}
+            {/* stem rebalance was requested but skipped (Demucs unavailable / failed) */}
+            {stemEnabled && meta.demucs && resultMeta && !resultMeta.stemRebalance
+              && Object.values(stemGains).some((v) => Math.abs(v) >= 0.05) && (
+              <div className="al-stem__result al-stem__result--skip">
+                <span>{t('master.stem.skipped')}</span>
+              </div>
+            )}
 
             {resultMeta?.chain && (
               <div className="al-an__block">
