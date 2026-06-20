@@ -228,7 +228,7 @@
       'faq.q7':        '「清除字幕」能去掉什麼？',
       'faq.a7':        '清字模式針對你自己影片中誤燒進去的「固定位置」文字（例如硬燒字幕、浮水印文字）。你框選一個區域，LaMa AI 會逐格修補抹除，並原封保留原始聲音。它僅支援固定位置的文字，不處理移動中的物件。LaMa 模型於首次使用時下載。',
       'faq.q8':        '需要先安裝 Python 嗎？目前是哪個版本？',
-      'faq.a8':        '不需要。App 內建可攜式 Python，首次啟動會自動把引擎與相依套件準備好——你不必自己裝任何東西。目前最新版本為 v0.1.3，可在 App 內一鍵自動更新。',
+      'faq.a8':        '不需要。App 內建可攜式 Python，首次啟動會自動把引擎與相依套件準備好——你不必自己裝任何東西。App 內可一鍵自動更新到最新版本。',
 
       // System Requirements
       'sysreq.eyebrow':    '系統需求',
@@ -506,7 +506,7 @@
       'faq.q7':        'What can Clean Text remove?',
       'faq.a7':        'Clean Text targets fixed-position text you accidentally burned into your own video (e.g. hardcoded subtitles or a text watermark). You box a region, and LaMa AI inpaints it away frame by frame while keeping the original audio untouched. It only handles fixed-position text — not moving objects. The LaMa model downloads on first use.',
       'faq.q8':        'Do I need to install Python first? Which version is this?',
-      'faq.a8':        'No. A portable Python is bundled, and the first launch sets up the engine and dependencies for you — nothing to install yourself. The current release is v0.1.13, with one-click auto-update built into the app.',
+      'faq.a8':        'No. A portable Python is bundled, and the first launch sets up the engine and dependencies for you — nothing to install yourself. The app auto-updates to the latest version with one click.',
 
       // System Requirements
       'sysreq.eyebrow':    'System Requirements',
