@@ -19,18 +19,18 @@
 
 import { create } from 'zustand';
 
-export type AppMode = 'song' | 'video' | 'clean' | 'master';
+export type AppMode = 'song' | 'video' | 'clean' | 'master' | 'tools';
 
 const STORAGE_KEY = 'al-appmode';
 
 /** The cycle order used by toggle() (next-in-ring). */
-const MODE_ORDER: AppMode[] = ['song', 'video', 'clean', 'master'];
+const MODE_ORDER: AppMode[] = ['song', 'video', 'clean', 'master', 'tools'];
 
 /** localStorage 'al-appmode' ?? 'song'. */
 function initialMode(): AppMode {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'song' || saved === 'video' || saved === 'clean' || saved === 'master') return saved;
+    if (MODE_ORDER.includes(saved as AppMode)) return saved as AppMode;
   } catch {
     /* private mode / no storage — fall through */
   }

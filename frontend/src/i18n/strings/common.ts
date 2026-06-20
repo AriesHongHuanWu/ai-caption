@@ -49,6 +49,27 @@ export const common: Record<string, Entry> = {
     zh: '母帶 — 依曲風或參考曲自動 EQ／壓縮／響度，輸出錄音室級母帶',
     en: 'Auto-Mastering — genre/reference EQ, compression & loudness for a release-ready master',
   },
+  'common.mode.tools': { zh: '音訊工具箱', en: 'Toolbox' },
+  'common.mode.toolsTitle': {
+    zh: '音訊工具箱 — 一堆好用小工具:齒音分析、調性/BPM、響度標準化、降噪、格式轉換…',
+    en: 'Audio Toolbox — handy tools: de-ess analyzer, key/BPM, loudness, denoise, format convert…',
+  },
+  // ── Audio Toolbox (音訊工具箱) ──
+  'tools.title': { zh: '音訊工具箱', en: 'Audio Toolbox' },
+  'tools.lede': { zh: '一堆好用的音訊小工具 —— 選一個、丟檔案、執行。之後還會加更多。', en: 'A growing set of handy audio tools — pick one, drop a file, run.' },
+  'tools.empty': { zh: '工具載入中或後端未連線。', en: 'Loading tools, or the backend is offline.' },
+  'tools.drop': { zh: '拖入或選擇音訊檔', en: 'Drop or choose an audio file' },
+  'tools.run': { zh: '執行並下載', en: 'Run & download' },
+  'tools.analyze': { zh: '分析', en: 'Analyze' },
+  'tools.saved': { zh: '已儲存 ✓', en: 'Saved ✓' },
+  'tools.err.offline': { zh: '連不到本機後端引擎。', en: 'Cannot reach the local engine.' },
+  'tools.err.run': { zh: '工具執行失敗。', en: 'Tool failed.' },
+  'tools.cat.analyze': { zh: '分析', en: 'Analyze' },
+  'tools.cat.loudness': { zh: '響度', en: 'Loudness' },
+  'tools.cat.repair': { zh: '修復 / 清理', en: 'Repair' },
+  'tools.cat.edit': { zh: '剪輯', en: 'Edit' },
+  'tools.cat.stereo': { zh: '立體聲', en: 'Stereo' },
+  'tools.cat.export': { zh: '匯出', en: 'Export' },
 
   // ── Auto-Mastering (母帶) mode ──
   'master.title': { zh: '母帶處理', en: 'Auto-Mastering' },

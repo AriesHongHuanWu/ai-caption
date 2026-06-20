@@ -91,6 +91,22 @@ export async function saveBinaryUrl(
   return { kind: 'download' };
 }
 
+/** Save an in-memory Blob: native save dialog (binary writeFile) in Tauri, else browser download. */
+export async function saveBinaryBlob(
+  blob: Blob,
+  filename: string,
+  filter: { name: string; extensions: string[] } = { name: 'Audio', extensions: ['wav'] },
+): Promise<SaveOutcome> {
+  if (hasTauri()) {
+    const path = await save({ defaultPath: filename, filters: [filter] });
+    if (!path) return { kind: 'cancelled' };
+    await writeFile(path, new Uint8Array(await blob.arrayBuffer()));
+    return { kind: 'tauri', path };
+  }
+  downloadBlob(blob, filename);
+  return { kind: 'download' };
+}
+
 /** Save a backend-provided Blob (already-formatted file) via download. */
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);

@@ -8,7 +8,7 @@
    ────────────────────────────────────────────────────────────────── */
 
 import { useCallback, useRef } from 'react';
-import { Music, Clapperboard, Eraser, Disc3, Pin } from 'lucide-react';
+import { Music, Clapperboard, Eraser, Disc3, Pin, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useMode } from '../../state/useMode';
 import type { AppMode } from '../../state/useMode';
@@ -21,10 +21,11 @@ const MODE_DEFS: Record<AppMode, { labelKey: string; titleKey: string; icon: Luc
   video: { labelKey: 'common.mode.video', titleKey: 'common.mode.videoTitle', icon: Clapperboard },
   clean: { labelKey: 'common.mode.clean', titleKey: 'common.mode.cleanTitle', icon: Eraser },
   master: { labelKey: 'common.mode.master', titleKey: 'common.mode.masterTitle', icon: Disc3 },
+  tools: { labelKey: 'common.mode.tools', titleKey: 'common.mode.toolsTitle', icon: Wrench },
 };
 
 const CATEGORIES: { key: string; labelKey: string; modes: AppMode[] }[] = [
-  { key: 'audio', labelKey: 'common.cat.audio', modes: ['song', 'master'] },
+  { key: 'audio', labelKey: 'common.cat.audio', modes: ['song', 'master', 'tools'] },
   { key: 'video', labelKey: 'common.cat.video', modes: ['video', 'clean'] },
 ];
 

@@ -1,0 +1,75 @@
+/* Audio Toolbox — tool grid + runner panel */
+.al-toolbox__empty { color: var(--al-ink-faint); font-size: var(--al-text-sm); }
+.al-toolbox__cat {
+  margin: 0 0 8px;
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--al-tracking-caps);
+  color: var(--al-ink-faint);
+}
+.al-toolbox__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+.al-toolcard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 12px 13px;
+  border: 1px solid var(--al-hairline);
+  border-radius: var(--al-radius-panel);
+  background: var(--al-surface);
+  color: var(--al-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--al-dur-focus) var(--al-ease-ink), background var(--al-dur-focus) var(--al-ease-ink);
+}
+.al-toolcard:hover { background: var(--al-surface-2, var(--al-surface)); border-color: var(--al-hairline-strong); }
+.al-toolcard--active { border-color: var(--al-accent); box-shadow: 0 0 0 1px var(--al-accent) inset; }
+.al-toolcard__icon { color: var(--al-accent); }
+.al-toolcard__name { font-weight: 600; font-size: var(--al-text-sm); }
+.al-toolcard__desc { font-size: var(--al-text-xs); line-height: 1.45; color: var(--al-ink-faint); }
+
+.al-toolrun {
+  border: 1px solid var(--al-hairline);
+  border-radius: var(--al-radius-panel);
+  background: var(--al-surface-2, var(--al-surface));
+  padding: var(--al-pad-panel);
+}
+.al-toolrun__title { margin: 0 0 10px; font-weight: 600; font-size: var(--al-text-md); color: var(--al-ink); }
+.al-toolrun__params { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.al-toolrun__param { display: inline-flex; flex-direction: column; gap: 4px; font-size: var(--al-text-xs); color: var(--al-ink-faint); }
+.al-toolrun__param input,
+.al-toolrun__param select {
+  padding: 5px 8px;
+  border: 1px solid var(--al-hairline);
+  border-radius: 6px;
+  background: var(--al-surface);
+  color: var(--al-ink);
+  font-size: var(--al-text-sm);
+  min-width: 120px;
+}
+.al-toolrun__go { margin-top: 4px; }
+.al-toolrun__err { margin-top: 10px; color: var(--al-danger, #d9534f); font-size: var(--al-text-sm); }
+.al-toolrun__msg { margin-top: 10px; color: var(--al-green, #5fc77e); font-size: var(--al-text-sm); }
+
+.al-toolresult {
+  margin-top: 12px;
+  border-top: 1px solid var(--al-hairline);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.al-toolresult__row { display: flex; gap: 10px; align-items: baseline; }
+.al-toolresult__k {
+  flex: none;
+  min-width: 130px;
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  color: var(--al-ink-faint);
+}
+.al-toolresult__v { font-size: var(--al-text-sm); color: var(--al-ink); }

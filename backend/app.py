@@ -136,6 +136,12 @@ except Exception as _e:  # pragma: no cover
     logger.error("無法載入 pipeline.mastering:%r — 母帶功能停用,其餘 API 正常。", _e)
     mastering = None  # type: ignore[assignment]
 
+try:
+    from pipeline import tools as audio_tools  # type: ignore[no-redef]
+except Exception as _e:  # pragma: no cover
+    logger.error("無法載入 pipeline.tools:%r — 音訊工具箱停用,其餘 API 正常。", _e)
+    audio_tools = None  # type: ignore[assignment]
+
 
 def _mastering_available() -> bool:
     if mastering is None:
@@ -2261,6 +2267,83 @@ async def api_master_match(
             except OSError:
                 pass
     return Response(content=wav_bytes, media_type="audio/wav")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 音訊工具箱(Audio Toolbox)
+# ─────────────────────────────────────────────────────────────────────────────
+_TOOL_MIME = {"wav": "audio/wav", "mp3": "audio/mpeg", "flac": "audio/flac", "ogg": "audio/ogg"}
+
+
+@app.get("/api/tools")
+async def api_tools_list() -> JSONResponse:
+    """音訊工具箱的工具清單(id / 類別 / 參數 schema),供前端泛用面板渲染。"""
+    if audio_tools is None:
+        return JSONResponse({"tools": []})
+    return JSONResponse({"tools": audio_tools.list_tools()})
+
+
+@app.post("/api/tools/run")
+async def api_tools_run(
+    audio: UploadFile = File(...),
+    toolId: str = Form(...),
+    params: str = Form("{}"),
+) -> Response:
+    """執行一個工具。analyze → 回 JSON 結果;process → 回處理後的音檔位元組(可下載)。"""
+    if audio_tools is None:
+        raise HTTPException(status_code=503, detail="音訊工具箱不可用(缺 scipy/soundfile)")
+    try:
+        p = json.loads(params) if params else {}
+        if not isinstance(p, dict):
+            p = {}
+    except (ValueError, TypeError):
+        p = {}
+    uid = uuid.uuid4().hex
+    tin = UPLOAD_DIR / f"toolin_{uid}{_safe_upload_suffix(audio.filename)}"
+    ext = audio_tools.tool_output_ext(toolId, p)
+    tout = UPLOAD_DIR / f"toolout_{uid}.{ext}"
+    try:
+        raw = await audio.read()
+        if not raw:
+            raise HTTPException(status_code=400, detail="上傳的音檔是空的")
+        tin.write_bytes(raw)
+        result = await run_in_threadpool(audio_tools.run_tool, toolId, str(tin), str(tout), p)
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:  # noqa: BLE001
+        logger.error("工具執行失敗 (%s):%s\n%s", toolId, e, traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"工具執行失敗:{e}") from e
+    finally:
+        await audio.close()
+        try:
+            if tin.exists():
+                tin.unlink()
+        except OSError:
+            pass
+
+    if result.get("kind") == "analyze":
+        try:
+            if tout.exists():
+                tout.unlink()
+        except OSError:
+            pass
+        return JSONResponse({"kind": "analyze", "result": result.get("result", {})})
+
+    try:
+        out_bytes = tout.read_bytes()
+    finally:
+        try:
+            if tout.exists():
+                tout.unlink()
+        except OSError:
+            pass
+    mime = _TOOL_MIME.get(result.get("format", "wav"), "audio/wav")
+    base = os.path.splitext(audio.filename or "audio")[0]
+    fname = f"{base}_{toolId}.{ext}"
+    return Response(content=out_bytes, media_type=mime,
+                    headers={"Content-Disposition": f'attachment; filename="{fname}"'})
 
 
 # ─────────────────────────────────────────────────────────────────────────────

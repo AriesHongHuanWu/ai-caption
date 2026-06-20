@@ -16,6 +16,7 @@ import { CueList } from './CueList';
 import { CaptionBurn } from './CaptionBurn';
 import { CleanTextFlow } from './CleanTextFlow';
 import { MasteringFlow } from './MasteringFlow';
+import { ToolboxFlow } from './ToolboxFlow';
 import { useMeta } from '../../state/useMeta';
 import { useJob } from '../../state/useJob';
 import { useResultStore } from '../../state/useResultStore';
@@ -340,6 +341,11 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
   // genre/loudness pickers, optional reference, job + poll, A/B + download).
   if (appMode === 'master') {
     return <MasteringFlow />;
+  }
+
+  // Audio Toolbox (音訊工具箱) — a grid of small tools, self-contained.
+  if (appMode === 'tools') {
+    return <ToolboxFlow />;
   }
 
   return (
