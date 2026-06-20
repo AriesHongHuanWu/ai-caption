@@ -1456,6 +1456,68 @@ def _auto_dynamic_eq(data: "np.ndarray", sr: int, analysis_before: Optional[dict
 
 
 # =========================================================================== #
+# 適應性 EQ(Adaptive / Automation)—— 把歌切成時間窗,逐窗量音色 vs 目標,讓校正
+# 曲線「隨歌曲段落自動改變」:主歌糊就修主歌、副歌刺就修副歌,過了就放開。等於
+# 工程師全程盯著 EQ 自動 ride。逐頻段時變增益,用 bandpass 並聯套上(平滑、不抽吸)。
+# =========================================================================== #
+# (name, center_hz, bandpass_q)—— 大致鋪滿頻譜
+_ADAPTIVE_BANDS = [
+    ("sub", 50.0, 0.8), ("bass", 110.0, 0.9), ("low_mid", 280.0, 1.0),
+    ("mid", 900.0, 0.9), ("high_mid", 3500.0, 1.0), ("presence", 8000.0, 1.0),
+    ("air", 13000.0, 0.7),
+]
+
+
+def _adaptive_eq(data: "np.ndarray", sr: int, *, genre: str = "auto", strength: float = 0.6,
+                 window_s: float = 3.0, hop_s: float = 1.0, max_db: float = 5.0,
+                 progress: Optional[ProgressFn] = None) -> tuple["np.ndarray", dict]:
+    """時變校正 EQ:逐窗算各頻段對目標的偏差 → 平滑 → 逐樣本套上(隨歌曲變化)。"""
+    n = data.shape[0]
+    if n < int(window_s * sr) * 2:
+        return data, {"active": False}  # 太短 → 沒有「段落」可自動化
+    trust = float(np.clip(strength, 0.2, 1.0))
+    tgt = _target_band_levels(genre)
+    tgt_mean = float(np.mean(list(tgt.values())))
+    mono = np.mean(data, axis=1)
+    win = int(window_s * sr)
+    hop = max(1, int(hop_s * sr))
+    starts = list(range(0, max(1, n - win + 1), hop))
+    names = [b[0] for b in _ADAPTIVE_BANDS]
+    gains = {nm: [] for nm in names}
+    centers = []
+    for st in starts:
+        seg = mono[st:st + win]
+        f, pxx = _welch_psd(seg, sr, nfft=4096)
+        band_db = _band_levels_db(f, pxx)
+        meas_mean = float(np.mean(list(band_db.values())))
+        for nm in names:
+            dev = (band_db[nm] - meas_mean) - (tgt[nm] - tgt_mean)
+            gains[nm].append(float(np.clip(-dev, -max_db, max_db)) * trust)
+        centers.append(st + win // 2)
+    if len(centers) < 2:
+        return data, {"active": False}
+    centers_a = np.array(centers)
+    out = data.copy()
+    band_meta: dict[str, float] = {}
+    idx = np.arange(n)
+    for nm, f0, q in _ADAPTIVE_BANDS:
+        env = uniform_filter1d(np.array(gains[nm]), size=3)  # 跨窗平滑(秒級,不抽吸)
+        g_full = np.interp(idx, centers_a, env)
+        g_lin = 10 ** (g_full / 20.0)
+        try:
+            sos = _bandpass_sos(sr, f0, q)
+            band = np.empty_like(data)
+            for ch in range(data.shape[1]):
+                band[:, ch] = sps.sosfilt(sos, data[:, ch])
+            out = out + (g_lin[:, None] - 1.0) * band
+            band_meta[nm] = round(float(np.mean(np.abs(env))), 2)
+        except Exception:
+            logger.warning("適應性 EQ 頻段 %s 失敗(略過)", nm, exc_info=True)
+    return out, {"active": True, "window_s": window_s, "bands": band_meta,
+                 "frames": len(centers)}
+
+
+# =========================================================================== #
 # 全參數 EQ(Pro)—— 無限段,每段可選類型/頻率/增益/Q,**每段相位(min/linear)**
 # + **每段聲道路由(stereo/mid/side/L/R)**。線性相位用 _match_eq 同套 FIR 法。
 # =========================================================================== #
@@ -1569,6 +1631,7 @@ def master(
     residual_eq: Optional[bool] = None,
     dynamic_eq: Optional[list] = None,
     param_eq: Optional[list] = None,
+    adaptive_eq: Optional[bool] = None,
     matched_output_path: Optional[str] = None,
     analyze_result: bool = True,
     progress: Optional[ProgressFn] = None,
@@ -1649,6 +1712,18 @@ def master(
             stages.append("param_eq")
         except Exception:
             logger.warning("參數 EQ 失敗(略過,不影響輸出)", exc_info=True)
+
+    # 1b2) 適應性 EQ(automation):把歌切成時間窗,讓校正曲線「隨段落自動改變」——
+    # 主歌糊就修主歌、副歌刺就修副歌,過了就放開。等於工程師全程自動 ride EQ。
+    if adaptive_eq:
+        _emit(progress, 28.0, "適應性 EQ · Adaptive EQ")
+        try:
+            data, aeq_m = _adaptive_eq(data, sr, genre=genre, strength=auto_strength)
+            if aeq_m.get("active"):
+                meters["adaptive_eq"] = aeq_m
+                stages.append("adaptive_eq")
+        except Exception:
+            logger.warning("適應性 EQ 失敗(略過,不影響輸出)", exc_info=True)
 
     # 1c) 動態 EQ:只在某頻段「突出」時才修(透明)。手動 dynamic_eq 清單 > auto 依問題放置。
     deq_meters: list = []
@@ -1844,6 +1919,7 @@ def master(
             "stages": stages,
             "deEss": round(deess_amount, 3),
             "dynamicEq": len(deq_meters),
+            "adaptiveEq": "adaptive_eq" in stages,
             "multiband": "multiband" in meters,
             "saturation": round(sat_amount, 3),
             "residualEq": bool(do_residual),

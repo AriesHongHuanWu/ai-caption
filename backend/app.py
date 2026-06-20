@@ -1870,6 +1870,7 @@ def _run_master_job(
             saturation=opts.get("saturation", 0.0),
             residual_eq=opts.get("residual_eq"),
             param_eq=opts.get("param_eq"),
+            adaptive_eq=opts.get("adaptive_eq"),
             progress=progress,
         )
         with _MASTER_JOBS_LOCK:
@@ -1922,6 +1923,7 @@ async def api_master(
     saturation: Optional[float] = Form(None),
     residualEq: Optional[bool] = Form(None),
     paramEq: Optional[str] = Form(None),
+    adaptiveEq: Optional[bool] = Form(None),
 ) -> JSONResponse:
     """建立母帶工作。multipart:audio=混音檔,genre,loudness,選用 reference=參考曲,
     以及選用的進階參數(width/dynamics/eq*/compScale/ceiling)。
@@ -1956,6 +1958,7 @@ async def api_master(
         "saturation": _f(saturation, 0.0, 1.0) if saturation is not None else 0.0,
         "residual_eq": bool(residualEq) if residualEq is not None else None,
         "param_eq": _parse_param_eq(paramEq),
+        "adaptive_eq": bool(adaptiveEq) if adaptiveEq is not None else None,
     }
 
     valid_genres = [g["key"] for g in mastering.genres()] if mastering is not None else ["auto"]  # type: ignore[union-attr]

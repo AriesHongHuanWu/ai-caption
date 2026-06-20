@@ -151,6 +151,7 @@ export interface ChainState {
   stages: string[];
   deEss: number;
   dynamicEq?: number;
+  adaptiveEq?: boolean;
   multiband: boolean;
   saturation: number;
   residualEq: boolean;
@@ -224,6 +225,8 @@ export interface MasterAdvanced {
   residualEq?: boolean;
   /** Pro mode: JSON-stringified parametric EQ band array. */
   paramEq?: string;
+  /** Adaptive EQ (automation): time-varying corrective EQ that rides the song. */
+  adaptiveEq?: boolean;
 }
 
 /** POST /api/master — spawn the background mastering job. */
@@ -261,6 +264,7 @@ export async function createMasterJob(
     if (a.multiband !== undefined) form.append('multiband', String(a.multiband));
     if (a.residualEq !== undefined) form.append('residualEq', String(a.residualEq));
     if (a.paramEq) form.append('paramEq', a.paramEq);
+    if (a.adaptiveEq) form.append('adaptiveEq', 'true');
   }
 
   let res: Response;

@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Disc3, UploadCloud, Sparkles, Download, Loader2, Music2,
-  SlidersHorizontal, ChevronRight, ChevronDown, Gauge, Wand2,
+  SlidersHorizontal, ChevronRight, ChevronDown, Gauge, Wand2, Waves,
 } from 'lucide-react';
 import { Button, Eyebrow } from '../../components/primitives';
 import { createMasterJob, getMasterJob, masterResultUrl, masterMatchedUrl, matchAudio, analyzeMaster } from '../../api/master';
@@ -63,6 +63,7 @@ export function MasteringFlow() {
   // Pro mode: a fully-parametric EQ (per-band phase + Mid/Side/L/R routing).
   const [proMode, setProMode] = useState(false);
   const [paramBands, setParamBands] = useState<EqBand[]>([]);
+  const [adaptiveEq, setAdaptiveEq] = useState(false);
 
   // Section macro-dynamics (−1 balance ↔ +1 punch) + advanced manual params.
   const [dynamics, setDynamics] = useState(0);
@@ -232,6 +233,7 @@ export function MasteringFlow() {
           auto: genre === 'auto',
           autoStrength,
           paramEq: proMode && paramBands.some((b) => b.enabled) ? JSON.stringify(toBackendBands(paramBands)) : undefined,
+          adaptiveEq: adaptiveEq || undefined,
         });
         if (stoppedRef.current) return;
         pollTimer.current = setTimeout(() => void poll(jobId), POLL_MS);
@@ -502,6 +504,20 @@ export function MasteringFlow() {
         {proMode && (
           <div className="al-master__adv">
             <p className="al-master__hint">{t('master.pro.hint')}</p>
+            <label className="al-master__switch">
+              <input
+                type="checkbox"
+                checked={adaptiveEq}
+                onChange={(e) => setAdaptiveEq(e.target.checked)}
+                disabled={running}
+              />
+              <span className="al-master__switchbody">
+                <span className="al-master__switchtitle">
+                  <Waves size={14} /> {t('master.adaptive.toggle')}
+                </span>
+                <span className="al-master__switchhint">{t('master.adaptive.hint')}</span>
+              </span>
+            </label>
             <ParametricEQ bands={paramBands} onChange={setParamBands} />
           </div>
         )}

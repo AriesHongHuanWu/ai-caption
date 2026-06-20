@@ -1,25 +1,30 @@
-# Local Studio v0.1.23
+# Local Studio v0.1.24
 
-🎛️ **Pro mode — a fully-parametric EQ** with per-band phase and Mid/Side routing. This is the deep, hands-on control a mastering engineer expects.
+🌊 **Adaptive EQ — automation that rides the song** + 🎛️ **Pro: a fully-parametric EQ**. This is what a high-end mastering engineer does by hand: an EQ that changes through the track so *every* section sounds right, plus deep per-band control with phase and Mid/Side routing.
 
-### New — Pro: parametric EQ
-Open **Pro 進階:全參數 EQ** under the mastering controls and you get a real parametric EQ:
-- **Draggable response curve** — grab a band node and drag (frequency ↔ left/right, gain ↔ up/down); the curve updates instantly.
-- **Add as many bands as you need**, each with its own:
+### New — Adaptive EQ (auto automation)
+Turn on **適應性 EQ · auto automation** (in the Pro panel) and the corrective EQ stops being one fixed curve. Instead it:
+- slices the song into overlapping time windows,
+- measures the tone of each window against the target,
+- and **rides the EQ section by section** — tame a dull/muddy verse, soften a harsh chorus, then let go where the mix is already good.
+
+It's the equivalent of an engineer automating the EQ across the whole song, done automatically. Verified on real audio: on a track that switches between a dark verse and a bright chorus, the high-mid correction rides ~2 dB between sections (gentle in the verse, full cut in the chorus) — it genuinely follows the music. The new **適應EQ** stage shows in the signal chain whenever it's active.
+
+### Pro — fully-parametric EQ
+Open **Pro 進階:全參數 EQ** for a real parametric EQ:
+- **Draggable response curve** — grab a band node and drag (freq ↔ x, gain ↔ y); the curve updates instantly.
+- **Unlimited bands**, each with its own:
   - **Type** — Bell · Low/High shelf · High-pass · Low-pass · Notch · All-pass
   - **Frequency · Gain · Q**
   - **Phase** — **Natural (minimum-phase)** or **Linear-phase** (zero phase distortion), *per band*
-  - **Channel** — **Stereo · Mid · Side · Left · Right** — EQ only the centre, only the sides, or one channel
-- It runs as its own stage in the signal chain, on top of (or instead of) the automatic correction.
-
-This directly answers "the phase isn't complete enough / I want way more control": now every band has its own phase mode and its own channel routing.
+  - **Channel** — **Stereo · Mid · Side · Left · Right**
 
 ### Notes
-- The curve is computed live in the app (instant feedback); the engine applies the exact same bands.
-- More Pro tools (manual multiband, per-band width) are coming next.
+- Both run as their own stages in the signal chain, on top of the automatic correction.
+- More Pro automation (manual EQ-automation lanes, per-band multiband) is coming next.
 
 ### Unchanged
-- Auto mode, dynamic EQ, the loudness-matched A/B + three-way comparison, and the download fix all work as before.
+- Auto mode, dynamic EQ, the loudness-matched A/B + three-way comparison, and the download all work as before.
 
 Support: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
 

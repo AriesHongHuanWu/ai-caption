@@ -282,6 +282,32 @@
   letter-spacing: var(--al-tracking-caps);
   color: var(--al-ink-faint);
 }
+/* Adaptive-EQ switch row (Pro automation) */
+.al-master__switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--al-radius-panel);
+  background: var(--al-surface-2, var(--al-surface));
+  border: 1px solid var(--al-hairline);
+  cursor: pointer;
+}
+.al-master__switch input { margin-top: 3px; flex: none; cursor: pointer; accent-color: var(--al-accent); width: 16px; height: 16px; }
+.al-master__switchbody { display: flex; flex-direction: column; gap: 2px; }
+.al-master__switchtitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: var(--al-text-sm);
+  color: var(--al-ink);
+}
+.al-master__switchhint {
+  font-size: var(--al-text-xs);
+  line-height: 1.5;
+  color: var(--al-ink-faint);
+}
 .al-master__slider {
   display: grid;
   grid-template-columns: 6.5em 1fr 4.5em;
