@@ -186,13 +186,19 @@ def _to_stereo(data: "np.ndarray") -> "np.ndarray":
         data = np.repeat(data, 2, axis=1)
     elif data.shape[1] > 2:
         data = data[:, :2]
+    # 輸入端清洗:壞檔可能帶 NaN/Inf,若不擋會被 IIR 濾波器一路傳染整條鏈 → 靜音/壞 WAV。
+    if not np.isfinite(data).all():
+        data = np.nan_to_num(data, nan=0.0, posinf=0.0, neginf=0.0)
     return np.ascontiguousarray(data, dtype=np.float64)
 
 
 def _write_wav(path: str, data: "np.ndarray", sr: int) -> None:
     import soundfile as sf  # type: ignore
 
-    sf.write(path, np.clip(data, -1.0, 1.0), sr, subtype="PCM_24")
+    # 輸出端最後防線:任何階段若漏出 NaN/Inf,np.clip 不會清掉(NaN<x 為 False)→ 這裡
+    # 用 nan_to_num 保證寫出的永遠是有限取樣,使用者不會拿到無聲/損毀的母帶。
+    safe = np.nan_to_num(np.clip(data, -1.0, 1.0), nan=0.0, posinf=1.0, neginf=-1.0)
+    sf.write(path, safe, sr, subtype="PCM_24")
 
 
 # --------------------------------------------------------------------------- #
@@ -1386,6 +1392,15 @@ def _bandpass_sos(sr: int, f0: float, q: float) -> "np.ndarray":
     return sps.butter(2, [lo / (sr / 2.0), hi / (sr / 2.0)], btype="band", output="sos")
 
 
+def _bandpass_edges_sos(sr: int, lo: float, hi: float, order: int = 2) -> "np.ndarray":
+    """以明確 [lo, hi) 邊界做帶通 —— 讓「量到偏差的頻段」與「實際施加修正的頻段」一致
+    (避免用 f0/Q 推出來的頻寬過寬,把修正灑到鄰近頻段)。"""
+    ny = sr / 2.0
+    lo = float(np.clip(lo, 12.0, ny * 0.96))
+    hi = float(np.clip(hi, lo * 1.08, ny * 0.985))
+    return sps.butter(order, [lo / ny, hi / ny], btype="band", output="sos")
+
+
 def _dynamic_eq_band(data: "np.ndarray", sr: int, *, f0: float, q: float = 2.0,
                      thresh_db: float = -30.0, ratio: float = 3.0, attack_ms: float = 5.0,
                      release_ms: float = 120.0, max_db: float = 6.0, mode: str = "cut") -> tuple["np.ndarray", dict]:
@@ -1456,63 +1471,90 @@ def _auto_dynamic_eq(data: "np.ndarray", sr: int, analysis_before: Optional[dict
 
 
 # =========================================================================== #
-# 適應性 EQ(Adaptive / Automation)—— 把歌切成時間窗,逐窗量音色 vs 目標,讓校正
-# 曲線「隨歌曲段落自動改變」:主歌糊就修主歌、副歌刺就修副歌,過了就放開。等於
-# 工程師全程盯著 EQ 自動 ride。逐頻段時變增益,用 bandpass 並聯套上(平滑、不抽吸)。
+# 適應性 EQ(Adaptive / Automation)—— 讓各段音色「向整首歌『自己的』平均音色看齊」,
+# 而非套死的曲風目標:主歌比全曲糊就修主歌、副歌比全曲刺就修副歌,和全曲一致的段落
+# 完全不動。= 段落一致性(母帶工程師真正在做的),不會去搶曲風校正/參考曲匹配的工作,
+# 也不會把同一條平均校正重做一次。安靜處(intro/尾音/換氣)用能量門完全關閉 → 不抽底噪。
+# 逐頻段以「分析頻段邊界」做 zero-phase 帶通並聯套上(量到哪修到哪、相位一致)。
 # =========================================================================== #
-# (name, center_hz, bandpass_q)—— 大致鋪滿頻譜
-_ADAPTIVE_BANDS = [
-    ("sub", 50.0, 0.8), ("bass", 110.0, 0.9), ("low_mid", 280.0, 1.0),
-    ("mid", 900.0, 0.9), ("high_mid", 3500.0, 1.0), ("presence", 8000.0, 1.0),
-    ("air", 13000.0, 0.7),
-]
-
-
 def _adaptive_eq(data: "np.ndarray", sr: int, *, genre: str = "auto", strength: float = 0.6,
-                 window_s: float = 3.0, hop_s: float = 1.0, max_db: float = 5.0,
+                 window_s: float = 3.0, hop_s: float = 1.0, max_db: float = 2.5,
                  progress: Optional[ProgressFn] = None) -> tuple["np.ndarray", dict]:
-    """時變校正 EQ:逐窗算各頻段對目標的偏差 → 平滑 → 逐樣本套上(隨歌曲變化)。"""
+    """段落一致性 EQ:逐窗量音色 vs「全曲自己的平均音色」→ 能量門 + 死區 + 總量上限 →
+    平滑 → 逐樣本套上。隨歌曲段落變化但不搶靜態校正、不抽底噪、不抹平刻意的段落對比。"""
     n = data.shape[0]
     if n < int(window_s * sr) * 2:
         return data, {"active": False}  # 太短 → 沒有「段落」可自動化
+    if not np.isfinite(data).all():
+        data = np.nan_to_num(data, nan=0.0, posinf=0.0, neginf=0.0)
     trust = float(np.clip(strength, 0.2, 1.0))
-    tgt = _target_band_levels(genre)
-    tgt_mean = float(np.mean(list(tgt.values())))
     mono = np.mean(data, axis=1)
     win = int(window_s * sr)
     hop = max(1, int(hop_s * sr))
     starts = list(range(0, max(1, n - win + 1), hop))
-    names = [b[0] for b in _ADAPTIVE_BANDS]
-    gains = {nm: [] for nm in names}
-    centers = []
+    names = [b[0] for b in _BANDS]
+    # 一次 spectrogram 取代逐窗 welch(208 次→1 次),逐窗對所屬時間欄取平均功率譜。
+    f_spec, t_spec, sxx = sps.spectrogram(
+        mono, fs=sr, window="hann", nperseg=4096, noverlap=2048, detrend=False, scaling="density")
+    frame_samp = t_spec * sr  # 每欄中心對應的取樣位置
+    win_shapes: list[dict] = []   # 逐窗「去均值後的音色形狀」(band_db − 該窗平均)
+    win_level: list[float] = []   # 逐窗寬頻能量 dB(供能量門)
+    centers: list[int] = []
     for st in starts:
-        seg = mono[st:st + win]
-        f, pxx = _welch_psd(seg, sr, nfft=4096)
-        band_db = _band_levels_db(f, pxx)
+        sel = (frame_samp >= st) & (frame_samp < st + win)
+        col = sxx[:, sel].mean(axis=1) if np.any(sel) else sxx[:, int(np.argmin(np.abs(frame_samp - (st + win / 2))))]
+        band_db = _band_levels_db(f_spec, col)
         meas_mean = float(np.mean(list(band_db.values())))
-        for nm in names:
-            dev = (band_db[nm] - meas_mean) - (tgt[nm] - tgt_mean)
-            gains[nm].append(float(np.clip(-dev, -max_db, max_db)) * trust)
+        win_shapes.append({nm: band_db[nm] - meas_mean for nm in names})
+        win_level.append(10.0 * np.log10(float(np.sum(col)) + 1e-12))
         centers.append(st + win // 2)
     if len(centers) < 2:
         return data, {"active": False}
+    # 能量門:比最大聲段落低 ~22 dB 以上的窗 → 權重 0(不修),8 dB knee 軟過渡(不抽底噪)
+    levels = np.array(win_level)
+    loud_ref = float(np.percentile(levels, 95))
+    weights = uniform_filter1d(np.clip((levels - (loud_ref - 22.0)) / 8.0, 0.0, 1.0), size=3)
+    # 目標 = 全曲『自己的』平均音色形狀,且以能量加權(安靜/底噪段落不污染代表性音色),
+    # 段落一致性,非曲風目標 → 不重做靜態校正、不搶參考曲匹配、不抹平刻意對比。
+    wsum = float(np.sum(weights)) or 1.0
+    tgt_shape = {nm: float(np.sum([weights[i] * win_shapes[i][nm] for i in range(len(centers))]) / wsum)
+                 for nm in names}
+    # 逐窗逐頻段增益:朝全曲平均、死區 0.8 dB(保留刻意小差異)、全頻段總量上限(整條曲線不暴衝)
+    gains = {nm: [] for nm in names}
+    for i in range(len(centers)):
+        raw = {}
+        for nm in names:
+            dev = win_shapes[i][nm] - tgt_shape[nm]
+            mag = max(0.0, abs(dev) - 0.8)          # 軟死區:|dev|<0.8 dB 不動(保留刻意小差異)
+            g = -mag if dev > 0 else mag             # 偏亮→衰減、偏暗→增益
+            raw[nm] = float(np.clip(g, -max_db, max_db))
+        tot = sum(abs(v) for v in raw.values())
+        scale = 5.0 / tot if tot > 5.0 else 1.0  # 7 段合計不超過 ~5 dB
+        for nm in names:
+            gains[nm].append(raw[nm] * scale * trust * float(weights[i]))
     centers_a = np.array(centers)
     out = data.copy()
     band_meta: dict[str, float] = {}
     idx = np.arange(n)
-    for nm, f0, q in _ADAPTIVE_BANDS:
-        env = uniform_filter1d(np.array(gains[nm]), size=3)  # 跨窗平滑(秒級,不抽吸)
-        g_full = np.interp(idx, centers_a, env)
-        g_lin = 10 ** (g_full / 20.0)
+    for nm, lo, hi in _BANDS:
+        env_db = uniform_filter1d(np.array(gains[nm]), size=7)  # ~7 秒平滑 → 動作慢、不抽吸
+        if np.max(np.abs(env_db)) < 0.05:
+            band_meta[nm] = 0.0  # 這段全程都和全曲一致 → 不動(省一次濾波)
+            continue
+        # 在「線性增益」域內插到逐樣本(每段只算 N 次 10**,而非 N×樣本數次)
+        env_lin = 10 ** (env_db / 20.0)
+        g_lin = np.interp(idx, centers_a, env_lin)
         try:
-            sos = _bandpass_sos(sr, f0, q)
+            sos = _bandpass_edges_sos(sr, lo, hi)  # 量到哪修到哪(用分析頻段邊界)
             band = np.empty_like(data)
             for ch in range(data.shape[1]):
-                band[:, ch] = sps.sosfilt(sos, data[:, ch])
-            out = out + (g_lin[:, None] - 1.0) * band
-            band_meta[nm] = round(float(np.mean(np.abs(env))), 2)
+                band[:, ch] = sps.sosfiltfilt(sos, data[:, ch])  # zero-phase → 並聯不相位相消
+            out += (g_lin[:, None] - 1.0) * band  # g=1 → 加 0(無作用時完全等同原訊號)
+            band_meta[nm] = round(float(np.mean(np.abs(env_db))), 2)
         except Exception:
             logger.warning("適應性 EQ 頻段 %s 失敗(略過)", nm, exc_info=True)
+    if not np.isfinite(out).all():
+        out = np.nan_to_num(out, nan=0.0, posinf=0.0, neginf=0.0)
     return out, {"active": True, "window_s": window_s, "bands": band_meta,
                  "frames": len(centers)}
 

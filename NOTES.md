@@ -1,30 +1,22 @@
-# Local Studio v0.1.24
+# Local Studio v0.1.25
 
-🌊 **Adaptive EQ — automation that rides the song** + 🎛️ **Pro: a fully-parametric EQ**. This is what a high-end mastering engineer does by hand: an EQ that changes through the track so *every* section sounds right, plus deep per-band control with phase and Mid/Side routing.
+🎚️ **Adaptive EQ, refined to mastering-engineer quality** — after a deep adversarial review of v0.1.24's automation, the adaptive EQ was rebuilt so it behaves like a real engineer riding the EQ, not a machine over-correcting. Plus a pipeline-wide safety fix.
 
-### New — Adaptive EQ (auto automation)
-Turn on **適應性 EQ · auto automation** (in the Pro panel) and the corrective EQ stops being one fixed curve. Instead it:
-- slices the song into overlapping time windows,
-- measures the tone of each window against the target,
-- and **rides the EQ section by section** — tame a dull/muddy verse, soften a harsh chorus, then let go where the mix is already good.
+### Adaptive EQ — now Ozone-class
+The automation that rides the song is the same idea, done right:
+- **Rides toward the song's *own* average tone**, not a fixed genre curve. So it only tames a section that drifts from the rest of the track (a muddy verse, a harsh chorus) and leaves consistent sections alone — it no longer fights the genre correction or a reference match, and no longer flattens deliberate section contrast.
+- **Silence-safe energy gate** — quiet intros, breaths, reverb tails and fade-outs are left untouched (measured: ~1000× less movement in silence). No more pumping the noise floor.
+- **Gentle, slow, musical** — per-band motion is capped low (~Ozone-level ±1–2 dB) with a total-movement budget and slower smoothing, so the tone never lurches or breathes.
+- **Cleaner filtering** — each band now corrects exactly the frequency range it measured, with **zero-phase** filters so the result matches the curve (no phase smear from overlapping bands).
 
-It's the equivalent of an engineer automating the EQ across the whole song, done automatically. Verified on real audio: on a track that switches between a dark verse and a bright chorus, the high-mid correction rides ~2 dB between sections (gentle in the verse, full cut in the chorus) — it genuinely follows the music. The new **適應EQ** stage shows in the signal chain whenever it's active.
+### Pipeline safety (all modes)
+- **No more corrupt/silent exports**: a malformed source file (or any NaN/Inf in the chain) can no longer poison the output — the engine now scrubs non-finite samples at input and guarantees a finite WAV at output. This protects every mode, not just mastering.
 
-### Pro — fully-parametric EQ
-Open **Pro 進階:全參數 EQ** for a real parametric EQ:
-- **Draggable response curve** — grab a band node and drag (freq ↔ x, gain ↔ y); the curve updates instantly.
-- **Unlimited bands**, each with its own:
-  - **Type** — Bell · Low/High shelf · High-pass · Low-pass · Notch · All-pass
-  - **Frequency · Gain · Q**
-  - **Phase** — **Natural (minimum-phase)** or **Linear-phase** (zero phase distortion), *per band*
-  - **Channel** — **Stereo · Mid · Side · Left · Right**
-
-### Notes
-- Both run as their own stages in the signal chain, on top of the automatic correction.
-- More Pro automation (manual EQ-automation lanes, per-band multiband) is coming next.
+### Under the hood
+This release applied the confirmed findings of a 4-dimension adversarial review (DSP correctness, robustness, musicality, chain integration), with each finding independently verified before fixing. Adaptive EQ is also now much faster.
 
 ### Unchanged
-- Auto mode, dynamic EQ, the loudness-matched A/B + three-way comparison, and the download all work as before.
+- The v0.1.24 Pro parametric EQ, auto mode, dynamic EQ, loudness-matched A/B + three-way comparison, and download all work as before.
 
 Support: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
 
