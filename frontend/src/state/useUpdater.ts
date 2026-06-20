@@ -26,6 +26,7 @@
    ────────────────────────────────────────────────────────────────── */
 
 import { create } from 'zustand';
+import { invoke } from '@tauri-apps/api/core';
 
 // ── Detect Tauri at module load (synchronous, safe in plain browser) ─────────
 const IN_TAURI = '__TAURI_INTERNALS__' in window;
@@ -33,7 +34,7 @@ const IN_TAURI = '__TAURI_INTERNALS__' in window;
 // ── Lazy plugin imports (only resolved inside Tauri) ─────────────────────────
 // We import at module level for type-safety but guard every call site with
 // IN_TAURI so the browser build never actually executes these paths.
-import type { Update } from '@tauri-apps/plugin-updater';
+import type { Update, DownloadEvent } from '@tauri-apps/plugin-updater';
 
 // Dynamic-import wrappers so the browser bundle keeps the imports tree-shakeable
 // without actually importing from @tauri-apps in a non-Tauri context.
@@ -145,8 +146,7 @@ export const useUpdater = create<UpdaterState>((set, get) => ({
     try {
       let totalBytes = 0;
       let downloadedBytes = 0;
-
-      await _update.downloadAndInstall((event) => {
+      const onEvent = (event: DownloadEvent) => {
         if (event.event === 'Started') {
           totalBytes = event.data.contentLength ?? 0;
           set({ progress: 0 });
@@ -160,10 +160,37 @@ export const useUpdater = create<UpdaterState>((set, get) => ({
         } else if (event.event === 'Finished') {
           set({ progress: 100, status: 'ready' });
         }
-      });
+      };
 
-      // downloadAndInstall resolves after installation is prepared;
-      // relaunch to apply.
+      // Prefer split download → kill backend → install. Killing the backend ONLY
+      // after the download succeeds (a) never leaves the app backend-less on a
+      // download failure, and (b) releases the embedded-python file locks BEFORE
+      // the NSIS installer overwrites <install>/python/** — which otherwise fails
+      // with "Error opening file for writing". Falls back to the combined call on
+      // older plugin builds (still killing the backend first).
+      const u = _update as unknown as {
+        download?: (cb: typeof onEvent) => Promise<void>;
+        install?: () => Promise<void>;
+      };
+      if (typeof u.download === 'function' && typeof u.install === 'function') {
+        await u.download(onEvent);
+        set({ status: 'ready', progress: 100 });
+        try {
+          await invoke('prepare_update');
+        } catch {
+          /* best-effort: proceed even if the backend was already gone */
+        }
+        await u.install();
+      } else {
+        try {
+          await invoke('prepare_update');
+        } catch {
+          /* best-effort */
+        }
+        await _update.downloadAndInstall(onEvent);
+      }
+
+      // install resolves after the update is applied; relaunch to restart.
       set({ status: 'ready', progress: 100 });
 
       // Relaunch in its own try/catch. On Windows NSIS the installer process

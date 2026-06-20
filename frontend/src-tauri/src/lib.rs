@@ -1022,6 +1022,20 @@ fn restart_backend(app: AppHandle, state: State<'_, BackendProcess>) -> bool {
     state.guarded_spawn_install(&app)
 }
 
+/// 安裝更新前的準備 —— 前端在「下載完成、即將執行 NSIS 安裝程式」之前呼叫。
+///
+/// NSIS 會覆寫 `<install>/python/**`(內建可攜 Python 的 DLLs/pyd 等)。若此時還有
+/// 後端 python 子行程在跑,那些檔案會被鎖住 → 安裝程式報「Error opening file for
+/// writing」。這裡先 `begin_shutdown()`(擋住看門狗重啟)再 `kill()` 收掉後端,
+/// 釋放檔案鎖,讓安裝順利覆寫。短暫等待確保 OS 真的釋放 handle。
+#[tauri::command]
+fn prepare_update(state: State<'_, BackendProcess>) -> bool {
+    state.begin_shutdown();
+    state.kill();
+    std::thread::sleep(Duration::from_millis(600));
+    true
+}
+
 /// 完整重置後端:刪除 WORK 的 `.venv` (+ 暫存 out/jobs/tmp),讓下次啟動重跑安裝精靈。
 ///
 /// 供設定頁「儲存空間」面板的「完整重置」分層使用 (保留模型 / 也刪模型):
@@ -1228,7 +1242,8 @@ pub fn run() {
             restart_backend,
             reset_backend,
             get_data_root,
-            set_data_root
+            set_data_root,
+            prepare_update
         ])
         .setup(|app| {
             // 啟動後端 sidecar。venv 不存在 (全新機器、尚未跑安裝精靈) 時回 false,
