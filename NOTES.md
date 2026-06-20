@@ -1,21 +1,18 @@
-# Local Studio v0.1.30
+# Local Studio v0.1.31
 
-🎛️ **See what the AI is doing** — the intelligent mastering now *draws its EQ* as a curve, and the de-esser tracks the actual sibilance. Plus the project has a new home.
+🎛️ **Smarter auto-mastering** — the intelligent mode now catches more problems and adapts its processing to what it hears.
 
-### New — AI auto-EQ curve
-When you drop a mix, the analysis panel now shows an **AI auto-EQ curve** — the exact corrective EQ the intelligent mode is applying, drawn as a frequency curve (boosts above the line, cuts below). No more guessing what "auto" did to your tone; you can see it.
+### New — more auto detection & correction
+- **Boxy / honky detection** — the analyzer now flags a mid-band buildup (400–800 Hz) that makes a mix sound boxy or nasal, and the **auto dynamic EQ tames it** (joining the existing harsh / muddy / boomy taming — so the dynamic EQ now places more bands automatically, only acting on the moments that need it).
+- **Tone-aware saturation** — the automatic harmonic glue now reads the mix: a **dark/dull** master gets a touch more saturation for life and warmth, while a **harsh/sibilant** one gets less so it never adds edge. (Sibilance stays with the adaptive de-esser — no double-processing.)
 
-### Improved — adaptive de-esser
-De-essing in auto mode now **finds the real sibilance frequency** (where the "ess/sh" energy actually sits, 4.5–11 kHz) and de-esses there, instead of a fixed band — so it tracks each singer/mic instead of a one-size-fits-all setting.
-
-### Project renamed → local-studio
-The GitHub repo is now **[local-studio](https://github.com/AriesHongHuanWu/local-studio)** (was `ai-caption`). Your existing installs keep updating normally — GitHub redirects the old links automatically, and the app's internal update identity is unchanged.
+Combined with v0.1.30's visible auto-EQ curve and adaptive de-esser, the intelligent mode is now both more complete and more transparent about what it's doing.
 
 ### Unchanged
 - AI stem mastering, genre detection, EQ automation lanes, manual multiband, adaptive EQ, Pro parametric EQ, A/B + three-way comparison, and download all work as before.
 
 ### Coming next
-More of the auto-mastering upgrade (more auto-detected fixes, compression and effects), then low-end-laptop compatibility, a categorized + pinnable tool sidebar, and clearer positioning for artists and content creators.
+Low-end-laptop compatibility, then a categorized + pinnable tool sidebar and clearer positioning for artists and content creators.
 
 Support: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
 

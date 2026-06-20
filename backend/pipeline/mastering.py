@@ -810,6 +810,11 @@ def _detect_problems(band_dev: dict[str, float], dyn: dict[str, float],
         "2–5kHz 過衝 —— 刺耳、聽久疲勞。", "Harsh 2–5 kHz — fatiguing.",
         "在 ~3.5kHz 衰減。", "Cut around 3.5 kHz.", deviation_db=round(hm, 1))
 
+    mid = band_dev.get("mid", 0.0)
+    add("boxy", _sev(mid - 2.5, 0.0, 1.5, 3.0) if mid > 2.5 else None, "mid",
+        "中頻(400–800Hz)堆積 —— 箱音/鼻音、不通透。", "Mid buildup (400–800 Hz) — boxy/honky.",
+        "在 ~550Hz 衰減中頻。", "Cut mids around 550 Hz.", deviation_db=round(mid, 1))
+
     pres = band_dev.get("presence", 0.0)
     add("sibilant", _sev(pres - 3.0, 0.0, 2.0, 4.0) if (pres > 3.0 and spec.get("centroid_hz", 0) > 3500) else None,
         "presence", "5–8kHz 齒音/毛邊偏多。", "Sibilance/edge around 5–8 kHz.",
@@ -1714,9 +1719,10 @@ def _dynamic_eq_band(data: "np.ndarray", sr: int, *, f0: float, q: float = 2.0,
 # 自動動態 EQ:依偵測到的音色問題放置頻段,只馴服突出的部分(de-ess 另外處理齒音)
 _DYN_TARGETS = {
     "harsh": (3500.0, 2.0),       # 2–5kHz 刺耳
+    "boxy": (550.0, 1.8),         # 400–800Hz 箱音/鼻音(新增)
     "muddy": (250.0, 1.6),        # 200–400Hz 糊
     "boomy_low": (90.0, 1.3),     # 低頻轟
-}
+}  # 齒音交給(適應性)de-esser 處理,不在這裡重複壓以免高頻被過度削掉
 
 
 def _auto_dynamic_eq(data: "np.ndarray", sr: int, analysis_before: Optional[dict],
@@ -2273,6 +2279,13 @@ def master(
             sat_amount += 0.05
         elif genre in ("acoustic", "ballad"):
             sat_amount -= 0.05
+        # 依偵測微調:暗/悶/缺空氣 → 多點諧波生命力;刺耳/齒音 → 少點(別再加邊)
+        if analysis_before:
+            _pids = {p.get("id") for p in analysis_before.get("problems", [])}
+            if _pids & {"dark", "dull_no_air"}:
+                sat_amount += 0.05
+            if _pids & {"harsh", "sibilant"}:
+                sat_amount -= 0.06
         sat_amount = float(np.clip(sat_amount, 0.0, 0.45))
     if sat_amount > 1e-3:
         _emit(progress, 66.0, "諧波飽和 · Harmonic glue")
