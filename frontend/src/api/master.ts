@@ -160,6 +160,10 @@ export interface MasterMeta {
   inputPeakDb: number;
   outputPeakDb: number;
   ceilingDb: number;
+  /** Loudness-matched A/B: the original rendered at the master's loudness. */
+  matchedLufs?: number | null;
+  matchGainDb?: number;
+  hasMatched?: boolean;
   /** Before/after intelligent analysis for the A/B visualization (auto mode). */
   before?: MasterAnalysis | null;
   after?: MasterAnalysis | null;
@@ -284,6 +288,11 @@ export async function getMasterJob(jobId: string, signal?: AbortSignal): Promise
 /** Absolute URL for the finished mastered wav. */
 export function masterResultUrl(jobId: string): string {
   return apiUrl(`/api/master/jobs/${encodeURIComponent(jobId)}/result`);
+}
+
+/** Absolute URL for the loudness-matched original (for an honest A/B). */
+export function masterMatchedUrl(jobId: string): string {
+  return apiUrl(`/api/master/jobs/${encodeURIComponent(jobId)}/result/matched`);
 }
 
 /** POST /api/master/analyze — intelligent diagnosis of a mix (no rendering). */

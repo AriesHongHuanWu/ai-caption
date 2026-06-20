@@ -1,16 +1,19 @@
-# Local Studio v0.1.19
+# Local Studio v0.1.20
 
-🔊 **Fix: no sound after mastering.** Mastered (and original) playback is audible again.
+🎧 **Honest loudness-matched A/B** — compare your master against the original *fairly*.
 
-### Fixed
-- **Sound is back.** In v0.1.17–v0.1.18 the live "spectrum while playing" feature tapped the audio player through the Web Audio API, which **rerouted the player's output** into an audio graph that the browser leaves suspended until a real click — so auto-played audio came out **silent**. The live tap has been removed, so the players are plain, native audio again and **always produce sound**.
-- The stereo imager (goniometer) now draws from the master's analysis data instead of tapping playback — same picture, no risk to audio.
+### New — loudness-matched before/after
+- A new **A/B player** in the mastering result: one click switches between **A · Mastered** and **B · Original**, instantly, at the same playback position.
+- **Loudness-matched (on by default):** the original is turned up to the master's loudness, so you're judging **tone and dynamics** — not just "louder sounds better." This is the honest way pros A/B; most tools (and online services) let "louder" trick your ears into thinking it's "better."
+- **Turn loudness-match off** to hear exactly how much louder mastering made it.
+- Keyboard: **Space** to play/pause, **A / B** to switch sides.
 
-### Coming back, safely
-- The live "watch the spectrum move while it plays" view will return in a later update using a method that **never touches playback** (a spectrogram synced to the play position), so it can't silence audio again. The full analysis — spectrum, band balance, gain-reduction meters, stereo field, signal chain, before→after — is all still here.
+### Notes
+- Built entirely on native audio — **no Web Audio routing**, so it can never silence playback (the issue fixed in v0.1.19 won't return here).
+- The full analysis (spectrum, band balance, gain-reduction meters, stereo field, signal chain, before→after) is all still here.
 
 ### Unchanged
-- All v0.1.17 mastering (multiband, de-esser, saturation, 2nd-pass EQ, scoring) and the v0.1.18 calm-startup improvements work as before.
+- All v0.1.17 mastering (multiband, de-esser, saturation, 2nd-pass EQ) and the v0.1.18–v0.1.19 fixes work as before.
 
 Support: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
 

@@ -1825,6 +1825,7 @@ def _run_master_job(
     job_id: str,
     audio_path: str,
     out_path: str,
+    matched_path: str,
     genre: str,
     loudness: str,
     reference_path: Optional[str],
@@ -1838,6 +1839,7 @@ def _run_master_job(
         result = mastering.master(
             audio_path,
             out_path,
+            matched_output_path=matched_path,
             genre=genre,
             loudness=loudness,
             reference_path=reference_path,
@@ -1952,6 +1954,7 @@ async def api_master(
     # 來源與輸出**必須不同檔名** —— 否則 .wav 輸入時兩者撞名,清理來源會把輸出刪掉。
     src = UPLOAD_DIR / f"masterin_{job_id}{_safe_upload_suffix(audio.filename)}"
     out = UPLOAD_DIR / f"mastered_{job_id}.wav"
+    matched = UPLOAD_DIR / f"matched_{job_id}.wav"  # 響度匹配原曲(A/B);前綴與其他不撞
     ref_path: Optional[str] = None
     try:
         data = await audio.read()
@@ -1981,11 +1984,12 @@ async def api_master(
             "error": None,
             "meta": None,
             "_out_path": str(out),
+            "_matched_path": str(matched),
         }
 
     thread = threading.Thread(
         target=_run_master_job,
-        args=(job_id, str(src), str(out), g, loud, ref_path, opts),
+        args=(job_id, str(src), str(out), str(matched), g, loud, ref_path, opts),
         name=f"autolyrics-master-{job_id[:8]}",
         daemon=True,
     )
@@ -2023,6 +2027,22 @@ def api_get_master_result(job_id: str) -> FileResponse:
     if not out_path or not os.path.exists(out_path):
         raise HTTPException(status_code=404, detail="找不到輸出檔案")
     return FileResponse(out_path, media_type="audio/wav", filename="mastered.wav")
+
+
+@app.get("/api/master/jobs/{job_id}/result/matched")
+def api_get_master_matched(job_id: str) -> FileResponse:
+    """下載「響度匹配原曲」wav(把原始混音調到母帶的響度,給公平 A/B)。
+    GET /api/master/jobs/{jobId}/result/matched"""
+    with _MASTER_JOBS_LOCK:
+        job = MASTER_JOBS.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="找不到此母帶工作 jobId")
+        if job["status"] != "done":
+            raise HTTPException(status_code=404, detail="工作尚未完成,結果尚未就緒")
+        matched_path = job.get("_matched_path")
+    if not matched_path or not os.path.exists(matched_path):
+        raise HTTPException(status_code=404, detail="找不到響度匹配原曲檔案")
+    return FileResponse(matched_path, media_type="audio/wav", filename="matched-original.wav")
 
 
 @app.post("/api/master/analyze")

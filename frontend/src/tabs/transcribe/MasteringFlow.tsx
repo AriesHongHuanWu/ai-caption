@@ -15,7 +15,8 @@ import {
   SlidersHorizontal, ChevronRight, ChevronDown, Gauge, Wand2,
 } from 'lucide-react';
 import { Button, Eyebrow } from '../../components/primitives';
-import { createMasterJob, getMasterJob, masterResultUrl, analyzeMaster } from '../../api/master';
+import { createMasterJob, getMasterJob, masterResultUrl, masterMatchedUrl, analyzeMaster } from '../../api/master';
+import { ABCompare } from './mastering/ABCompare';
 import type { MasterLoudness, MasterMeta, MasterAnalysis } from '../../api/master';
 import { ApiError } from '../../api/client';
 import { useMeta } from '../../state/useMeta';
@@ -75,6 +76,7 @@ export function MasteringFlow() {
   const [message, setMessage] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [matchedUrl, setMatchedUrl] = useState<string | null>(null);
   const [resultMeta, setResultMeta] = useState<MasterMeta | null>(null);
 
   // Intelligent analysis (smart diagnosis) — best-effort, never blocks mastering.
@@ -136,6 +138,7 @@ export function MasteringFlow() {
     });
     setPhase('idle');
     setResultUrl(null);
+    setMatchedUrl(null);
     setResultMeta(null);
     setErrorMsg(null);
     setAnalysis(null);
@@ -169,6 +172,7 @@ export function MasteringFlow() {
           setPct(100);
           setPhase('done');
           setResultUrl(`${masterResultUrl(id)}?t=${Date.now()}`);
+          setMatchedUrl(`${masterMatchedUrl(id)}?t=${Date.now()}`);
           setResultMeta(st.meta);
           return;
         }
@@ -197,6 +201,7 @@ export function MasteringFlow() {
     setMessage(t('master.preparing'));
     setErrorMsg(null);
     setResultUrl(null);
+    setMatchedUrl(null);
     setResultMeta(null);
     void (async () => {
       try {
@@ -467,10 +472,16 @@ export function MasteringFlow() {
           <div className="al-master__result">
             <div className="al-master__player">
               <span className="al-master__playerlabel al-master__playerlabel--gold">
-                <Disc3 size={13} /> {t('master.mastered')}
+                <Disc3 size={13} /> {t('master.ab.label')}
               </span>
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <audio src={resultUrl} controls autoPlay className="al-master__audio" />
+              {srcUrl && matchedUrl && (
+                <ABCompare
+                  masteredUrl={resultUrl}
+                  matchedUrl={matchedUrl}
+                  rawUrl={srcUrl}
+                  hasMatched={!!resultMeta?.hasMatched}
+                />
+              )}
             </div>
 
             {resultMeta?.chain && (

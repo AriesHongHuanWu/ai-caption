@@ -140,6 +140,21 @@ export const common: Record<string, Entry> = {
     en: 'Natural = lighter, keeps your character; Strong = pushes closer to the ideal target balance.',
   },
 
+  // Loudness-matched A/B compare
+  'master.ab.label': { zh: 'A/B 對比', en: 'A/B compare' },
+  'master.ab.mastered': { zh: 'A · 母帶後', en: 'A · Mastered' },
+  'master.ab.original': { zh: 'B · 原曲', en: 'B · Original' },
+  'master.ab.play': { zh: '播放', en: 'Play' },
+  'master.ab.pause': { zh: '暫停', en: 'Pause' },
+  'master.ab.seek': { zh: '進度', en: 'Seek' },
+  'master.ab.loudnessMatch': { zh: '響度匹配', en: 'Loudness-matched' },
+  'master.ab.lmatchOn': { zh: '開(同響度公平比較)', en: 'On (same loudness)' },
+  'master.ab.lmatchOff': { zh: '關(聽得出變大聲)', en: 'Off (hear it get louder)' },
+  'master.ab.why': {
+    zh: '開「響度匹配」後,原曲會被調到和母帶一樣大聲 —— 你比較的是「音色與動態」,不會被「比較大聲」騙過去。關掉就能直接聽母帶讓整體變大聲多少。空白鍵播放,按 A / B 瞬間切換。',
+    en: 'With loudness-matching on, the original is turned up to the master’s loudness — so you judge tone and dynamics, not just “louder = better.” Turn it off to hear how much louder mastering made it. Space to play; press A / B to switch.',
+  },
+
   // Band labels
   'master.band.sub': { zh: '超低', en: 'Sub' },
   'master.band.bass': { zh: '低頻', en: 'Bass' },

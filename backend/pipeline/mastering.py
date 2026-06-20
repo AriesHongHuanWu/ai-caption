@@ -1349,6 +1349,7 @@ def master(
     multiband: Optional[bool] = None,
     saturation: float = 0.0,
     residual_eq: Optional[bool] = None,
+    matched_output_path: Optional[str] = None,
     analyze_result: bool = True,
     progress: Optional[ProgressFn] = None,
 ) -> dict:
@@ -1375,6 +1376,7 @@ def master(
 
     _emit(progress, 3.0, "讀取音訊 · Loading")
     data, sr = _load_audio(input_path)
+    raw = data.copy()  # 保留原始輸入(未處理)供「響度匹配 A/B」用
     in_lufs = _measure_lufs(data, sr)
     in_peak = _peak_db(data)
 
@@ -1546,6 +1548,22 @@ def master(
     _emit(progress, 95.0, "輸出 24-bit WAV · Exporting")
     _write_wav(output_path, data, sr)
 
+    # 響度匹配原曲(把未處理的原始混音調到母帶的響度)→ 公平 A/B,聽的是音色不是音量
+    matched_lufs = None
+    match_gain_db = round(float(np.clip(out_lufs - in_lufs, -24.0, 12.0)), 2)
+    if matched_output_path:
+        _emit(progress, 97.0, "輸出響度匹配原曲 · Loudness-matched original")
+        try:
+            matched = raw * (10 ** (match_gain_db / 20.0))
+            mpk = float(np.max(np.abs(matched))) if matched.size else 0.0
+            if mpk > 1.0:
+                matched = matched / mpk  # 全檔等比縮放,LUFS 匹配維持在 ~0.1dB 內
+            _write_wav(matched_output_path, matched, sr)
+            matched_lufs = round(_measure_lufs(matched, sr), 2)
+        except Exception:
+            logger.warning("響度匹配原曲輸出失敗(降級,A/B 仍可用原始版)", exc_info=True)
+            matched_lufs = None
+
     _emit(progress, 100.0, "完成 · Done")
     return {
         "outPath": output_path,
@@ -1563,6 +1581,9 @@ def master(
         "inputPeakDb": round(in_peak, 2),
         "outputPeakDb": round(out_peak, 2),
         "ceilingDb": round(ceil, 2),
+        "matchedLufs": matched_lufs,
+        "matchGainDb": match_gain_db,
+        "hasMatched": matched_lufs is not None,
         "before": analysis_before,
         "after": analysis_after,
         "meters": _finite_scrub(meters),
