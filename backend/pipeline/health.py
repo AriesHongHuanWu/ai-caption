@@ -252,19 +252,11 @@ def _build_missing(
             }
         )
 
-    for m in models:
-        if m.get("installed"):
-            continue
-        missing.append(
-            {
-                "category": "model",
-                "id": m.get("id"),
-                "label": m.get("label"),
-                "required": bool(m.get("required")),
-                "sizeMB": m.get("sizeMB"),
-                "reason": "模型未下載 · model not downloaded",
-            }
-        )
+    # 模型**刻意不列入** missing/修復清單 —— 全部都是「首次使用時自動下載」或由使用者
+    # 在「模型管理 / 安裝精靈」依裝置建議自行挑選下載。健檢只負責 deps(真正的阻斷項),
+    # 不再一次把所有 whisper 變體+demucs+aligner+lama 全裝起來狂燒硬碟空間。
+    # (models 參數保留供未來擴充;此處不使用。)
+    _ = models
 
     return missing
 

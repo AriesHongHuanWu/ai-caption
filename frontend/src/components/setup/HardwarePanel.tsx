@@ -103,6 +103,12 @@ export interface HardwarePanelProps {
    * be kicked off — and where 'Skip' would have no banner to dismiss. The
    * post-setup SetupBanner leaves this at its default (true). */
   showActions?: boolean;
+  /**
+   * When true, the "Skip for now" button is hidden — only "Download" remains.
+   * Used by the Settings tab, where there is no banner to dismiss: the panel is
+   * a permanent device-aware recommendation, so a Skip action would be a no-op
+   * that only adds confusion. Has no effect when showActions is false. */
+  hideSkip?: boolean;
 }
 
 export function HardwarePanel({
@@ -112,6 +118,7 @@ export function HardwarePanel({
   downloadPct = 0,
   downloadMsg = '',
   showActions = true,
+  hideSkip = false,
 }: HardwarePanelProps) {
   const t = useT();
   const hardware = useHardware((s) => s.hardware);
@@ -393,14 +400,16 @@ export function HardwarePanel({
               >
                 {t('hardware.action.download')}
               </Button>
-              <Button
-                variant="ghost"
-                size="md"
-                title={t('hardware.action.skipTitle')}
-                onClick={onSkip}
-              >
-                {t('hardware.action.skip')}
-              </Button>
+              {!hideSkip && (
+                <Button
+                  variant="ghost"
+                  size="md"
+                  title={t('hardware.action.skipTitle')}
+                  onClick={onSkip}
+                >
+                  {t('hardware.action.skip')}
+                </Button>
+              )}
             </div>
           ) : (
             <p className="al-hw-defer-note">{t('hardware.action.deferNote')}</p>

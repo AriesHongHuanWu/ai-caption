@@ -3,6 +3,7 @@ import { FolderLock, Cpu, Layers3, RotateCcw, ShieldCheck } from 'lucide-react';
 import { Button, Eyebrow } from '../../components/primitives';
 import { GpuReadout } from './GpuReadout';
 import { ModelManager } from './ModelManager';
+import { HardwarePanel } from '../../components/setup/HardwarePanel';
 import { StoragePanel } from './StoragePanel';
 import { DataLocationPanel } from './DataLocationPanel';
 import { ModelSizePicker } from './ModelSizePicker';
@@ -19,6 +20,16 @@ import { useAppVersion } from '../../state/useAppVersion';
 import type { Device, Engine } from '../../api/types';
 import { useT } from '../../i18n';
 import { UpdateSettingsRow } from '../../components/update/UpdateSettingsRow';
+
+// Whisper model ids — scope the recommendation-panel progress display to whisper
+// picks so a background demucs/aligner download doesn't hijack it.
+const WHISPER_IDS = [
+  'whisper-base',
+  'whisper-small',
+  'whisper-medium',
+  'whisper-large-v3-turbo',
+  'whisper-large-v3',
+];
 
 export function SettingsTab() {
   const t = useT();
@@ -41,6 +52,13 @@ export function SettingsTab() {
       state: m.installed ? 'installed' : 'absent',
       pct: 100,
     }));
+
+  // Hardware-aware recommendation panel wiring: let the user download the model
+  // that suits their device straight from Settings (no bulk install).
+  const perId = useModels((s) => s.perId);
+  const downloadAndTrack = useModels((s) => s.downloadAndTrack);
+  const activeId = WHISPER_IDS.find((id) => perId[id]?.status === 'running') ?? null;
+  const activeProgress = activeId ? perId[activeId] : null;
 
   const defaultsValue: DefaultsValue = {
     modelSize: defaults.modelSize,
@@ -105,6 +123,17 @@ export function SettingsTab() {
         {/* ── MODEL MANAGER ── */}
         <section className="al-settings__group">
           <Eyebrow num={4}>{t('settings.models')}</Eyebrow>
+          {/* Device-aware recommendation first: which model suits THIS machine,
+              with a one-click download — so users grab only what they need
+              instead of bulk-installing every model. */}
+          <HardwarePanel
+            onDownload={(id) => void downloadAndTrack(id)}
+            onSkip={() => {}}
+            hideSkip
+            downloadingId={activeId}
+            downloadPct={activeProgress?.pct ?? 0}
+            downloadMsg={activeProgress?.message ?? ''}
+          />
           <ModelManager />
         </section>
 

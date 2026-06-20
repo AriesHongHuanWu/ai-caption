@@ -166,7 +166,8 @@ REGISTRY: list[dict[str, Any]] = [
         "recommended": True,
         "vramHint": "~3GB VRAM",
         "whisperSize": None,
-        "required": True,
+        # 非「必需預裝」—— 歌詞模式首次使用時自動下載。健檢不再因缺它而擋人/狂催安裝。
+        "required": False,
     },
     {
         "id": "demucs-htdemucs-ft",
@@ -191,7 +192,8 @@ REGISTRY: list[dict[str, Any]] = [
         "recommended": True,
         "vramHint": "~2GB VRAM",
         "whisperSize": None,
-        "required": True,
+        # 非「必需預裝」—— 強制對齊首次使用時自動下載。
+        "required": False,
     },
     # ── LaMa 文字移除 (Clean Text 模式,非必需) ────────────────────────────
     {
