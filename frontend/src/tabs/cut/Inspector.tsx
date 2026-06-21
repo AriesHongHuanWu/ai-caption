@@ -239,6 +239,12 @@ export function Inspector({ en, onSplit, getTime }: Props) {
             <div className="al-cut__chips">
               {TEXT_PRESETS.map((p) => <button key={p.key} type="button" className="al-cut__chip" onClick={() => up(p.over)}>{en ? p.en : p.label}</button>)}
             </div>
+            {c.words.length > 0 && (
+              <div className="al-cut__row2">
+                <label className="al-cut__rowmini"><input type="checkbox" checked={c.karaoke} onChange={(e) => up({ karaoke: e.target.checked })} /> {en ? 'Karaoke (word-sync)' : '卡拉OK 逐字'}</label>
+                {c.karaoke && <label className="al-cut__rowmini">{en ? 'Sung color' : '已唱色'} <input type="color" value={c.sungColor} onChange={(e) => up({ sungColor: e.target.value })} /></label>}
+              </div>
+            )}
             <label className="al-cut__row"><span className="al-cut__rowlabel">{en ? 'Font' : '字體'}</span>
               <select className="al-cut__select" value={c.font} onChange={(e) => up({ font: e.target.value })}>
                 {FONTS.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}

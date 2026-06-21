@@ -47,6 +47,9 @@ export interface Chroma {
 export type ShakeMode = 'none' | 'handheld' | 'bounce' | 'earthquake';
 export interface Shake { mode: ShakeMode; amount: number; speed: number; }
 
+/** Word-level timing for karaoke captions (t = clip-local seconds). */
+export interface WordTiming { t: number; dur: number; word: string; }
+
 export interface Trans {
   type: TransType;
   dur: number; // seconds
@@ -117,6 +120,9 @@ export interface Clip {
   animIn: TextAnim;
   animOut: TextAnim;
   animDur: number;
+  words: WordTiming[]; // karaoke word timings (empty = plain text)
+  karaoke: boolean; // word-by-word highlight
+  sungColor: string; // highlight colour for sung words
 
   /* shape */
   shapeType: ShapeType;
@@ -214,6 +220,9 @@ export function makeClip(kind: ClipKind, over: Partial<Clip>): Clip {
     animIn: over.animIn ?? 'none',
     animOut: over.animOut ?? 'none',
     animDur: over.animDur ?? 0.4,
+    words: over.words ?? [],
+    karaoke: over.karaoke ?? false,
+    sungColor: over.sungColor ?? '#d8a657',
     shapeType: over.shapeType ?? 'rect',
     fill: over.fill ?? '#d8a657',
   };

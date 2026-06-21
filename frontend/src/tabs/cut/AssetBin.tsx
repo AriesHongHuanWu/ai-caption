@@ -115,7 +115,11 @@ export function AssetBin({ en, getTime }: Props) {
       const file = new File([blob], 'caption-source', { type: blob.type || 'audio/wav' });
       const segments = await autoCaption(file, 'small', (pct, m) => setCap({ on: true, msg: `${m} ${pct}%` }));
       const trackId = ensureTrack('text');
-      for (const s of segments) if (s.text.trim()) addClip(trackId, makeClip('text', { text: s.text.trim(), start: s.start, duration: Math.max(0.4, s.end - s.start), name: 'caption', ...CAPTION_STYLE }));
+      for (const s of segments) {
+        if (!s.text.trim()) continue;
+        const words = (s.words || []).filter((w) => w.word.trim()).map((w) => ({ t: Math.max(0, w.start - s.start), dur: Math.max(0.05, w.end - w.start), word: w.word.trim() }));
+        addClip(trackId, makeClip('text', { ...CAPTION_STYLE, text: s.text.trim(), start: s.start, duration: Math.max(0.4, s.end - s.start), name: 'caption', words, karaoke: words.length > 0 }));
+      }
       setCap({ on: false, msg: en ? `Added ${segments.length} captions ✓` : `已加入 ${segments.length} 句字幕 ✓` });
     } catch {
       setCap({ on: false, msg: en ? 'Auto-caption needs the backend + a Whisper model.' : '自動字幕需要後端與 Whisper 模型。' });

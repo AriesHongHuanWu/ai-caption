@@ -1,17 +1,15 @@
-# Local Studio v0.1.49
+# Local Studio v0.1.50
 
-## 🎬 CapCut-style layout: a tabbed library + drag-to-timeline
+## 🎤 Forced-aligned KARAOKE captions — the editor feature no other NLE has
 
-The Editor (剪輯室) left panel is now a **tabbed library** like CapCut desktop:
+Run **Auto caption** on any clip and the captions now come back **word-by-word, forced-aligned** — each word **lights up exactly as it's sung** (a true karaoke / lyric-video look), generated **100% locally** (Whisper + alignment) and **baked into your export** pixel-exact. CapCut gates this behind a cloud account; Resolve/Premiere don't have it at all.
 
-- **媒體** — import / drop your media, then **drag a clip straight onto a timeline track** (or click to add at the playhead). Drop where you want it — clips move and trim freely.
-- **文字** — one-click **title styles** (clean, caption bar, outline, gold, neon…).
-- **濾鏡** — one-tap **looks** (Cinematic, Vivid, B&W, VHS…) applied to the selected clip.
-- **特效** — quick effects (glitch, scanlines, handheld/earthquake shake…).
-- **轉場** — apply a transition to the selected clip with one click.
+- Word-level highlight sweeps across the line as the vocal plays.
+- Pick the **sung colour**; toggle karaoke on/off per caption (文字 tab).
+- Works with all the premium caption styles, animations and the GPU export.
 
-The right panel stays your detailed property inspector, the centre is the live preview, and the timeline runs full-width below — the familiar pro layout.
+This is the first of the "better than CapCut" wave — a music-producer's AI editor. Next up the roadmap: a Fairlight-style mixer feeding **AI mastering**, **stem separation** on the timeline, **adjustment layers + color wheels + scopes**, and **AI object/watermark removal**.
 
-Everything from v0.1.48 (razor tool, markers, snapshot, PiP frame) is included.
+Everything from v0.1.49 (CapCut tabbed library, drag-to-timeline, WAV export) is included.
 
 MIT © 2026 Aries HongHuan Wu · ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan)

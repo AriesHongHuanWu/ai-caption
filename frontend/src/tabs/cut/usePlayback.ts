@@ -353,12 +353,39 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
       g.addColorStop(1, c.gradColor);
       fill = g;
     }
-    lines.forEach((ln, i) => {
-      const y = cy0 + i * lh;
-      if (c.stroke > 0) ctx.strokeText(ln, 0, y);
-      ctx.fillStyle = fill;
-      ctx.fillText(ln, 0, y);
-    });
+    if (c.karaoke && c.words.length && an.reveal >= 1) {
+      // word-by-word karaoke: highlight each word as it is sung (forced-aligned)
+      ctx.textAlign = 'left';
+      const space = ctx.measureText(' ').width;
+      const maxW = W * 0.86;
+      const rows: { word: string; width: number; t: number }[][] = [[]];
+      let rowW = 0;
+      for (const w of c.words) {
+        const ww = ctx.measureText(w.word).width;
+        if (rowW + ww > maxW && rows[rows.length - 1].length) { rows.push([]); rowW = 0; }
+        rows[rows.length - 1].push({ word: w.word, width: ww, t: w.t });
+        rowW += ww + space;
+      }
+      const ky0 = -(rows.length - 1) * lh * 0.5;
+      rows.forEach((row, ri) => {
+        const total = row.reduce((s, it) => s + it.width, 0) + Math.max(0, row.length - 1) * space;
+        let x = c.align === 'left' ? 0 : c.align === 'right' ? -total : -total / 2;
+        const y = ky0 + ri * lh;
+        for (const it of row) {
+          if (c.stroke > 0) ctx.strokeText(it.word, x, y);
+          ctx.fillStyle = localT >= it.t ? c.sungColor : c.color;
+          ctx.fillText(it.word, x, y);
+          x += it.width + space;
+        }
+      });
+    } else {
+      lines.forEach((ln, i) => {
+        const y = cy0 + i * lh;
+        if (c.stroke > 0) ctx.strokeText(ln, 0, y);
+        ctx.fillStyle = fill;
+        ctx.fillText(ln, 0, y);
+      });
+    }
     ctx.restore();
   }, []);
 
