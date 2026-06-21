@@ -855,6 +855,15 @@ a { color: inherit; text-decoration: none; }
 
 .topmode-card .mode-desc { flex: 1; }
 
+/* Featured flagship: the Editor card spans two columns with a gold accent. */
+.topmode-card--editor {
+  grid-column: span 2;
+  border-color: var(--al-gold);
+  background: linear-gradient(135deg, var(--al-gold-soft, rgba(216,166,87,.10)), var(--al-surface));
+  box-shadow: 0 0 0 1px var(--al-gold-glow, rgba(216,166,87,.25)), 0 12px 36px rgba(0,0,0,.28);
+}
+.topmode-card--editor .mode-name { font-size: 22px; color: var(--al-gold); }
+
 .topmode-formats {
   display: flex;
   flex-wrap: wrap;
@@ -1965,6 +1974,7 @@ a { color: inherit; text-decoration: none; }
   .pipeline-steps { grid-template-columns: 1fr 1fr; }
 
   .modes-grid { grid-template-columns: 1fr; }
+  .topmode-card--editor { grid-column: span 1; }
 
   .privacy-promise-list { grid-template-columns: 1fr; }
 
@@ -2015,6 +2025,7 @@ a { color: inherit; text-decoration: none; }
   .footer-inner { flex-direction: column; align-items: flex-start; }
 
   .modes-grid { grid-template-columns: 1fr; }
+  .topmode-card--editor { grid-column: span 1; }
 
   .back-to-top { bottom: 20px; right: 16px; width: 36px; height: 36px; }
 

@@ -25,9 +25,11 @@
       'nav.lang':      'EN',
 
       // Top-level modes (headline)
-      'topmodes.eyebrow': '四大模式',
-      'topmodes.title':   '一個 App，四件事。',
-      'topmodes.sub':     '歌詞、字幕、清字、母帶——挑你需要的那一個，全部在你自己的電腦上完成。',
+      'topmodes.eyebrow': '完整 AI 工作室',
+      'topmodes.title':   '一個 App，整套創作工作室。',
+      'topmodes.sub':     '從歌詞、字幕、母帶、視覺化，到一個完整的影片剪輯室——整套創作流程，全在你自己的電腦上完成。',
+      'topmodes.e.name':  '剪輯室 Editor 🆕',
+      'topmodes.e.desc':  '完整的多軌影片剪輯室：把母帶、影片、字幕拖上時間軸，在畫面上直接移動／縮放／旋轉，轉場、濾鏡、關鍵影格、去背、子母畫面、攝影機晃動——還有別的剪輯軟體都沒有的「逐字對齊卡拉 OK 字幕」。GPU 加速匯出 MP4。比 CapCut 更完整，全程本機、不需上雲。',
       'topmodes.a.name':  '歌詞模式',
       'topmodes.a.desc':  'Demucs 人聲分離 → faster-whisper → 強制對齊，產出逐字時間軸歌詞。匯出 LRC / SRT / ASS 卡拉 OK / JSON。',
       'topmodes.b.name':  '影片轉字幕',
@@ -39,8 +41,8 @@
 
       // Hero
       'hero.eyebrow':  '免費 · 開源 · 本地優先 · 免獨立顯卡',
-      'hero.tagline':  '任何影片或歌曲，\n都能變成精準的字幕與歌詞。',
-      'hero.sub':      '把影片或音訊轉成乾淨字幕（SRT、WebVTT），或把歌曲轉成逐字時間軸歌詞（LRC、SRT、ASS 卡拉 OK、JSON）。faster-whisper 辨識，全跑在你自己的機器上——不上傳、不追蹤，連獨立顯卡都不用。',
+      'hero.tagline':  '從歌詞、字幕到成片，\n一整套本機 AI 影音工作室。',
+      'hero.sub':      '逐字歌詞與乾淨字幕、母帶處理、音樂視覺化，再用內建剪輯室剪成成片、GPU 匯出 MP4——全部以 faster-whisper 等本機 AI 完成，不上傳、不追蹤，連獨立顯卡都不用。',
       'hero.cta.win':  '下載 Windows 版',
       'hero.cta.gh':   'GitHub',
       'hero.badge.1':  'MIT 開源',
@@ -309,9 +311,11 @@
       'nav.lang':      '中文',
 
       // Top-level modes (headline)
-      'topmodes.eyebrow': 'Four Modes',
-      'topmodes.title':   'One app, four jobs.',
-      'topmodes.sub':     'Lyrics, subtitles, clean-up, mastering — pick the one you need. Every job runs on your own machine.',
+      'topmodes.eyebrow': 'A Full AI Studio',
+      'topmodes.title':   'One app, the whole studio.',
+      'topmodes.sub':     'From lyrics, subtitles, mastering and visualizers to a full video Editor — the entire creative workflow, all on your own machine.',
+      'topmodes.e.name':  'Editor 剪輯室 🆕',
+      'topmodes.e.desc':  'A full multitrack video editor — drag audio, video and subtitles onto a timeline, move/scale/rotate right on the preview, with transitions, filters, keyframes, chroma key, picture-in-picture and camera shake — plus word-by-word forced-aligned KARAOKE captions no other editor has. GPU-accelerated MP4 export. More complete than CapCut, fully local, no cloud.',
       'topmodes.a.name':  'Song Lyrics',
       'topmodes.a.desc':  'Demucs vocal separation → faster-whisper → forced alignment for word-level timed lyrics. Export LRC / SRT / ASS karaoke / JSON.',
       'topmodes.b.name':  'Video → Subtitles',
@@ -322,8 +326,8 @@
       'topmodes.d.desc':  'Drop a mix: genre/reference EQ, compression & stereo width, section (chorus/verse) dynamics, normalized to a loudness target (Streaming / Social) and exported as a 24-bit WAV. Deep manual controls too.',
 
       'hero.eyebrow':  'Free · Open Source · Local-First · No dGPU',
-      'hero.tagline':  'Any video or song becomes\nperfect subtitles and lyrics.',
-      'hero.sub':      'Turn any video or audio into clean subtitles (SRT, WebVTT), or turn a song into word-timed lyrics (LRC, SRT, ASS-karaoke, JSON). faster-whisper recognition — all on your own machine. No upload, no tracking, no discrete GPU required.',
+      'hero.tagline':  'Lyrics, subtitles, mastering, edit —\na whole local AI studio.',
+      'hero.sub':      'Word-timed lyrics and clean subtitles, mastering, music visualizers — then cut it all into a finished video in the built-in Editor and export with GPU. All powered by local AI (faster-whisper and more). No upload, no tracking, no discrete GPU required.',
       'hero.cta.win':  'Download for Windows',
       'hero.cta.gh':   'GitHub',
       'hero.badge.1':  'MIT Open Source',
