@@ -11,7 +11,7 @@ import {
   Crosshair, FileAudio, UploadCloud, Loader2, Play, Wrench, Download,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { listTools, runTool, fetchUrl, type ToolDef } from '../../api/tools';
+import { listTools, runTool, type ToolDef } from '../../api/tools';
 import { saveBinaryBlob } from '../export/saveFile';
 import { ApiError } from '../../api/client';
 import { useLang, useT } from '../../i18n';
@@ -33,8 +33,6 @@ export function ToolboxFlow() {
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [url, setUrl] = useState('');
-  const [rights, setRights] = useState(false);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -55,27 +53,19 @@ export function ToolboxFlow() {
   };
 
   const run = useCallback(async () => {
-    if (!sel) return;
-    if (sel.kind === 'fetch' ? !(url.trim() && rights) : !file) return;
+    if (!sel || !file) return;
     setRunning(true);
     setErr(null);
     setResult(null);
     setMsg(null);
     try {
-      if (sel.kind === 'fetch') {
-        const r = await fetchUrl(url.trim(), String(params.format ?? 'wav'));
+      const r = await runTool(sel.id, file, params);
+      if (r.kind === 'analyze') {
+        setResult(r.result);
+      } else {
         const ext = r.filename.split('.').pop() || 'wav';
         const out = await saveBinaryBlob(r.blob, r.filename, { name: 'Audio', extensions: [ext] });
         setMsg(out.kind === 'cancelled' ? null : t('tools.saved'));
-      } else {
-        const r = await runTool(sel.id, file!, params);
-        if (r.kind === 'analyze') {
-          setResult(r.result);
-        } else {
-          const ext = r.filename.split('.').pop() || 'wav';
-          const out = await saveBinaryBlob(r.blob, r.filename, { name: 'Audio', extensions: [ext] });
-          setMsg(out.kind === 'cancelled' ? null : t('tools.saved'));
-        }
       }
     } catch (e) {
       setErr(e instanceof ApiError && e.offline ? t('tools.err.offline')
@@ -83,7 +73,7 @@ export function ToolboxFlow() {
     } finally {
       setRunning(false);
     }
-  }, [sel, file, params, url, rights, t]);
+  }, [sel, file, params, t]);
 
   const label = (tool: ToolDef) => (lang === 'en' ? tool.labelEn : tool.label);
   const desc = (tool: ToolDef) => (lang === 'en' ? tool.descEn : tool.desc);
@@ -182,9 +172,9 @@ export function ToolboxFlow() {
           )}
 
           <button type="button" className="al-btn al-btn--primary al-btn--lg al-toolrun__go"
-            disabled={running || (sel.kind === 'fetch' ? !(url.trim() && rights) : !file)} onClick={run}>
-            {running ? <Loader2 size={18} className="al-spin" /> : sel.kind === 'fetch' ? <Download size={18} /> : <Play size={18} />}
-            {sel.kind === 'fetch' ? t('tools.fetch.go') : sel.kind === 'analyze' ? t('tools.analyze') : t('tools.run')}
+            disabled={running || !file} onClick={run}>
+            {running ? <Loader2 size={18} className="al-spin" /> : <Play size={18} />}
+            {sel.kind === 'analyze' ? t('tools.analyze') : t('tools.run')}
           </button>
 
           {err && <p className="al-toolrun__err">{err}</p>}

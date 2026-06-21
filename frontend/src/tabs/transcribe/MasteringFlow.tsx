@@ -24,6 +24,7 @@ import { AutomationLanes, newLane, toBackendAutomation, hasAutomation, type Auto
 import type { EqBand } from './mastering/eqMath';
 import { saveBinaryUrl } from '../export/saveFile';
 import type { MasterLoudness, MasterMeta, MasterAnalysis } from '../../api/master';
+import type { MasterPresetItem } from '../../api/types';
 import { ApiError } from '../../api/client';
 import { useMeta } from '../../state/useMeta';
 import { useMasterPresets, type CustomPreset } from '../../state/useMasterPresets';
@@ -56,9 +57,10 @@ export function MasteringFlow() {
     : [{ key: 'auto', label: 'Auto' }];
   const genreLabel = (k: string) => genres.find((g) => g.key === k)?.label ?? k;
   const lang = useLang();
-  const presetGroups = (meta.masterPresets?.groups && meta.masterPresets.groups.length)
-    ? meta.masterPresets.groups
-    : [{ key: 'genre', label: 'Genres', presets: genres.map((g) => ({ key: g.key, label: g.label })) }];
+  const presetGroups: { key: string; label: string; presets: MasterPresetItem[] }[] =
+    (meta.masterPresets?.groups && meta.masterPresets.groups.length)
+      ? meta.masterPresets.groups
+      : [{ key: 'genre', label: 'Genres', presets: genres.map((g) => ({ key: g.key, label: g.label })) }];
   const customPresets = useMasterPresets((s) => s.presets);
   const saveCustom = useMasterPresets((s) => s.save);
   const removeCustom = useMasterPresets((s) => s.remove);
