@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   DownloadCloud, Loader2, FolderOpen, Move, Music, Film, Sparkles,
-  Clapperboard, Mic2, Trash2, Link2, AlertTriangle,
+  Clapperboard, Mic2, Trash2, Link2, AlertTriangle, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { useMode } from '../../state/useMode';
 import { usePendingMedia } from '../../state/usePendingMedia';
@@ -63,6 +63,7 @@ export function DownloadFlow() {
   const [analysis, setAnalysis] = useState<SongAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [histOpen, setHistOpen] = useState(false);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -164,28 +165,33 @@ export function DownloadFlow() {
         <p className="al-tabpage__lede">{t('download.lede')}</p>
       </div>
 
-      {/* URL + probe */}
-      <section className="al-section al-download__urlrow">
-        <div className="al-download__inputwrap">
-          <Link2 size={16} className="al-download__inputicon" />
-          <input
-            type="url" className="al-download__url"
-            placeholder={t('download.urlPlaceholder')}
-            value={url} disabled={downloading}
-            onChange={(e) => { setUrl(e.target.value); }}
-            onKeyDown={(e) => { if (e.key === 'Enter') doProbe(); }}
-          />
+      {/* ① Source URL */}
+      <section className="al-section al-download__step">
+        <p className="al-download__steplabel">{t('download.step.url')}</p>
+        <div className="al-download__urlrow">
+          <div className="al-download__inputwrap">
+            <Link2 size={16} className="al-download__inputicon" />
+            <input
+              type="url" className="al-download__url"
+              placeholder={t('download.urlPlaceholder')}
+              value={url} disabled={downloading}
+              onChange={(e) => { setUrl(e.target.value); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') doProbe(); }}
+            />
+          </div>
+          <button type="button" className="al-btn al-btn--primary al-download__probe"
+                  disabled={!url.trim() || status === 'probing' || downloading} onClick={doProbe}>
+            {status === 'probing' ? <Loader2 size={16} className="al-spin" /> : <DownloadCloud size={16} />}
+            {t('download.probe')}
+          </button>
         </div>
-        <button type="button" className="al-btn al-btn--primary al-download__probe"
-                disabled={!url.trim() || status === 'probing' || downloading} onClick={doProbe}>
-          {status === 'probing' ? <Loader2 size={16} className="al-spin" /> : <DownloadCloud size={16} />}
-          {t('download.probe')}
-        </button>
       </section>
 
-      {/* probed metadata + format chooser */}
+      {/* ② Choose format + download */}
       {probe && (
-        <section className="al-section al-download__pick">
+        <section className="al-section al-download__step al-download__pick">
+          <p className="al-download__steplabel">{t('download.step.format')}</p>
+
           <div className="al-download__meta">
             {probe.meta.thumbnail && <img src={probe.meta.thumbnail} alt="" className="al-download__thumb" />}
             <div className="al-download__metatext">
@@ -198,46 +204,52 @@ export function DownloadFlow() {
             </div>
           </div>
 
-          {/* type toggle */}
-          <div className="al-download__kinds">
-            <button type="button" className={`al-download__kind${kind === 'audio' ? ' is-on' : ''}`}
+          {/* segmented audio / video toggle */}
+          <div className="al-download__seg" role="tablist">
+            <button type="button" role="tab" aria-selected={kind === 'audio'}
+                    className={`al-download__segbtn${kind === 'audio' ? ' is-on' : ''}`}
                     onClick={() => setKind('audio')} disabled={downloading}>
               <Music size={15} /> {t('download.typeAudio')}
             </button>
-            <button type="button" className={`al-download__kind${kind === 'video' ? ' is-on' : ''}`}
+            <button type="button" role="tab" aria-selected={kind === 'video'}
+                    className={`al-download__segbtn${kind === 'video' ? ' is-on' : ''}`}
                     onClick={() => setKind('video')} disabled={downloading}>
               <Film size={15} /> {t('download.typeVideo')}
             </button>
           </div>
 
-          {/* format options */}
           {kind === 'audio' ? (
-            <div className="al-download__formats">
-              {probe.audioOutputs.map((f) => (
-                <label key={f} className={`al-download__fmt${audioFmt === f ? ' is-on' : ''}`}>
-                  <input type="radio" name="audiofmt" value={f} checked={audioFmt === f}
-                         disabled={downloading} onChange={() => setAudioFmt(f)} />
-                  {f.toUpperCase()}
-                </label>
-              ))}
-            </div>
+            <>
+              <div className="al-download__formats">
+                {probe.audioOutputs.map((f) => (
+                  <label key={f} className={`al-download__fmt${audioFmt === f ? ' is-on' : ''}`}>
+                    <input type="radio" name="audiofmt" value={f} checked={audioFmt === f}
+                           disabled={downloading} onChange={() => setAudioFmt(f)} />
+                    {f.toUpperCase()}
+                  </label>
+                ))}
+              </div>
+              <p className="al-download__fmthint">{t('download.audioHint')}</p>
+            </>
           ) : (
-            <div className="al-download__formats al-download__formats--video">
-              {probe.videoOptions.length === 0 && <span className="al-download__novideo">{t('download.videoNone')}</span>}
-              {probe.videoOptions.map((v) => (
-                <label key={v.formatId}
-                       className={`al-download__fmt${videoFmtId === v.formatId ? ' is-on' : ''}${v.supported ? '' : ' is-disabled'}`}
-                       title={v.supported ? '' : t('download.needsMerge')}>
-                  <input type="radio" name="videofmt" value={v.formatId} checked={videoFmtId === v.formatId}
-                         disabled={downloading || !v.supported} onChange={() => setVideoFmtId(v.formatId)} />
-                  {v.height ? `${v.height}p` : v.ext} <small>{v.ext}</small>
-                  {!v.supported && <span className="al-download__unsupported">{t('download.unsupported')}</span>}
-                </label>
-              ))}
-            </div>
+            <>
+              <div className="al-download__formats al-download__formats--video">
+                {probe.videoOptions.length === 0 && <span className="al-download__novideo">{t('download.videoNone')}</span>}
+                {probe.videoOptions.map((v) => (
+                  <label key={v.formatId}
+                         className={`al-download__fmt${videoFmtId === v.formatId ? ' is-on' : ''}${v.supported ? '' : ' is-disabled'}`}
+                         title={v.supported ? '' : t('download.needsMerge')}>
+                    <input type="radio" name="videofmt" value={v.formatId} checked={videoFmtId === v.formatId}
+                           disabled={downloading || !v.supported} onChange={() => setVideoFmtId(v.formatId)} />
+                    {v.height ? `${v.height}p` : v.ext} <small>{v.ext}</small>
+                    {!v.supported && <span className="al-download__unsupported">{t('download.unsupported')}</span>}
+                  </label>
+                ))}
+              </div>
+              <p className="al-download__fmthint">{t('download.videoHint')}</p>
+            </>
           )}
 
-          {/* rights + download */}
           <label className="al-download__rights">
             <input type="checkbox" checked={rights} disabled={downloading}
                    onChange={(e) => setRights(e.target.checked)} />
@@ -254,51 +266,58 @@ export function DownloadFlow() {
       {err && <p className="al-download__err">{err}</p>}
       {msg && <p className="al-download__msg">{msg}</p>}
 
-      {/* result actions */}
+      {/* ③ Done — file actions + what next */}
       {result && (
-        <section className="al-section al-download__result">
+        <section className="al-section al-download__step al-download__result">
+          <p className="al-download__steplabel">{t('download.step.done')}</p>
+
           <div className="al-download__resulthead">
             {result.kind === 'video' ? <Film size={18} /> : <Music size={18} />}
             <span className="al-download__resultname">{result.filename}</span>
             <span className="al-download__resultext">{result.ext.toUpperCase()}</span>
           </div>
 
-          <div className="al-download__actions">
-            {result.path && (
-              <div className="al-download__drag" draggable
-                   onDragStart={(e) => onDragStart(e, result.path)}
-                   title={t('download.dragHint')}>
-                <Move size={15} /> {t('download.drag')}
-              </div>
-            )}
-            {result.path && (
-              <button type="button" className="al-btn al-download__act" onClick={() => revealPath(result.path!)}>
-                <FolderOpen size={15} /> {t('download.reveal')}
+          <div className="al-download__group">
+            <span className="al-download__grouplabel">{t('download.group.file')}</span>
+            <div className="al-download__actions">
+              {result.path && (
+                <div className="al-download__drag" draggable
+                     onDragStart={(e) => onDragStart(e, result.path)}
+                     title={t('download.dragHint')}>
+                  <Move size={15} /> {t('download.drag')}
+                </div>
+              )}
+              {result.path && (
+                <button type="button" className="al-btn al-download__act" onClick={() => revealPath(result.path!)}>
+                  <FolderOpen size={15} /> {t('download.reveal')}
+                </button>
+              )}
+              <button type="button" className="al-btn al-download__act"
+                      onClick={() => saveBinaryBlob(result.blob, result.filename, { name: 'Media', extensions: [result.ext] })}>
+                <DownloadCloud size={15} /> {t('download.saveAs')}
               </button>
-            )}
-            <button type="button" className="al-btn al-download__act"
-                    onClick={() => saveBinaryBlob(result.blob, result.filename, { name: 'Media', extensions: [result.ext] })}>
-              <DownloadCloud size={15} /> {t('download.saveAs')}
-            </button>
+            </div>
           </div>
 
-          {/* hand-off + analyze */}
-          <div className="al-download__handoff">
-            <button type="button" className="al-btn al-btn--ghost al-download__act" onClick={() => handoff('video')}>
-              <Clapperboard size={15} /> {t('download.toVideo')}
-            </button>
-            <button type="button" className="al-btn al-btn--ghost al-download__act" onClick={() => handoff('song')}>
-              <Mic2 size={15} /> {t('download.toSong')}
-            </button>
-            {avail.analyzeAvailable && (
-              <button type="button" className="al-btn al-btn--primary al-download__act"
-                      disabled={analyzing} onClick={doAnalyze}>
-                {analyzing ? <Loader2 size={15} className="al-spin" /> : <Sparkles size={15} />}
-                {analyzing ? t('download.analyzing') : t('download.analyze')}
+          <div className="al-download__group">
+            <span className="al-download__grouplabel">{t('download.group.next')}</span>
+            <div className="al-download__actions">
+              <button type="button" className="al-btn al-btn--ghost al-download__act" onClick={() => handoff('video')}>
+                <Clapperboard size={15} /> {t('download.toVideo')}
               </button>
-            )}
+              <button type="button" className="al-btn al-btn--ghost al-download__act" onClick={() => handoff('song')}>
+                <Mic2 size={15} /> {t('download.toSong')}
+              </button>
+              {avail.analyzeAvailable && (
+                <button type="button" className="al-btn al-btn--primary al-download__act"
+                        disabled={analyzing} onClick={doAnalyze}>
+                  {analyzing ? <Loader2 size={15} className="al-spin" /> : <Sparkles size={15} />}
+                  {analyzing ? t('download.analyzing') : t('download.analyze')}
+                </button>
+              )}
+            </div>
+            <p className="al-download__handoffhint">{t('download.handoffHint')}</p>
           </div>
-          <p className="al-download__handoffhint">{t('download.handoffHint')}</p>
         </section>
       )}
 
@@ -309,13 +328,17 @@ export function DownloadFlow() {
         </section>
       )}
 
-      {/* history */}
+      {/* history (collapsible) */}
       {history.length > 0 && (
         <section className="al-section al-download__history">
           <div className="al-download__histhead">
-            <h3 className="al-download__histtitle">{t('download.history')}</h3>
-            <button type="button" className="al-download__clear" onClick={clearHistory}>{t('download.clearHistory')}</button>
+            <button type="button" className="al-download__histtoggle" onClick={() => setHistOpen((o) => !o)}>
+              {histOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+              {t('download.history')} ({history.length})
+            </button>
+            {histOpen && <button type="button" className="al-download__clear" onClick={clearHistory}>{t('download.clearHistory')}</button>}
           </div>
+          {histOpen && (
           <ul className="al-download__histlist">
             {history.map((h) => (
               <li key={h.id} className="al-download__histitem">
@@ -344,6 +367,7 @@ export function DownloadFlow() {
               </li>
             ))}
           </ul>
+          )}
         </section>
       )}
 

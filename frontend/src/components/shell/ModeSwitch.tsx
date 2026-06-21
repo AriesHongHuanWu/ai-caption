@@ -26,7 +26,8 @@ const MODE_DEFS: Record<AppMode, { labelKey: string; titleKey: string; icon: Luc
 };
 
 const CATEGORIES: { key: string; labelKey: string; modes: AppMode[] }[] = [
-  { key: 'audio', labelKey: 'common.cat.audio', modes: ['song', 'download', 'master', 'tools'] },
+  { key: 'get', labelKey: 'common.cat.get', modes: ['download'] },
+  { key: 'audio', labelKey: 'common.cat.audio', modes: ['song', 'master', 'tools'] },
   { key: 'video', labelKey: 'common.cat.video', modes: ['video', 'clean'] },
 ];
 

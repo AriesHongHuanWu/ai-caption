@@ -114,6 +114,55 @@
 .al-download__histdrag { cursor: grab; }
 .al-download__legal { font-size: var(--al-text-xs); color: var(--al-ink-faint); margin-top: 12px; line-height: 1.5; }
 
+/* ── stepped, decluttered layout ────────────────────────────────────── */
+.al-download__step {
+  border: 1px solid var(--al-hairline);
+  border-radius: var(--al-radius-panel);
+  padding: var(--al-pad-panel);
+  background: var(--al-surface);
+}
+.al-download__steplabel {
+  margin: 0 0 12px;
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  letter-spacing: var(--al-tracking-caps);
+  color: var(--al-gold);
+}
+/* segmented audio / video control */
+.al-download__seg {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--al-hairline);
+  border-radius: var(--al-radius-chip, 9px);
+  background: var(--al-surface-2);
+}
+.al-download__segbtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 20px;
+  border: none; border-radius: 7px;
+  background: transparent; color: var(--al-ink-muted);
+  font-size: var(--al-text-sm); cursor: pointer;
+  transition: all var(--al-dur-focus) var(--al-ease-ink);
+}
+.al-download__segbtn:not(.is-on):hover { color: var(--al-ink); }
+.al-download__segbtn.is-on { background: var(--al-gold-glow, rgba(216,166,87,.14)); color: var(--al-gold); }
+.al-download__fmthint { margin: 2px 0 0; font-size: var(--al-text-xs); color: var(--al-ink-faint); }
+/* result action groups */
+.al-download__group { display: flex; flex-direction: column; gap: 7px; }
+.al-download__grouplabel {
+  font-family: var(--al-font-mono); font-size: var(--al-text-xs);
+  text-transform: uppercase; letter-spacing: var(--al-tracking-caps);
+  color: var(--al-ink-faint);
+}
+/* collapsible history */
+.al-download__histtoggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: none; cursor: pointer; padding: 0;
+  font-size: var(--al-text-md); font-weight: 600; color: var(--al-ink);
+}
+.al-download__histtoggle:hover { color: var(--al-gold); }
+
 /* ── analysis panel ─────────────────────────────────────────────────── */
 .al-songanl { display: flex; flex-direction: column; gap: 18px; }
 .al-songanl__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }

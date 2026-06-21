@@ -30,6 +30,7 @@ export const common: Record<string, Entry> = {
   'common.cat.pinned': { zh: '釘選', en: 'Pinned' },
   'common.cat.audio': { zh: '音訊製作', en: 'Audio' },
   'common.cat.video': { zh: '影片製作', en: 'Video' },
+  'common.cat.get': { zh: '取得素材', en: 'Get media' },
   'common.pin.add': { zh: '釘選到最上面', en: 'Pin to top' },
   'common.pin.remove': { zh: '取消釘選', en: 'Unpin' },
   'common.mode.songTitle': {
@@ -95,6 +96,13 @@ export const common: Record<string, Entry> = {
   },
   'download.urlPlaceholder': { zh: '貼上影片/音訊網址(YouTube、SoundCloud、Vimeo…)', en: 'Paste a video/audio URL (YouTube, SoundCloud, Vimeo…)' },
   'download.probe': { zh: '讀取格式', en: 'Get formats' },
+  'download.step.url': { zh: '① 貼上網址', en: '① Paste a URL' },
+  'download.step.format': { zh: '② 選擇音訊或影片格式,然後下載', en: '② Choose audio or video, then download' },
+  'download.step.done': { zh: '③ 完成 — 接著做什麼', en: '③ Done — what next' },
+  'download.audioHint': { zh: 'WAV / FLAC 無損(適合再處理);MP3 / OGG 體積小。一律抓最佳音質。', en: 'WAV / FLAC are lossless (best for further work); MP3 / OGG are smaller. Always grabs the best-quality audio.' },
+  'download.videoHint': { zh: '可直接下載的解析度;更高的需要合併音軌(顯示為「不支援」)。', en: 'Directly downloadable resolutions; higher ones need audio merging (shown as "Unsupported").' },
+  'download.group.file': { zh: '檔案', en: 'File' },
+  'download.group.next': { zh: '接著分析 / 送到', en: 'Analyze / send to' },
   'download.rights': {
     zh: '我確認我有權下載這段內容(我自己的作品、Creative Commons、免版稅,或已取得授權的 beats)。',
     en: 'I confirm I have the right to download this content (my own work, Creative Commons, royalty-free, or licensed beats).',
