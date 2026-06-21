@@ -16,7 +16,7 @@ import { docDuration, makeClip, uid } from './types';
 
 function defaultDoc(): EditDoc {
   return {
-    width: 1280, height: 720, fps: 30, bg: '#000000',
+    width: 1280, height: 720, fps: 30, bg: '#000000', markers: [],
     tracks: [
       { id: uid('trk'), kind: 'text', name: 'Text', muted: false, hidden: false, locked: false, clips: [] },
       { id: uid('trk'), kind: 'visual', name: 'V1', muted: false, hidden: false, locked: false, clips: [] },
@@ -80,6 +80,9 @@ interface EditorState {
   setSize: (w: number, h: number) => void;
   setFps: (fps: number) => void;
   setBg: (bg: string) => void;
+  addMarker: (t: number) => void;
+  removeMarker: (id: string) => void;
+  clearMarkers: () => void;
   reset: () => void;
 }
 
@@ -277,6 +280,9 @@ export const useEditor = create<EditorState>((set, get) => {
     setSize: (w, h) => apply((d) => ({ ...d, width: w, height: h })),
     setFps: (fps) => apply((d) => ({ ...d, fps })),
     setBg: (bg) => apply((d) => ({ ...d, bg })),
+    addMarker: (t) => apply((d) => ({ ...d, markers: [...d.markers, { id: uid('mk'), t: Math.max(0, t), label: '', color: '#d8a657' }].sort((a, b) => a.t - b.t) })),
+    removeMarker: (id) => apply((d) => ({ ...d, markers: d.markers.filter((mk) => mk.id !== id) })),
+    clearMarkers: () => apply((d) => ({ ...d, markers: [] })),
     reset: () => set({ doc: defaultDoc(), selectedId: null, playhead: 0, past: [], future: [] }),
   };
 });

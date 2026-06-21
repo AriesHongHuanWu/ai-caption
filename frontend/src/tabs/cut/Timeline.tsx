@@ -45,17 +45,20 @@ interface Props {
   pxPerSec: number;
   onSeek: (t: number) => void;
   cursorRef: React.RefObject<HTMLDivElement | null>;
+  tool: 'select' | 'razor';
 }
 
 type DragMode = 'move' | 'left' | 'right';
 const SNAP_PX = 8;
 
-export function Timeline({ pxPerSec, onSeek, cursorRef }: Props) {
+export function Timeline({ pxPerSec, onSeek, cursorRef, tool }: Props) {
   const doc = useEditor((s) => s.doc);
   const selectedId = useEditor((s) => s.selectedId);
   const select = useEditor((s) => s.select);
   const moveClip = useEditor((s) => s.moveClip);
   const trimClip = useEditor((s) => s.trimClip);
+  const splitClip = useEditor((s) => s.splitClip);
+  const removeMarker = useEditor((s) => s.removeMarker);
   const toggleTrack = useEditor((s) => s.toggleTrack);
   const removeTrack = useEditor((s) => s.removeTrack);
   const renameTrack = useEditor((s) => s.renameTrack);
@@ -69,6 +72,7 @@ export function Timeline({ pxPerSec, onSeek, cursorRef }: Props) {
   const snapTime = useCallback((t: number, selfId: string) => {
     const thr = SNAP_PX / pxPerSec;
     const points = [0, useEditor.getState().playhead];
+    for (const mk of doc.markers) points.push(mk.t);
     for (const tr of doc.tracks) for (const c of tr.clips) { if (c.id === selfId) continue; points.push(c.start); points.push(c.start + c.duration); }
     let best = t; let bestD = thr;
     for (const p of points) { const d = Math.abs(p - t); if (d < bestD) { bestD = d; best = p; } }
@@ -114,6 +118,12 @@ export function Timeline({ pxPerSec, onSeek, cursorRef }: Props) {
     e.stopPropagation();
     select(c.id);
     if (locked) return;
+    // razor tool: a click on a clip body splits it at the click point
+    if (mode === 'move' && tool === 'razor') {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      splitClip(c.id, c.start + (e.clientX - rect.left) / pxPerSec);
+      return;
+    }
     drag.current = { id: c.id, mode, kind, startX: e.clientX, origStart: c.start, origDur: c.duration };
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', endDrag);
@@ -130,11 +140,17 @@ export function Timeline({ pxPerSec, onSeek, cursorRef }: Props) {
   for (let s = 0; s <= dur + 4; s += step) ticks.push(s);
 
   return (
-    <div className="al-cut__timeline">
+    <div className={`al-cut__timeline${tool === 'razor' ? ' al-cut__timeline--razor' : ''}`}>
       <div className="al-cut__tlscroll">
         <div className="al-cut__lanes" style={{ width: laneW }}>
           <div className="al-cut__ruler" onMouseDown={(e) => seekAt(e, e.currentTarget)}>
             {ticks.map((s) => <span key={s} className="al-cut__tick" style={{ left: s * pxPerSec }}>{fmtTick(s)}</span>)}
+            {doc.markers.map((mk) => (
+              <span key={mk.id} className="al-cut__marker" style={{ left: mk.t * pxPerSec, background: mk.color }}
+                    title="click = seek · double-click = remove"
+                    onMouseDown={(e) => { e.stopPropagation(); onSeek(mk.t); }}
+                    onDoubleClick={(e) => { e.stopPropagation(); removeMarker(mk.id); }} />
+            ))}
           </div>
 
           {doc.tracks.map((tr) => (

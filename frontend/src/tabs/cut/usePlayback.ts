@@ -71,6 +71,7 @@ export interface Playback {
   hqAvailable: boolean;
   getTime: () => number;
   getSelectedBox: () => SelBox | null;
+  snapshot: () => Promise<void>;
   clearMsg: () => void;
 }
 
@@ -227,9 +228,22 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
     ctx.translate(W / 2 + tr.x + m.tx + sk.dx, H / 2 + tr.y + m.ty + sk.dy);
     ctx.rotate(((tr.rotation + m.rot + sk.drot) * Math.PI) / 180);
     ctx.scale((c.flipH ? -1 : 1) * tr.scale * m.sc, (c.flipV ? -1 : 1) * tr.scale * m.sc);
+    // PiP frame: drop shadow behind the media (before any clip)
+    const fr = c.frame;
+    const rad = fr.radius > 0 ? Math.min(fr.radius, Math.min(dw, dh) / 2) : 0;
+    if (fr.shadow > 0) {
+      ctx.save();
+      ctx.shadowColor = `rgba(0,0,0,${(0.45 + fr.shadow * 0.45).toFixed(2)})`;
+      ctx.shadowBlur = fr.shadow * 45;
+      ctx.shadowOffsetY = fr.shadow * 12;
+      ctx.fillStyle = '#000';
+      if (rad > 0) roundRect(ctx, -dw / 2, -dh / 2, dw, dh, rad); else { ctx.beginPath(); ctx.rect(-dw / 2, -dh / 2, dw, dh); }
+      ctx.fill();
+      ctx.restore();
+    }
     // mask: clip the media to a shape (in local space, follows the transform)
     if (c.mask === 'circle') { ctx.beginPath(); ctx.ellipse(0, 0, dw / 2, dh / 2, 0, 0, Math.PI * 2); ctx.clip(); }
-    else if (c.mask === 'rounded') { roundRect(ctx, -dw / 2, -dh / 2, dw, dh, Math.min(dw, dh) * 0.12); ctx.clip(); }
+    else if (c.mask === 'rounded' || rad > 0) { roundRect(ctx, -dw / 2, -dh / 2, dw, dh, c.mask === 'rounded' ? Math.min(dw, dh) * 0.12 : rad); ctx.clip(); }
     // wipe transition clips in local space
     if (m.clipFrac < 1) { ctx.beginPath(); ctx.rect(-dw / 2, -dh / 2, dw * m.clipFrac, dh); ctx.clip(); }
     if (c.glitch > 0) {
@@ -247,6 +261,14 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
       ctx.globalCompositeOperation = 'multiply';
       ctx.fillStyle = `rgba(0,0,0,${(c.scan * 0.5).toFixed(2)})`;
       for (let y = -dh / 2; y < dh / 2; y += 3) ctx.fillRect(-dw / 2, y, dw, 1.4);
+    }
+    if (fr.border > 0) {
+      ctx.filter = 'none';
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.lineWidth = fr.border * 2; // inner half shows through the clip
+      ctx.strokeStyle = fr.borderColor;
+      if (rad > 0) roundRect(ctx, -dw / 2, -dh / 2, dw, dh, rad); else { ctx.beginPath(); ctx.rect(-dw / 2, -dh / 2, dw, dh); }
+      ctx.stroke();
     }
     ctx.restore();
   }, []);
@@ -461,6 +483,16 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
   const getTime = useCallback(() => tRef.current, []);
   const clearMsg = useCallback(() => setMsg(null), []);
 
+  const snapshot = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    await renderFrameAt(useEditor.getState().doc, tRef.current);
+    const blob = await new Promise<Blob | null>((res) => canvas.toBlob((b) => res(b), 'image/png'));
+    if (!blob) { setMsg('failed'); return; }
+    try { await saveBinaryBlob(blob, `frame_${Math.round(tRef.current * 100)}.png`, { name: 'Image', extensions: ['png'] }); setMsg('saved'); }
+    catch { setMsg('failed'); }
+  }, [canvasRef, renderFrameAt]);
+
   const getSelectedBox = useCallback((): SelBox | null => {
     const st = useEditor.getState();
     const id = st.selectedId;
@@ -586,5 +618,5 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
     }
   }, [canvasRef, ensureAudio, exportVideo, syncPool, renderFrameAt, seekTo, onExported]);
 
-  return { playing, exporting, expPct, msg, play, pause, toggle, seekTo, exportVideo, exportVideoHQ, hqAvailable: webcodecsSupported(), getTime, getSelectedBox, clearMsg };
+  return { playing, exporting, expPct, msg, play, pause, toggle, seekTo, exportVideo, exportVideoHQ, hqAvailable: webcodecsSupported(), getTime, getSelectedBox, snapshot, clearMsg };
 }

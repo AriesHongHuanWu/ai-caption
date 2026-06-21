@@ -158,6 +158,11 @@ export function Inspector({ en, onSplit, getTime }: Props) {
                 <Slider label={en ? 'Smooth' : '羽化'} min={0} max={0.5} step={0.02} value={c.chroma.smooth} onChange={(v) => up({ chroma: { ...c.chroma, smooth: v } })} />
               </>
             )}
+            <span className="al-cut__rowlabel">{en ? 'PiP frame' : '子母畫面外框'}</span>
+            <Slider label={en ? 'Shadow' : '陰影'} min={0} max={1} step={0.05} value={c.frame.shadow} onChange={(v) => up({ frame: { ...c.frame, shadow: v } })} />
+            <Slider label={en ? 'Border' : '外框'} min={0} max={24} step={1} value={c.frame.border} onChange={(v) => up({ frame: { ...c.frame, border: v } })} />
+            {c.frame.border > 0 && <label className="al-cut__rowmini">{en ? 'Border color' : '外框色'} <input type="color" value={c.frame.borderColor} onChange={(e) => up({ frame: { ...c.frame, borderColor: e.target.value } })} /></label>}
+            <Slider label={en ? 'Corner radius' : '圓角'} min={0} max={240} step={2} value={c.frame.radius} onChange={(v) => up({ frame: { ...c.frame, radius: v } })} />
           </>
         )}
 

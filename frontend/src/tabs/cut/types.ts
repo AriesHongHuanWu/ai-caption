@@ -84,6 +84,7 @@ export interface Clip {
   glitch: number; // 0..1 digital slice displacement
   scan: number; // 0..1 scanline overlay
   shake: Shake; // camera shake / motion
+  frame: { shadow: number; border: number; borderColor: string; radius: number }; // PiP frame
 
   /* timing */
   speed: number; // 1 = normal (video/audio)
@@ -132,12 +133,15 @@ export interface Track {
   clips: Clip[];
 }
 
+export interface Marker { id: string; t: number; label: string; color: string; }
+
 export interface EditDoc {
   tracks: Track[];
   width: number;
   height: number;
   fps: number;
   bg: string;
+  markers: Marker[];
 }
 
 /** A media item in the asset bin (resolved metadata, reused by clips). */
@@ -183,6 +187,7 @@ export function makeClip(kind: ClipKind, over: Partial<Clip>): Clip {
     glitch: over.glitch ?? 0,
     scan: over.scan ?? 0,
     shake: over.shake ?? { mode: 'none', amount: 0.3, speed: 1 },
+    frame: over.frame ?? { shadow: 0, border: 0, borderColor: '#ffffff', radius: 0 },
     speed: over.speed ?? 1,
     transIn: over.transIn ?? { type: 'none', dur: 0.5 },
     transOut: over.transOut ?? { type: 'none', dur: 0.5 },

@@ -7,7 +7,7 @@
    ────────────────────────────────────────────────────────────────── */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Play, Pause, Film, Loader2, Scissors, ZoomIn, ZoomOut, Plus, RotateCcw, Undo2, Redo2, Keyboard } from 'lucide-react';
+import { Play, Pause, Film, Loader2, Scissors, ZoomIn, ZoomOut, Plus, RotateCcw, Undo2, Redo2, Keyboard, Slice, Flag, Camera, MousePointer2 } from 'lucide-react';
 import { useLang } from '../../i18n';
 import { useEditor, docDuration } from './useEditor';
 import { usePlayback } from './usePlayback';
@@ -67,6 +67,9 @@ export function CutFlow() {
   const setBg = useEditor((s) => s.setBg);
   const addTrack = useEditor((s) => s.addTrack);
   const reset = useEditor((s) => s.reset);
+  const addMarker = useEditor((s) => s.addMarker);
+  const clearMarkers = useEditor((s) => s.clearMarkers);
+  const markerCount = useEditor((s) => s.doc.markers.length);
   const undo = useEditor((s) => s.undo);
   const redo = useEditor((s) => s.redo);
   const canUndo = useEditor((s) => s.past.length > 0);
@@ -79,6 +82,7 @@ export function CutFlow() {
   const [fps, setFps] = useState(30);
   const [format, setFormat] = useState<'mp4' | 'webm'>('mp4');
   const [help, setHelp] = useState(false);
+  const [tool, setTool] = useState<'select' | 'razor'>('select');
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const poolRef = useRef<HTMLDivElement | null>(null);
@@ -176,6 +180,15 @@ export function CutFlow() {
 
       <div className="al-cut__tools">
         <div className="al-cut__toolgroup">
+          <button type="button" className={`al-cut__tbtn${tool === 'select' ? ' is-on' : ''}`} onClick={() => setTool('select')} title={en ? 'Select tool' : '選取工具'}><MousePointer2 size={14} /></button>
+          <button type="button" className={`al-cut__tbtn${tool === 'razor' ? ' is-on' : ''}`} onClick={() => setTool('razor')} title={en ? 'Razor — click a clip to split' : '刀片 — 點片段切割'}><Slice size={14} /></button>
+        </div>
+        <div className="al-cut__toolgroup">
+          <button type="button" className="al-cut__tbtn" onClick={() => addMarker(pb.getTime())} title={en ? 'Add marker at playhead' : '在播放頭加標記'}><Flag size={13} /> {markerCount > 0 ? markerCount : ''}</button>
+          {markerCount > 0 && <button type="button" className="al-cut__tbtn" onClick={clearMarkers} title={en ? 'Clear markers' : '清除標記'}><RotateCcw size={12} /></button>}
+          <button type="button" className="al-cut__tbtn" onClick={() => void pb.snapshot()} title={en ? 'Save current frame (PNG)' : '存目前畫格 (PNG)'}><Camera size={13} /></button>
+        </div>
+        <div className="al-cut__toolgroup">
           <button type="button" className="al-cut__tbtn" onClick={() => setPxPerSec((p) => Math.max(8, p / 1.4))} title="zoom out"><ZoomOut size={14} /></button>
           <button type="button" className="al-cut__tbtn" onClick={() => setPxPerSec((p) => Math.min(200, p * 1.4))} title="zoom in"><ZoomIn size={14} /></button>
         </div>
@@ -192,7 +205,7 @@ export function CutFlow() {
         </div>
       </div>
 
-      <Timeline pxPerSec={pxPerSec} onSeek={pb.seekTo} cursorRef={cursorRef} />
+      <Timeline pxPerSec={pxPerSec} onSeek={pb.seekTo} cursorRef={cursorRef} tool={tool} />
 
       <div ref={poolRef} className="al-cut__pool" aria-hidden="true" />
 
