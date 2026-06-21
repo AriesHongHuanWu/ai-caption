@@ -163,6 +163,7 @@ export function CutFlow() {
             <select className="al-cut__select al-cut__select--sm" value={format} onChange={(e) => setFormat(e.target.value as 'mp4' | 'webm')}>
               <option value="mp4">MP4</option><option value="webm">WebM</option>
             </select>
+            <button type="button" className="al-btn al-btn--ghost al-btn--sm" onClick={() => void pb.exportAudio(name)} disabled={pb.exporting} title={en ? 'Export audio only (WAV)' : '只匯出音訊 (WAV)'}>WAV</button>
           </div>
           {pb.exporting && <p className="al-cut__exphint">{en ? 'Rendering at full quality — keep this window focused. GPU export renders offline (faster than real-time for stills/captions).' : '正在以最高品質輸出 — 請保持此視窗在前景。GPU 匯出為離線算圖(靜態/字幕快於即時)。'}</p>}
           {pb.msg === 'saved' && !pb.exporting && (

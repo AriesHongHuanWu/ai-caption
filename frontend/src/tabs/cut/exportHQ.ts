@@ -38,6 +38,34 @@ export interface HQParams {
   onProgress: (pct: number) => void;
 }
 
+/** Encode an AudioBuffer to a 16-bit PCM WAV Blob (no dependency). */
+export function audioBufferToWav(buf: AudioBuffer): Blob {
+  const numCh = Math.min(2, buf.numberOfChannels);
+  const sr = buf.sampleRate;
+  const n = buf.length;
+  const blockAlign = numCh * 2;
+  const dataLen = n * blockAlign;
+  const ab = new ArrayBuffer(44 + dataLen);
+  const view = new DataView(ab);
+  const ws = (off: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+  ws(0, 'RIFF'); view.setUint32(4, 36 + dataLen, true); ws(8, 'WAVE');
+  ws(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, numCh, true); view.setUint32(24, sr, true);
+  view.setUint32(28, sr * blockAlign, true); view.setUint16(32, blockAlign, true); view.setUint16(34, 16, true);
+  ws(36, 'data'); view.setUint32(40, dataLen, true);
+  const chans: Float32Array[] = [];
+  for (let c = 0; c < numCh; c++) chans.push(buf.getChannelData(c));
+  let off = 44;
+  for (let i = 0; i < n; i++) {
+    for (let c = 0; c < numCh; c++) {
+      const s = Math.max(-1, Math.min(1, chans[c][i]));
+      view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      off += 2;
+    }
+  }
+  return new Blob([ab], { type: 'audio/wav' });
+}
+
 export function webcodecsSupported(): boolean {
   return typeof VideoEncoder !== 'undefined' && typeof AudioEncoder !== 'undefined'
     && typeof VideoFrame !== 'undefined' && typeof AudioData !== 'undefined'
@@ -58,7 +86,7 @@ async function pickCodec(width: number, height: number, fps: number, bitrate: nu
   return 'avc1.42E01E';
 }
 
-async function mixAudio(audio: AudioDesc[], duration: number, sampleRate: number): Promise<AudioBuffer> {
+export async function mixAudio(audio: AudioDesc[], duration: number, sampleRate: number): Promise<AudioBuffer> {
   const frames = Math.max(1, Math.ceil(duration * sampleRate));
   const oac = new OfflineAudioContext(2, frames, sampleRate);
   const master = oac.createGain();

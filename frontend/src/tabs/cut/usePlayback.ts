@@ -16,7 +16,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { saveBinaryBlob } from '../export/saveFile';
 import { useEditor, docDuration } from './useEditor';
 import { buildFilter, transformAt, transitionMod, textAnim, chromaKey, shakeMod } from './effects';
-import { exportHQ, webcodecsSupported, type AudioDesc } from './exportHQ';
+import { exportHQ, webcodecsSupported, mixAudio, audioBufferToWav, type AudioDesc } from './exportHQ';
 import type { Clip, EditDoc } from './types';
 
 const nowSec = () => performance.now() / 1000;
@@ -68,6 +68,7 @@ export interface Playback {
   seekTo: (t: number) => void;
   exportVideo: (opts: ExportOpts) => Promise<void>;
   exportVideoHQ: (opts: ExportOpts) => Promise<void>;
+  exportAudio: (name: string) => Promise<void>;
   hqAvailable: boolean;
   getTime: () => number;
   getSelectedBox: () => SelBox | null;
@@ -618,5 +619,24 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
     }
   }, [canvasRef, ensureAudio, exportVideo, syncPool, renderFrameAt, seekTo, onExported]);
 
-  return { playing, exporting, expPct, msg, play, pause, toggle, seekTo, exportVideo, exportVideoHQ, hqAvailable: webcodecsSupported(), getTime, getSelectedBox, snapshot, clearMsg };
+  const exportAudio = useCallback(async (name: string) => {
+    if (exportBusyRef.current) return;
+    const doc = useEditor.getState().doc;
+    const dur = docDuration(doc);
+    const audio: AudioDesc[] = [];
+    for (const tr of doc.tracks) for (const c of tr.clips) {
+      if ((c.kind === 'audio' || c.kind === 'video') && c.src) audio.push({ src: c.src, start: c.start, inPoint: c.inPoint, duration: c.duration, speed: c.speed, gain: c.gain, fadeIn: c.fadeIn, fadeOut: c.fadeOut, muted: tr.kind === 'audio' && tr.muted });
+    }
+    if (dur <= 0 || !audio.length) { setMsg('empty'); return; }
+    exportBusyRef.current = true; setExporting(true); setMsg(null);
+    try {
+      const buf = await mixAudio(audio, dur, 48000);
+      const blob = audioBufferToWav(buf);
+      const out = await saveBinaryBlob(blob, `${name.replace(/[^\w\-]+/g, '_') || 'audio'}.wav`, { name: 'Audio', extensions: ['wav'] });
+      setMsg(out.kind !== 'cancelled' ? 'saved' : null);
+    } catch { setMsg('failed'); }
+    setExporting(false); exportBusyRef.current = false;
+  }, []);
+
+  return { playing, exporting, expPct, msg, play, pause, toggle, seekTo, exportVideo, exportVideoHQ, exportAudio, hqAvailable: webcodecsSupported(), getTime, getSelectedBox, snapshot, clearMsg };
 }
