@@ -55,11 +55,19 @@ export interface VocalMix {
   context: { label: string; labelEn: string; value: string }[];
   groups: AdviceGroup[];
 }
+export interface ComposeInfo {
+  tonic: string; mode: string; scaleName: string; scale: string[];
+  diatonic: { degree: number; roman: string; triad: string; seventh: string }[];
+  progressions: { name: string; roman: string; chords: string }[];
+  borrowed: { label: string; chord: string }[];
+  relative: { label: string; key: string };
+}
 export interface SongAnalysis {
   durationS: number;
   sampleRate: number;
   key: KeyResult;
   tempo: TempoResult;
+  compose?: ComposeInfo | null;
   genre: { top: string; confidence: number; ranking: { genre: string; prob: number }[] };
   sections: Section[];
   eq: { bands: EqBand[]; spectrum: { f: number; db: number }[]; tiltDbOct: number; centroidHz: number };
@@ -128,6 +136,22 @@ export async function fetchMedia(
     filename: m ? m[1] : `media.${ext}`,
     kind, ext, title: title || (m ? m[1] : 'media'), duration,
   };
+}
+
+/** Generate a metronome click WAV at a given BPM. Returns the audio Blob. */
+export async function clickTrack(bpm: number, bars = 8, beatsPerBar = 4, signal?: AbortSignal): Promise<Blob> {
+  const form = new FormData();
+  form.append('bpm', String(bpm));
+  form.append('bars', String(bars));
+  form.append('beatsPerBar', String(beatsPerBar));
+  let res: Response;
+  try {
+    res = await fetch(apiUrl('/api/compose/click'), { method: 'POST', body: form, signal });
+  } catch (err) {
+    throw new ApiError(`Cannot reach local backend at ${API_BASE}`, 0, true);
+  }
+  if (!res.ok) throw new ApiError(`Click failed (${res.status})`, res.status);
+  return res.blob();
 }
 
 export async function analyzeSong(file: File, signal?: AbortSignal): Promise<SongAnalysis> {

@@ -5,9 +5,11 @@
    situation-aware vocal-mixing advice library.
    ────────────────────────────────────────────────────────────────── */
 
-import { Music2, Gauge, Disc3, Activity, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { Music2, Music3, Gauge, Disc3, Activity, Sparkles, Download, Loader2 } from 'lucide-react';
 import { useLang, useT } from '../../../i18n';
-import type { SongAnalysis } from '../../../api/download';
+import { clickTrack, type SongAnalysis } from '../../../api/download';
+import { saveBinaryBlob } from '../../export/saveFile';
 import { SectionWaveform } from './SectionWaveform';
 import { EqDistribution } from './EqDistribution';
 
@@ -20,9 +22,19 @@ export function SongAnalysisPanel({ analysis, media }: Props) {
   const t = useT();
   const lang = useLang();
   const en = lang === 'en';
-  const { key, tempo, genre, loudness, eq, elements, vocalMix } = analysis;
+  const { key, tempo, genre, loudness, eq, elements, vocalMix, compose } = analysis;
+  const [clicking, setClicking] = useState(false);
 
   const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+
+  const getClick = async () => {
+    const bpm = tempo.bpmRounded || 120;
+    setClicking(true);
+    try {
+      const blob = await clickTrack(bpm);
+      await saveBinaryBlob(blob, `click_${bpm}bpm.wav`, { name: 'WAV', extensions: ['wav'] });
+    } catch { /* ignore */ } finally { setClicking(false); }
+  };
 
   return (
     <div className="al-songanl">
@@ -66,6 +78,54 @@ export function SongAnalysisPanel({ analysis, media }: Props) {
           </span>
         </div>
       </div>
+
+      {/* compose — scale + chords + progressions from the detected key */}
+      {compose && (
+        <section className="al-songanl__block al-songanl__compose">
+          <h3 className="al-songanl__h">
+            <Music3 size={15} /> {t('download.an.compose')}
+            <button type="button" className="al-songanl__clickbtn" disabled={clicking} onClick={getClick}
+                    title={t('download.an.clickHint')}>
+              {clicking ? <Loader2 size={13} className="al-spin" /> : <Download size={13} />}
+              {t('download.an.click')} · {tempo.bpmRounded || '?'} BPM
+            </button>
+          </h3>
+
+          <div className="al-songanl__scaleline">
+            <span className="al-songanl__scalek">{compose.scaleName}</span>
+            <span className="al-songanl__scale">{compose.scale.join('  ')}</span>
+            <span className="al-songanl__rel">{compose.relative.label}: {compose.relative.key}</span>
+          </div>
+
+          <div className="al-songanl__chordgrid">
+            {compose.diatonic.map((d) => (
+              <div key={d.degree} className="al-songanl__chord">
+                <span className="al-songanl__roman">{d.roman}</span>
+                <span className="al-songanl__chordname">{d.triad}</span>
+                <span className="al-songanl__seventh">{d.seventh}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="al-songanl__progs">
+            <span className="al-songanl__progslabel">{t('download.an.progressions')}</span>
+            {compose.progressions.map((p, i) => (
+              <div key={i} className="al-songanl__prog">
+                <span className="al-songanl__progname">{p.name}</span>
+                <span className="al-songanl__progchords">{p.chords}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="al-songanl__borrowed">
+            {compose.borrowed.map((b, i) => (
+              <span key={i} className="al-songanl__borrowchip" title={b.label}>
+                <b>{b.chord}</b> {b.label}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* structure */}
       <section className="al-songanl__block">

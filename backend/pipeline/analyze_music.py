@@ -517,6 +517,13 @@ def analyze_song(path: str, progress: Optional[Callable[[str, float, str], None]
     except Exception as exc:
         logger.warning("vocal advice failed: %s", exc)
         analysis["vocalMix"] = None
+    # 作曲輔助:把偵測到的調性變成音階 + 順階和弦 + 進行(在 beat 上寫 topline/和聲用)。
+    try:
+        from . import compose as CO
+        analysis["compose"] = CO.chords_for_key(key.get("tonic", "C"), key.get("mode", "major"))
+    except Exception as exc:
+        logger.warning("compose helper failed: %s", exc)
+        analysis["compose"] = None
     _p("done", 1.0, "完成")
     return M._finite_scrub(analysis)
 

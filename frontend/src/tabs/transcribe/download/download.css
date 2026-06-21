@@ -179,6 +179,41 @@
 .al-songanl__alts { font-size: var(--al-text-xs); color: var(--al-ink-faint); margin-top: 2px; }
 
 .al-songanl__block { display: flex; flex-direction: column; gap: 8px; }
+
+/* ── compose (scale + chords) ───────────────────────────────────────── */
+.al-songanl__compose {
+  border: 1px solid var(--al-hairline); border-radius: var(--al-radius-panel);
+  padding: var(--al-pad-panel); background: var(--al-surface);
+}
+.al-songanl__compose .al-songanl__h { justify-content: flex-start; }
+.al-songanl__clickbtn {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border: 1px solid var(--al-hairline); border-radius: var(--al-radius-chip, 8px);
+  background: var(--al-surface-2); color: var(--al-ink-muted); cursor: pointer;
+  font-size: var(--al-text-xs);
+}
+.al-songanl__clickbtn:hover:not(:disabled) { color: var(--al-gold); border-color: var(--al-gold); }
+.al-songanl__scaleline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 4px; }
+.al-songanl__scalek { font-size: var(--al-text-sm); font-weight: 600; color: var(--al-ink); }
+.al-songanl__scale { font-family: var(--al-font-mono); font-size: var(--al-text-sm); color: var(--al-gold); letter-spacing: 0.04em; }
+.al-songanl__rel { font-size: var(--al-text-xs); color: var(--al-ink-faint); margin-left: auto; }
+.al-songanl__chordgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.al-songanl__chord {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 7px 4px; border: 1px solid var(--al-hairline); border-radius: 8px; background: var(--al-surface-2);
+}
+.al-songanl__roman { font-family: var(--al-font-mono); font-size: 10px; color: var(--al-ink-faint); }
+.al-songanl__chordname { font-size: var(--al-text-sm); font-weight: 600; color: var(--al-ink); }
+.al-songanl__seventh { font-size: 10px; color: var(--al-ink-faint); }
+.al-songanl__progs { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.al-songanl__progslabel { font-family: var(--al-font-mono); font-size: var(--al-text-xs); text-transform: uppercase; letter-spacing: var(--al-tracking-caps); color: var(--al-ink-faint); }
+.al-songanl__prog { display: flex; gap: 12px; align-items: baseline; }
+.al-songanl__progname { flex: none; min-width: 110px; font-size: var(--al-text-xs); color: var(--al-ink-muted); }
+.al-songanl__progchords { font-family: var(--al-font-mono); font-size: var(--al-text-sm); color: var(--al-ink); }
+.al-songanl__borrowed { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.al-songanl__borrowchip { font-size: var(--al-text-xs); color: var(--al-ink-faint); border: 1px solid var(--al-hairline); border-radius: 6px; padding: 2px 8px; }
+.al-songanl__borrowchip b { color: var(--al-gold); font-family: var(--al-font-mono); margin-right: 4px; }
+@media (max-width: 560px) { .al-songanl__chordgrid { grid-template-columns: repeat(4, 1fr); } }
 .al-songanl__h { display: flex; align-items: center; gap: 7px; margin: 0; font-size: var(--al-text-md);
   font-weight: 600; color: var(--al-ink); }
 

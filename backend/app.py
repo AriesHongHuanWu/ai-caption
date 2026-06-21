@@ -2513,6 +2513,23 @@ async def api_analyze_song(audio: UploadFile = File(...)) -> JSONResponse:
     return JSONResponse({"analysis": result})
 
 
+@app.post("/api/compose/click")
+async def api_compose_click(
+    bpm: float = Form(...),
+    bars: int = Form(8),
+    beatsPerBar: int = Form(4),
+) -> Response:
+    """產生節拍器 click 音檔(WAV),依偵測/輸入的 BPM。讓人能在 beat 上對拍寫/錄。"""
+    try:
+        from pipeline import compose as _compose
+        data = await run_in_threadpool(_compose.click_track, float(bpm), int(bars), int(beatsPerBar))
+    except Exception as e:  # noqa: BLE001
+        logger.error("click 產生失敗:%s\n%s", e, traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"click 產生失敗:{e}") from e
+    return Response(content=data, media_type="audio/wav", headers={
+        "Content-Disposition": f'attachment; filename="click_{int(round(float(bpm)))}bpm.wav"'})
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 靜態前端:掛在 "/" (html=True → 自動服務 index.html / SPA fallback)
 # 注意:必須在所有 /api/* 路由「之後」掛載,否則 "/" 會吃掉 API。
