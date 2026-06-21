@@ -28,6 +28,7 @@ import type { MasterPresetItem } from '../../api/types';
 import { ApiError } from '../../api/client';
 import { useMeta } from '../../state/useMeta';
 import { useMasterPresets, type CustomPreset } from '../../state/useMasterPresets';
+import { AddToProject } from '../catalog/AddToProject';
 import { useT, useLang } from '../../i18n';
 import type { TFn } from '../../i18n';
 import { Save, X, CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -903,6 +904,15 @@ export function MasteringFlow() {
               >
                 {t('master.download')}
               </Button>
+              {resultMeta && (
+                <AddToProject
+                  item={{
+                    kind: 'master',
+                    label: `${genres.find((g) => g.key === resultMeta.genre)?.label ?? resultMeta.genre} master · ${resultMeta.outputLufs} LUFS`,
+                    genre: resultMeta.genre,
+                  }}
+                />
+              )}
               {dlMsg && <span className="al-master__dlmsg">{dlMsg}</span>}
             </div>
           </div>

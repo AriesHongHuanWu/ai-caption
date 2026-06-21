@@ -1,18 +1,21 @@
-# Local Studio v0.1.42
+# Local Studio v0.1.43
 
-📺✨ **Visualizer** — turn a song into an audio-reactive video you can publish.
+✨ **More Visualizer templates + Projects gather your masters.**
 
-A new **Visualizer** mode (under Video): drop a song and a canvas reacts to the music in real time.
+### Visualizer — 9 templates now
+Five new high-quality templates joined the four from v0.1.42:
+- **Bouncing object** — a glowing polygon that scales, rotates and jitters on the beat.
+- **Concentric rings** — rings burst out of the centre on each kick.
+- **Starfield tunnel** — fly through stars, faster on louder sections.
+- **Frequency terrain** — a scrolling pseudo-3D landscape shaped by the spectrum.
+- **Spectrum bloom** — a symmetric radial mandala from the spectrum.
 
-- **4 high-quality templates** — Radial pulse orb, Spectrum bars, Waveform ribbon, Particle field — with glow/bloom.
-- **Beat-shake** — visuals jump on the kick; tune the amount.
-- **Intro card** — song title + artist (artist optional), with a **fade-out after N seconds** so it leaves just the visualizer.
-- **Customize** — background + two accent colors, **sensitivity**, **beat-shake**, **glow/trails**, and **aspect ratio** (16:9 / 9:16 vertical / 1:1 for socials).
-- **Export video** — records the canvas + audio to **MP4** (WebM fallback), saved to disk, ready to post.
+All react to your colors, sensitivity, beat-shake and glow, in 16:9 / 9:16 / 1:1, and export to MP4.
 
-Tip: master your track first, then visualize it — drop the mastered file in, pick **Radial pulse**, set your title/artist to fade after ~5s, tweak sensitivity, and **Export**.
+### Catalog — masters too
+The Mastering result now has an **"Add to project"** button, so a song's master joins its beat and analysis in the same project.
 
-Everything from v0.1.41 is included (Catalog/projects, Compose tools, Vocal Chain, per-platform delivery).
+Everything from v0.1.42 is included.
 
 Support: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
 

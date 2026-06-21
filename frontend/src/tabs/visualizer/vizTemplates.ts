@@ -179,6 +179,152 @@ const field: VizTemplate = {
   },
 };
 
-export const TEMPLATES: VizTemplate[] = [radial, bars, ribbon, field];
+// ── Template 5: concentric rings (beat-spawned) ─────────────────────
+let rings: { r: number; life: number }[] = [];
+const ringsT: VizTemplate = {
+  key: 'rings', label: '同心圓環', labelEn: 'Concentric rings',
+  draw: (f) => {
+    const { ctx, w, h, params } = f;
+    applyShake(f);
+    const cx = w / 2, cy = h / 2;
+    if (f.beat > 0.6) rings.push({ r: Math.min(w, h) * 0.08, life: 1 });
+    ctx.globalCompositeOperation = 'lighter';
+    rings = rings.filter((rg) => {
+      rg.r += (4 + f.level * 10) * (1 + params.sensitivity * 0.5); rg.life -= 0.012;
+      if (rg.life <= 0) return false;
+      ctx.strokeStyle = rgba(params.accent, rg.life * 0.8);
+      ctx.lineWidth = (2 + rg.life * 6) * Math.max(1, w / 900);
+      ctx.beginPath(); ctx.arc(cx, cy, rg.r, 0, Math.PI * 2); ctx.stroke();
+      return true;
+    });
+    // steady pulsing core
+    const cr = Math.min(w, h) * 0.05 * (1 + f.bass * 1.2 * params.sensitivity);
+    ctx.fillStyle = rgba(params.accent2, 0.9);
+    ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI * 2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+  },
+};
 
-export function resetTemplateState(): void { particles = []; }
+// ── Template 6: beat-reactive object (shaking polygon) ──────────────
+const objectT: VizTemplate = {
+  key: 'object', label: '抖動物體', labelEn: 'Bouncing object',
+  draw: (f) => {
+    const { ctx, w, h, params } = f;
+    const cx = w / 2, cy = h / 2;
+    const sides = 6;
+    const base = Math.min(w, h) * 0.18;
+    const scale = base * (1 + (f.bass * 0.5 + f.beat * 0.35) * params.sensitivity);
+    const rot = f.t * 0.5 + f.beat * 0.5;
+    const jitter = f.beat * params.shake * 14;
+    ctx.save();
+    ctx.translate(cx + (Math.random() - 0.5) * jitter, cy + (Math.random() - 0.5) * jitter);
+    ctx.rotate(rot);
+    // glow
+    ctx.shadowColor = params.accent; ctx.shadowBlur = 30 + 60 * f.beat * params.glow;
+    const grad = ctx.createLinearGradient(-scale, -scale, scale, scale);
+    grad.addColorStop(0, params.accent); grad.addColorStop(1, params.accent2);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    for (let i = 0; i <= sides; i++) {
+      const a = (i / sides) * Math.PI * 2;
+      const rr = scale * (1 + 0.12 * Math.sin(a * 3 + f.t * 4) * f.level);
+      const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath(); ctx.fill();
+    // inner ring
+    ctx.shadowBlur = 0; ctx.strokeStyle = rgba('#ffffff', 0.5 + 0.5 * f.beat); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, scale * 0.5, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  },
+};
+
+// ── Template 7: starfield tunnel ────────────────────────────────────
+let stars: { x: number; y: number; z: number }[] = [];
+const starfield: VizTemplate = {
+  key: 'starfield', label: '星空隧道', labelEn: 'Starfield tunnel',
+  draw: (f) => {
+    const { ctx, w, h, params } = f;
+    applyShake(f);
+    const cx = w / 2, cy = h / 2;
+    if (stars.length < 320) for (let i = 0; i < 6; i++) stars.push({ x: (Math.random() - 0.5) * w, y: (Math.random() - 0.5) * h, z: Math.random() });
+    const speed = 0.004 + (f.level * 0.03 + f.beat * 0.02) * params.sensitivity;
+    ctx.globalCompositeOperation = 'lighter';
+    stars = stars.filter((s) => {
+      s.z -= speed; if (s.z <= 0.02) return false;
+      const px = cx + s.x / s.z, py = cy + s.y / s.z;
+      if (px < 0 || px > w || py < 0 || py > h) return false;
+      const r = (1 - s.z) * 3.2;
+      ctx.fillStyle = rgba((s.z < 0.4 ? params.accent : params.accent2), (1 - s.z) * 0.9);
+      ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
+      return true;
+    });
+    ctx.globalCompositeOperation = 'source-over';
+  },
+};
+
+// ── Template 8: frequency terrain (scrolling) ───────────────────────
+let terrainRows: number[][] = [];
+const terrain: VizTemplate = {
+  key: 'terrain', label: '頻率地形', labelEn: 'Frequency terrain',
+  draw: (f) => {
+    const { ctx, w, h, freq, params } = f;
+    const cols = 48;
+    const step = Math.floor(freq.length / cols);
+    const row: number[] = [];
+    for (let i = 0; i < cols; i++) row.push((freq[i * step] / 255) * params.sensitivity);
+    terrainRows.unshift(row);
+    if (terrainRows.length > 26) terrainRows.pop();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let r = terrainRows.length - 1; r >= 0; r--) {
+      const depth = r / 26;
+      const y0 = h * 0.45 + depth * h * 0.5;
+      const sc = 1 - depth * 0.55;
+      ctx.beginPath();
+      for (let i = 0; i < cols; i++) {
+        const x = w / 2 + (i - cols / 2) * (w / cols) * sc;
+        const y = y0 - terrainRows[r][i] * h * 0.22 * sc;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = rgba(mix(params.accent2, params.accent, 1 - depth), (1 - depth) * 0.7);
+      ctx.lineWidth = Math.max(1, (1 - depth) * 2);
+      ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  },
+};
+
+// ── Template 9: spectrum bloom (radial mandala) ─────────────────────
+const bloom: VizTemplate = {
+  key: 'bloom', label: '光譜花', labelEn: 'Spectrum bloom',
+  draw: (f) => {
+    const { ctx, w, h, freq, params } = f;
+    applyShake(f);
+    const cx = w / 2, cy = h / 2;
+    const petals = 48;
+    const step = Math.floor(freq.length / petals);
+    const baseR = Math.min(w, h) * 0.12 * (1 + f.bass * 0.4);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineWidth = Math.max(1.5, w / 500);
+    for (let mirror = 0; mirror < 2; mirror++) {
+      for (let i = 0; i < petals; i++) {
+        const v = (freq[i * step] / 255) * params.sensitivity;
+        const a = ((mirror ? -i : i) / petals) * Math.PI * 2 + f.t * 0.2;
+        const len = baseR + Math.pow(v, 1.2) * Math.min(w, h) * 0.3;
+        const x = cx + Math.cos(a) * len, y = cy + Math.sin(a) * len;
+        ctx.strokeStyle = rgba(i % 3 === 0 ? params.accent : params.accent2, 0.7);
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * baseR, cy + Math.sin(a) * baseR);
+        ctx.quadraticCurveTo(cx + Math.cos(a + 0.1) * len * 0.7, cy + Math.sin(a + 0.1) * len * 0.7, x, y);
+        ctx.stroke();
+      }
+    }
+    ctx.fillStyle = mix(params.accent, '#ffffff', 0.6);
+    ctx.beginPath(); ctx.arc(cx, cy, baseR * 0.5, 0, Math.PI * 2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+  },
+};
+
+export const TEMPLATES: VizTemplate[] = [radial, bars, ribbon, field, ringsT, objectT, starfield, terrain, bloom];
+
+export function resetTemplateState(): void { particles = []; rings = []; stars = []; terrainRows = []; }
