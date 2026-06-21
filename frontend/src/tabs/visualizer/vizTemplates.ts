@@ -32,7 +32,11 @@ export interface VizTemplate {
   label: string;
   labelEn: string;
   draw: (f: VizFrame) => void;
+  /** feedback templates reuse the previous frame (host skips the bg clear). */
+  feedback?: boolean;
 }
+
+const TAU = Math.PI * 2;
 
 function hexToRgb(hex: string): [number, number, number] {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
@@ -444,6 +448,112 @@ const grid3d: VizTemplate = {
   },
 };
 
+// ════════════════════════════════════════════════════════════════════
+//  Advanced "show-off" templates
+// ════════════════════════════════════════════════════════════════════
+
+// Video-feedback recursion: re-draw the previous frame zoomed + rotated
+// every frame → an infinite hypnotic tunnel; a reactive emitter feeds it.
+const feedbackTunnel: VizTemplate = {
+  key: 'feedback', label: '回授隧道', labelEn: 'Feedback tunnel', feedback: true,
+  draw: (f) => {
+    const { ctx, w, h, freq, params } = f;
+    const cx = w / 2, cy = h / 2;
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.translate(cx, cy);
+    ctx.rotate(0.008 + f.level * 0.018 + f.beat * 0.02);
+    const zoom = 1.028 + f.bass * 0.045 * params.sensitivity;
+    ctx.scale(zoom, zoom);
+    ctx.drawImage(ctx.canvas, -cx, -cy, w, h);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = rgba(params.bg, 0.05); ctx.fillRect(0, 0, w, h);   // opacity floor + tint
+    // reactive emitter
+    ctx.globalCompositeOperation = 'lighter';
+    const n = 72, step = Math.floor(freq.length / n);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + f.t;
+      const v = (freq[i * step] / 255) * params.sensitivity;
+      const r = Math.min(w, h) * 0.05 + Math.pow(v, 1.3) * Math.min(w, h) * 0.09;
+      ctx.fillStyle = rgba(i % 2 ? params.accent : params.accent2, 0.95);
+      ctx.beginPath(); ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 2 + v * 3, 0, TAU); ctx.fill();
+    }
+    ctx.fillStyle = mix(params.accent, '#ffffff', 0.6);
+    ctx.beginPath(); ctx.arc(cx, cy, Math.min(w, h) * 0.018 * (1 + f.beat * 1.5), 0, TAU); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+  },
+};
+
+// Flow field: thousands of particles advected by a curl-ish noise field,
+// speed driven by the audio → fluid, organic, premium motion.
+let flowP: { x: number; y: number; life: number }[] = [];
+function flowAngle(x: number, y: number, t: number): number {
+  return (Math.sin(x * 0.008 + t) + Math.cos(y * 0.009 - t * 0.8) + Math.sin((x + y) * 0.006 + t * 0.4)) * 1.1;
+}
+const flowField: VizTemplate = {
+  key: 'flow', label: '流場粒子', labelEn: 'Flow field',
+  draw: (f) => {
+    const { ctx, w, h, params } = f;
+    if (flowP.length < 1000) for (let i = 0; i < 14; i++) flowP.push({ x: Math.random() * w, y: Math.random() * h, life: 0.4 + Math.random() * 0.6 });
+    const sp = 1 + f.level * 5 * params.sensitivity + f.beat * 2;
+    ctx.globalCompositeOperation = 'lighter';
+    flowP = flowP.filter((p) => {
+      const ang = flowAngle(p.x, p.y, f.t);
+      p.x += Math.cos(ang) * sp; p.y += Math.sin(ang) * sp; p.life -= 0.006;
+      if (p.life <= 0 || p.x < 0 || p.x > w || p.y < 0 || p.y > h) return false;
+      ctx.fillStyle = rgba(p.life > 0.5 ? params.accent : params.accent2, p.life * 0.7);
+      ctx.fillRect(p.x, p.y, 1.7, 1.7);
+      return true;
+    });
+    ctx.globalCompositeOperation = 'source-over';
+  },
+};
+
+// Liquid metaballs: orbiting additive radial blobs that merge into gooey
+// liquid-metal shapes; sizes from the spectrum + bass.
+const liquid: VizTemplate = {
+  key: 'liquid', label: '液態金屬', labelEn: 'Liquid metal',
+  draw: (f) => {
+    const { ctx, w, h, freq, params } = f;
+    const cx = w / 2, cy = h / 2;
+    applyShake(f);
+    ctx.globalCompositeOperation = 'lighter';
+    const N = 7;
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * TAU + f.t * 0.4 * (i % 2 ? 1 : -1);
+      const orbit = Math.min(w, h) * (0.1 + 0.12 * Math.sin(f.t * 0.6 + i * 1.3));
+      const bv = (freq[(i * 9) % freq.length] / 255) * params.sensitivity;
+      const x = cx + Math.cos(a) * orbit, y = cy + Math.sin(a) * orbit;
+      const r = Math.min(w, h) * (0.05 + 0.09 * bv + 0.05 * f.bass);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, rgba(mix(params.accent, params.accent2, i / N), 0.95));
+      g.addColorStop(0.55, rgba(params.accent, 0.4));
+      g.addColorStop(1, rgba(params.accent, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  },
+};
+
+// Scrolling spectrogram waterfall — pro-audio heatmap of frequency over time.
+const spectro: VizTemplate = {
+  key: 'spectro', label: '頻譜瀑布', labelEn: 'Spectrogram', feedback: true,
+  draw: (f) => {
+    const { ctx, w, h, freq, params } = f;
+    ctx.drawImage(ctx.canvas, 0, 0, w, h - 2, 0, 2, w, h - 2);   // scroll down 2px
+    const cols = Math.min(256, freq.length);
+    const cw = w / cols;
+    for (let i = 0; i < cols; i++) {
+      const v = (freq[i] / 255) * params.sensitivity;
+      const col = v < 0.5 ? mix(params.bg, params.accent2, v * 2) : mix(params.accent2, params.accent, (v - 0.5) * 2);
+      ctx.fillStyle = rgba(col, Math.min(1, 0.2 + v * 1.4));
+      ctx.fillRect(i * cw, 0, cw + 1, 2.2);
+    }
+  },
+};
+
 // ── Post-effects layer — applies on top of any template, baked into the
 //    bitmap (so it exports). Mirror / kaleidoscope, vignette, grain, flash.
 export interface VizEffects {
@@ -487,8 +597,11 @@ export function applyEffects(
 }
 
 export const TEMPLATES: VizTemplate[] = [
+  feedbackTunnel, liquid, flowField, spectro,                       // ✨ advanced
   radial, bars, ribbon, field, ringsT, objectT, starfield, terrain, bloom,
   wire3d, sphere3d, tunnel3d, grid3d,
 ];
 
-export function resetTemplateState(): void { particles = []; rings = []; stars = []; terrainRows = []; spherePts = []; }
+export function resetTemplateState(): void {
+  particles = []; rings = []; stars = []; terrainRows = []; spherePts = []; flowP = [];
+}

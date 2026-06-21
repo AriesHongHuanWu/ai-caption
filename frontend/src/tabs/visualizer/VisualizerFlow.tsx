@@ -105,12 +105,14 @@ export function VisualizerFlow() {
     const beat = beatRef.current;
     const t = (performance.now() - startRef.current) / 1000;
 
-    // background with motion trails (more glow → longer trails)
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = `${params.bg}${Math.round((1 - params.glow * 0.55) * 255).toString(16).padStart(2, '0')}`;
-    ctx.fillRect(0, 0, w, h);
-
     const tpl = TEMPLATES.find((x) => x.key === tplKey) ?? TEMPLATES[0];
+    // background with motion trails (more glow → longer trails); feedback
+    // templates reuse the previous frame, so they manage the canvas themselves.
+    ctx.globalCompositeOperation = 'source-over';
+    if (!tpl.feedback) {
+      ctx.fillStyle = `${params.bg}${Math.round((1 - params.glow * 0.55) * 255).toString(16).padStart(2, '0')}`;
+      ctx.fillRect(0, 0, w, h);
+    }
     ctx.save();
     try { tpl.draw({ ctx, w, h, freq, time, t, level, bass, beat, params }); } catch { /* keep going */ }
     ctx.restore();
