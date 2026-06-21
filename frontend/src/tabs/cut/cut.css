@@ -232,3 +232,14 @@
 
 /* ── Wave 3: clip waveform, GPU export ─────────────────────────── */
 .al-cut__wave { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .8; }
+
+/* ── on-canvas manipulation overlay ────────────────────────────── */
+.al-cut__ovlwrap { position: absolute; inset: 0; pointer-events: none; z-index: 6; overflow: hidden; }
+.al-cut__ovl { position: absolute; left: 0; top: 0; border: 1.5px solid var(--al-gold, #d8a657); box-sizing: border-box; pointer-events: auto; cursor: move; will-change: transform; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
+.al-cut__h { position: absolute; width: 11px; height: 11px; background: #fff; border: 1px solid var(--al-gold, #d8a657); border-radius: 2px; pointer-events: auto; }
+.al-cut__h--tl { left: -6px; top: -6px; cursor: nwse-resize; }
+.al-cut__h--tr { right: -6px; top: -6px; cursor: nesw-resize; }
+.al-cut__h--bl { left: -6px; bottom: -6px; cursor: nesw-resize; }
+.al-cut__h--br { right: -6px; bottom: -6px; cursor: nwse-resize; }
+.al-cut__rot { position: absolute; left: 50%; top: -28px; width: 14px; height: 14px; margin-left: -7px; background: var(--al-gold, #d8a657); border: 1px solid #000; border-radius: 50%; pointer-events: auto; cursor: grab; }
+.al-cut__rot::before { content: ''; position: absolute; left: 50%; top: 14px; width: 1.5px; height: 15px; margin-left: -1px; background: var(--al-gold, #d8a657); }

@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { Copy, Scissors, Trash2, Clipboard, Diamond, FlipHorizontal2, FlipVertical2 } from 'lucide-react';
 import { useEditor } from './useEditor';
-import { LOOKS, TRANSITIONS, TEXT_ANIMS, BLEND_MODES, FONTS, TEXT_PRESETS } from './effects';
+import { LOOKS, TRANSITIONS, TEXT_ANIMS, BLEND_MODES, FONTS, TEXT_PRESETS, SHAKES, KEN_BURNS, kenBurns } from './effects';
 import type { Clip } from './types';
 
 interface Props {
@@ -176,6 +176,29 @@ export function Inspector({ en, onSplit, getTime }: Props) {
                   </select>
                 </label>
                 <Slider label={en ? 'Trans. length' : '轉場時長'} min={0.1} max={3} step={0.1} value={c.transIn.dur} onChange={(v) => { setTransition(c.id, 'transIn', { ...c.transIn, dur: v }); setTransition(c.id, 'transOut', { ...c.transOut, dur: v }); }} />
+              </>
+            )}
+            {(isMedia || c.kind === 'shape') && (
+              <>
+                <span className="al-cut__rowlabel">{en ? 'Camera shake' : '鏡頭晃動'}</span>
+                <div className="al-cut__chips">
+                  {SHAKES.map((s) => <button key={s.key} type="button" className={`al-cut__chip${c.shake.mode === s.key ? ' is-on' : ''}`} onClick={() => up({ shake: { ...c.shake, mode: s.key } })}>{en ? s.en : s.label}</button>)}
+                </div>
+                {c.shake.mode !== 'none' && (
+                  <>
+                    <Slider label={en ? 'Amount' : '強度'} min={0} max={1} step={0.02} value={c.shake.amount} onChange={(v) => up({ shake: { ...c.shake, amount: v } })} />
+                    <Slider label={en ? 'Speed' : '速度'} min={0.2} max={4} step={0.1} value={c.shake.speed} onChange={(v) => up({ shake: { ...c.shake, speed: v } })} />
+                  </>
+                )}
+              </>
+            )}
+            {isMedia && (
+              <>
+                <span className="al-cut__rowlabel">{en ? 'Ken Burns' : '緩慢推拉'}</span>
+                <div className="al-cut__chips">
+                  {KEN_BURNS.map((k) => <button key={k.key} type="button" className="al-cut__chip" onClick={() => updateClip(c.id, { keys: kenBurns(c.duration, k.key) })}>{en ? k.en : k.label}</button>)}
+                  {c.keys.length > 0 && <button type="button" className="al-cut__chip" onClick={() => clearKeys(c.id)}>{en ? 'Clear' : '清除'}</button>}
+                </div>
               </>
             )}
             {c.kind === 'text' && (

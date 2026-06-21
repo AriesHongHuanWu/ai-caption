@@ -29,6 +29,8 @@ const MIN_CLIP = 0.1;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const sortClips = (clips: Clip[]) => [...clips].sort((a, b) => a.start - b.start);
 
+let gestureStartDoc: EditDoc | null = null; // pre-drag snapshot for cancelGesture
+
 interface EditorState {
   doc: EditDoc;
   selectedId: string | null;
@@ -43,6 +45,13 @@ interface EditorState {
   redo: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
+
+  // gesture coalescing: one undo entry per drag (on-canvas + slider drags)
+  gesturing: boolean;
+  beginGesture: () => void;
+  liveUpdateClip: (id: string, patch: Partial<Clip>) => void;
+  endGesture: () => void;
+  cancelGesture: () => void;
 
   addClip: (trackId: string, clip: Clip) => void;
   updateClip: (id: string, patch: Partial<Clip>) => void;
@@ -103,6 +112,7 @@ export const useEditor = create<EditorState>((set, get) => {
     past: [],
     future: [],
     clipboard: null,
+    gesturing: false,
 
     select: (id) => set({ selectedId: id }),
     setPlayhead: (t) => set({ playhead: Math.max(0, t) }),
@@ -110,6 +120,12 @@ export const useEditor = create<EditorState>((set, get) => {
     redo: () => set((s) => { if (!s.future.length) return {}; const next = s.future[0]; return { doc: next, future: s.future.slice(1), past: [...s.past, s.doc].slice(-80) }; }),
     canUndo: () => get().past.length > 0,
     canRedo: () => get().future.length > 0,
+
+    // Snapshot once at gesture start (one undo entry); live updates skip history.
+    beginGesture: () => set((s) => { gestureStartDoc = s.doc; return { gesturing: true, past: [...s.past, s.doc].slice(-80), future: [] }; }),
+    liveUpdateClip: (id, patch) => set((s) => ({ doc: mapClip(s.doc, id, (c) => ({ ...c, ...patch })) })),
+    endGesture: () => set({ gesturing: false }),
+    cancelGesture: () => set((s) => (gestureStartDoc ? { doc: gestureStartDoc, past: s.past.slice(0, -1), gesturing: false } : { gesturing: false })),
 
     addClip: (trackId, clip) =>
       apply((d) => ({ ...d, tracks: d.tracks.map((tr) => (tr.id === trackId ? { ...tr, clips: sortClips([...tr.clips, clip]) } : tr)) }), clip.id),

@@ -15,6 +15,7 @@ import { useShortcuts } from './useShortcuts';
 import { Timeline } from './Timeline';
 import { Inspector } from './Inspector';
 import { AssetBin } from './AssetBin';
+import { PreviewOverlay } from './PreviewOverlay';
 import { AddToProject } from '../catalog/AddToProject';
 import './cut.css';
 
@@ -127,6 +128,7 @@ export function CutFlow() {
         <section className="al-cut__stage">
           <div className="al-cut__canvaswrap" data-aspect={aspect}>
             <canvas ref={canvasRef} width={doc.width} height={doc.height} className="al-cut__canvas" onClick={pb.toggle} />
+            <PreviewOverlay getBox={pb.getSelectedBox} canvasRef={canvasRef} />
           </div>
           <div className="al-cut__transport">
             <button type="button" className="al-cut__icbtn" onClick={undo} disabled={!canUndo} title={en ? 'Undo' : '復原'}><Undo2 size={15} /></button>

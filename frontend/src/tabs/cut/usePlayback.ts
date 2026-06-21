@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { saveBinaryBlob } from '../export/saveFile';
 import { useEditor, docDuration } from './useEditor';
-import { buildFilter, transformAt, transitionMod, textAnim, chromaKey } from './effects';
+import { buildFilter, transformAt, transitionMod, textAnim, chromaKey, shakeMod } from './effects';
 import { exportHQ, webcodecsSupported, type AudioDesc } from './exportHQ';
 import type { Clip, EditDoc } from './types';
 
@@ -70,8 +70,12 @@ export interface Playback {
   exportVideoHQ: (opts: ExportOpts) => Promise<void>;
   hqAvailable: boolean;
   getTime: () => number;
+  getSelectedBox: () => SelBox | null;
   clearMsg: () => void;
 }
+
+/** On-screen bounding box of the selected clip, in canvas (doc) coordinates. */
+export interface SelBox { cx: number; cy: number; hw: number; hh: number; rot: number; kind: Clip['kind']; visible: boolean; }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
@@ -215,12 +219,13 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
     if (alpha <= 0) return;
     const fit = Math.min(W / sw, H / sh);
     const dw = sw * fit; const dh = sh * fit;
+    const sk = shakeMod(c.shake, localT);
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.globalCompositeOperation = c.blend;
     ctx.filter = buildFilter(c.filters, m.blur, 0);
-    ctx.translate(W / 2 + tr.x + m.tx, H / 2 + tr.y + m.ty);
-    ctx.rotate(((tr.rotation + m.rot) * Math.PI) / 180);
+    ctx.translate(W / 2 + tr.x + m.tx + sk.dx, H / 2 + tr.y + m.ty + sk.dy);
+    ctx.rotate(((tr.rotation + m.rot + sk.drot) * Math.PI) / 180);
     ctx.scale((c.flipH ? -1 : 1) * tr.scale * m.sc, (c.flipV ? -1 : 1) * tr.scale * m.sc);
     // mask: clip the media to a shape (in local space, follows the transform)
     if (c.mask === 'circle') { ctx.beginPath(); ctx.ellipse(0, 0, dw / 2, dh / 2, 0, 0, Math.PI * 2); ctx.clip(); }
@@ -251,11 +256,12 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
     const m = transitionMod(c, localT, W, H);
     const alpha = clamp(tr.opacity * m.alpha, 0, 1);
     if (alpha <= 0) return;
+    const sk = shakeMod(c.shake, localT);
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.globalCompositeOperation = c.blend;
-    ctx.translate(W / 2 + tr.x + m.tx, H / 2 + tr.y + m.ty);
-    ctx.rotate(((tr.rotation + m.rot) * Math.PI) / 180);
+    ctx.translate(W / 2 + tr.x + m.tx + sk.dx, H / 2 + tr.y + m.ty + sk.dy);
+    ctx.rotate(((tr.rotation + m.rot + sk.drot) * Math.PI) / 180);
     ctx.scale(tr.scale * m.sc, tr.scale * m.sc);
     ctx.fillStyle = c.fill;
     const bw = 420; const bh = 260;
@@ -455,6 +461,42 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
   const getTime = useCallback(() => tRef.current, []);
   const clearMsg = useCallback(() => setMsg(null), []);
 
+  const getSelectedBox = useCallback((): SelBox | null => {
+    const st = useEditor.getState();
+    const id = st.selectedId;
+    if (!id) return null;
+    let clip: Clip | null = null;
+    for (const trk of st.doc.tracks) { const c = trk.clips.find((x) => x.id === id); if (c) { clip = c; break; } }
+    if (!clip) return null;
+    const c = clip;
+    const W = st.doc.width; const H = st.doc.height;
+    const t = tRef.current;
+    const visible = t >= c.start && t < c.start + c.duration;
+    const trf = transformAt(c, t - c.start);
+    if (c.kind === 'text') {
+      const ctx = canvasRef.current?.getContext('2d');
+      const lines = c.text.split('\n');
+      let wmax = 20;
+      if (ctx) { ctx.font = `${c.italic ? 'italic ' : ''}${c.bold ? 700 : 500} ${c.fontSize}px ${c.font}`; for (const ln of lines) wmax = Math.max(wmax, ctx.measureText(ln || ' ').width); }
+      const lh = c.fontSize * (c.lineHeight || 1.25);
+      const hw = (wmax / 2) * trf.scale + 10;
+      const hh = (lines.length * lh / 2) * trf.scale + 10;
+      const ax = c.align === 'left' ? W * 0.06 : c.align === 'right' ? W * 0.94 : W / 2;
+      const ay = H * (c.posY || 0.84);
+      const cx = (c.align === 'left' ? ax + (wmax / 2) * trf.scale : c.align === 'right' ? ax - (wmax / 2) * trf.scale : ax) + trf.x;
+      return { cx, cy: ay + trf.y, hw, hh, rot: trf.rotation, kind: 'text', visible };
+    }
+    if (c.kind === 'shape') {
+      return { cx: W / 2 + trf.x, cy: H / 2 + trf.y, hw: 210 * trf.scale, hh: 130 * trf.scale, rot: trf.rotation, kind: 'shape', visible };
+    }
+    const e = pool.current.get(c.id);
+    let sw = 16; let sh = 9;
+    if (e?.img && e.img.naturalWidth > 0) { sw = e.img.naturalWidth; sh = e.img.naturalHeight; }
+    else if (e?.el instanceof HTMLVideoElement && e.el.videoWidth > 0) { sw = e.el.videoWidth; sh = e.el.videoHeight; }
+    const fit = Math.min(W / sw, H / sh);
+    return { cx: W / 2 + trf.x, cy: H / 2 + trf.y, hw: (sw * fit / 2) * trf.scale, hh: (sh * fit / 2) * trf.scale, rot: trf.rotation, kind: c.kind, visible };
+  }, [canvasRef]);
+
   const exportVideo = useCallback(async (opts: ExportOpts) => {
     const canvas = canvasRef.current;
     if (!canvas || exportBusyRef.current) return; // ignore if already exporting
@@ -544,5 +586,5 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
     }
   }, [canvasRef, ensureAudio, exportVideo, syncPool, renderFrameAt, seekTo, onExported]);
 
-  return { playing, exporting, expPct, msg, play, pause, toggle, seekTo, exportVideo, exportVideoHQ, hqAvailable: webcodecsSupported(), getTime, clearMsg };
+  return { playing, exporting, expPct, msg, play, pause, toggle, seekTo, exportVideo, exportVideoHQ, hqAvailable: webcodecsSupported(), getTime, getSelectedBox, clearMsg };
 }

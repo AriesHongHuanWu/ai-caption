@@ -4,7 +4,7 @@
    and the chroma-key pixel pass. Pure functions, no React.
    ────────────────────────────────────────────────────────────────── */
 
-import type { Filters, Keyframe, TextAnim, TransType, Clip } from './types';
+import type { Filters, Keyframe, TextAnim, TransType, Clip, Shake, ShakeMode } from './types';
 
 export const smooth = (p: number) => { const x = Math.min(1, Math.max(0, p)); return x * x * (3 - 2 * x); };
 
@@ -185,6 +185,41 @@ export function textAnim(clip: Clip, localT: number): AnimState {
     s = { alpha: s.alpha * o.alpha, tx: s.tx + o.tx, ty: s.ty + o.ty, sc: s.sc * o.sc, reveal: Math.min(s.reveal, o.reveal) };
   }
   return s;
+}
+
+export const SHAKES: { key: ShakeMode; label: string; en: string }[] = [
+  { key: 'none', label: '無', en: 'None' },
+  { key: 'handheld', label: '手持', en: 'Handheld' },
+  { key: 'bounce', label: '彈跳', en: 'Bounce' },
+  { key: 'earthquake', label: '地震', en: 'Earthquake' },
+];
+
+/** Deterministic camera-shake offset at clip-local time t (preview == export). */
+export function shakeMod(sh: Shake, t: number): { dx: number; dy: number; drot: number } {
+  if (!sh || sh.mode === 'none' || sh.amount <= 0) return { dx: 0, dy: 0, drot: 0 };
+  const a = sh.amount; const f = Math.max(0.1, sh.speed);
+  const n1 = Math.sin(t * 12.9 * f) * Math.sin(t * 3.1 * f + 1.7);
+  const n2 = Math.sin(t * 9.7 * f + 0.6) * Math.sin(t * 4.3 * f);
+  const n3 = Math.sin(t * 7.3 * f + 2.1);
+  if (sh.mode === 'handheld') return { dx: n1 * 14 * a, dy: n2 * 10 * a, drot: n3 * 1.2 * a };
+  if (sh.mode === 'bounce') { const b = Math.abs(Math.sin(t * 3.4 * f)); return { dx: 0, dy: -b * 44 * a, drot: 0 }; }
+  return { dx: n1 * 38 * a, dy: n2 * 32 * a, drot: n3 * 3 * a }; // earthquake
+}
+
+export const KEN_BURNS: { key: string; label: string; en: string }[] = [
+  { key: 'in', label: '推近', en: 'Zoom in' },
+  { key: 'out', label: '拉遠', en: 'Zoom out' },
+  { key: 'l', label: '左移', en: 'Pan L' },
+  { key: 'r', label: '右移', en: 'Pan R' },
+];
+
+/** Ken Burns keyframes (slow pan/zoom on a still). */
+export function kenBurns(dur: number, kind: string): Keyframe[] {
+  const z = 1.18; const base = { rotation: 0, opacity: 1 };
+  if (kind === 'out') return [{ t: 0, x: 0, y: 0, scale: z, ...base }, { t: dur, x: 0, y: 0, scale: 1, ...base }];
+  if (kind === 'l') return [{ t: 0, x: 70, y: 0, scale: z, ...base }, { t: dur, x: -70, y: 0, scale: z, ...base }];
+  if (kind === 'r') return [{ t: 0, x: -70, y: 0, scale: z, ...base }, { t: dur, x: 70, y: 0, scale: z, ...base }];
+  return [{ t: 0, x: 0, y: 0, scale: 1, ...base }, { t: dur, x: 0, y: 0, scale: z, ...base }]; // in
 }
 
 /** Chroma-key a source onto a reused offscreen canvas; returns the canvas (alpha keyed). */

@@ -44,6 +44,9 @@ export interface Chroma {
   smooth: number; // 0..1
 }
 
+export type ShakeMode = 'none' | 'handheld' | 'bounce' | 'earthquake';
+export interface Shake { mode: ShakeMode; amount: number; speed: number; }
+
 export interface Trans {
   type: TransType;
   dur: number; // seconds
@@ -80,6 +83,7 @@ export interface Clip {
   mask: 'none' | 'circle' | 'rounded';
   glitch: number; // 0..1 digital slice displacement
   scan: number; // 0..1 scanline overlay
+  shake: Shake; // camera shake / motion
 
   /* timing */
   speed: number; // 1 = normal (video/audio)
@@ -178,6 +182,7 @@ export function makeClip(kind: ClipKind, over: Partial<Clip>): Clip {
     mask: over.mask ?? 'none',
     glitch: over.glitch ?? 0,
     scan: over.scan ?? 0,
+    shake: over.shake ?? { mode: 'none', amount: 0.3, speed: 1 },
     speed: over.speed ?? 1,
     transIn: over.transIn ?? { type: 'none', dur: 0.5 },
     transOut: over.transOut ?? { type: 'none', dur: 0.5 },

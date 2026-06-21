@@ -32,7 +32,8 @@ const CATEGORIES: { key: string; labelKey: string; modes: AppMode[] }[] = [
   { key: 'home', labelKey: 'common.cat.home', modes: ['catalog'] },
   { key: 'get', labelKey: 'common.cat.get', modes: ['download'] },
   { key: 'audio', labelKey: 'common.cat.audio', modes: ['song', 'master', 'tools'] },
-  { key: 'video', labelKey: 'common.cat.video', modes: ['video', 'clean', 'visualizer', 'cut'] },
+  { key: 'video', labelKey: 'common.cat.video', modes: ['video', 'clean', 'visualizer'] },
+  { key: 'edit', labelKey: 'common.cat.edit', modes: ['cut'] },
 ];
 
 export interface ModeSwitchProps {
