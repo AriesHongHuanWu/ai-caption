@@ -20,6 +20,7 @@ import { ToolboxFlow } from './ToolboxFlow';
 import { DownloadFlow } from './DownloadFlow';
 import { CatalogFlow } from '../catalog/CatalogFlow';
 import { VisualizerFlow } from '../visualizer/VisualizerFlow';
+import { CutFlow } from '../cut/CutFlow';
 import { usePendingMedia } from '../../state/usePendingMedia';
 import { useMeta } from '../../state/useMeta';
 import { useJob } from '../../state/useJob';
@@ -378,6 +379,11 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
   // Visualizer (視覺化) — audio-reactive video with publishable export.
   if (appMode === 'visualizer') {
     return <VisualizerFlow />;
+  }
+
+  // Editor (剪輯室) — self-contained multitrack NLE: bin + preview + timeline.
+  if (appMode === 'cut') {
+    return <CutFlow />;
   }
 
   return (

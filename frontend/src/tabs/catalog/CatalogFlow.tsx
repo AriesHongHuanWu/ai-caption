@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import {
   FolderPlus, Music, Activity, Disc3, Mic2, FileText, ChevronLeft,
-  FolderOpen, Move, Trash2, Disc,
+  FolderOpen, Move, Trash2, Disc, Film,
 } from 'lucide-react';
 import { useProjects, type Project, type ProjectItemKind } from '../../state/useProjects';
 import { hasTauri, revealPath, dragOutPath } from '../export/saveFile';
@@ -16,7 +16,7 @@ import { useLang } from '../../i18n';
 import './catalog.css';
 
 const KIND_ICON: Record<ProjectItemKind, typeof Music> = {
-  beat: Music, analysis: Activity, master: Disc3, vocal: Mic2, note: FileText,
+  beat: Music, analysis: Activity, master: Disc3, vocal: Mic2, video: Film, note: FileText,
 };
 
 export function CatalogFlow() {

@@ -52,6 +52,8 @@ const TABS_BY_MODE: Record<AppMode, TabKey[]> = {
   catalog: ['transcribe', 'settings'],
   // visualizer → the audio-reactive visualizer lives in 辨識; 設定 stays.
   visualizer: ['transcribe', 'settings'],
+  // cut → the in-app multitrack video editor lives in 辨識; 設定 stays.
+  cut: ['transcribe', 'settings'],
 };
 
 /** The ordered TabKeys a given product mode should show in the rail/router. */

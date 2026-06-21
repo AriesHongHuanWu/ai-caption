@@ -11,7 +11,7 @@
 
 import { create } from 'zustand';
 
-export type ProjectItemKind = 'beat' | 'analysis' | 'master' | 'vocal' | 'note';
+export type ProjectItemKind = 'beat' | 'analysis' | 'master' | 'vocal' | 'video' | 'note';
 
 export interface ProjectItem {
   id: string;

@@ -8,7 +8,7 @@
    ────────────────────────────────────────────────────────────────── */
 
 import { useCallback, useRef } from 'react';
-import { Music, Clapperboard, Eraser, Disc3, Pin, Wrench, DownloadCloud, Library, AudioWaveform } from 'lucide-react';
+import { Music, Clapperboard, Eraser, Disc3, Pin, Wrench, DownloadCloud, Library, AudioWaveform, Scissors } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useMode } from '../../state/useMode';
 import type { AppMode } from '../../state/useMode';
@@ -25,13 +25,14 @@ const MODE_DEFS: Record<AppMode, { labelKey: string; titleKey: string; icon: Luc
   tools: { labelKey: 'common.mode.tools', titleKey: 'common.mode.toolsTitle', icon: Wrench },
   download: { labelKey: 'common.mode.download', titleKey: 'common.mode.downloadTitle', icon: DownloadCloud },
   visualizer: { labelKey: 'common.mode.visualizer', titleKey: 'common.mode.visualizerTitle', icon: AudioWaveform },
+  cut: { labelKey: 'common.mode.cut', titleKey: 'common.mode.cutTitle', icon: Scissors },
 };
 
 const CATEGORIES: { key: string; labelKey: string; modes: AppMode[] }[] = [
   { key: 'home', labelKey: 'common.cat.home', modes: ['catalog'] },
   { key: 'get', labelKey: 'common.cat.get', modes: ['download'] },
   { key: 'audio', labelKey: 'common.cat.audio', modes: ['song', 'master', 'tools'] },
-  { key: 'video', labelKey: 'common.cat.video', modes: ['video', 'clean', 'visualizer'] },
+  { key: 'video', labelKey: 'common.cat.video', modes: ['video', 'clean', 'visualizer', 'cut'] },
 ];
 
 export interface ModeSwitchProps {

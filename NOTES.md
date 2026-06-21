@@ -1,18 +1,19 @@
-# Local Studio v0.1.44
+# Local Studio v0.1.45
 
-🤯 **Show-off Visualizer templates** — four advanced, eye-catching styles using high-end Canvas techniques:
+## 🎬 NEW: Editor (剪輯室) — a real in-app video editor
 
-- **Feedback tunnel** — true video-feedback recursion: each frame is re-drawn zoomed + rotated, so a reactive emitter trails into an infinite, hypnotic tunnel that spirals on the beat.
-- **Liquid metal** — orbiting additive "metaball" blobs that merge into gooey liquid-metal shapes, sized by the spectrum and bass.
-- **Flow field** — a thousand particles flowing through an animated noise field, speed driven by the music — fluid, organic motion.
-- **Spectrogram** — a scrolling pro-audio heatmap of frequency over time.
+The studio is now end-to-end. A full multitrack timeline editor that pulls everything together — drop your mastered audio, a Visualizer video, images and subtitles, then cut, arrange and export a finished video. **All local, no external editor.**
 
-They sit at the **top of the template list** and work with all the colors, sensitivity, beat-shake, glow, effects (mirror/kaleidoscope/vignette/grain/flash) and MP4 export.
+**Edit** — multitrack timeline (video / audio / text), drag to move, trim by the edges, split, ripple-delete, duplicate, snapping, undo/redo, and keyboard shortcuts (Space, S, Del, ⌘Z, arrows, +/−). Highly customizable tracks: rename, reorder, mute / hide / lock.
 
-So the Visualizer now has **17 templates** (these 4 + 9 classic 2D + 4 real-3D).
+**Captions with 質感** — **auto-caption from your audio** (local Whisper), or import SRT / VTT / LRC. Premium caption looks (clean, caption bar, outline, title, gold gradient, neon glow), with font, letter-spacing, line-height, position, outline, shadow and gradient fill — animated in/out.
 
-Everything from v0.1.43 is included.
+**Transitions & effects** — fade, slide, zoom, spin, blur, wipe (in & out); filters + one-tap looks (Cinematic, Vivid, B&W, VHS…); chroma key (green screen); speed; keyframe animation (position / scale / rotation / opacity); and clean **fade in/out**.
 
-Support: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
+**Export** — the preview *is* the render → MP4 / WebM at 720p / 1080p, 24 / 30 / 60 fps, 16:9 / 9:16 / 1:1. Save it, or add it straight to a Project.
 
-MIT © 2026 Aries HongHuan Wu.
+Find it under 影片製作 → **剪輯室**.
+
+> Note: the live canvas (filters, transitions, captions) and export need a focused window — give it a try on your real video and let me know what to refine.
+
+MIT © 2026 Aries HongHuan Wu · ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan)
