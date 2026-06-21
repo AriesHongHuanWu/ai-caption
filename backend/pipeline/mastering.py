@@ -124,7 +124,102 @@ GENRE_PRESETS: dict[str, dict[str, Any]] = {
         "comp": {"thresh_db": -15.0, "ratio": 2.0, "attack_ms": 20, "release_ms": 140, "makeup_db": 0.5},
         "width": 0.95,
     },
+
+    # ── 嘻哈分支 / Hip-Hop styles ────────────────────────────────────────────
+    "melodic_rap": {
+        "label": "旋律饒舌 Melodic Rap", "g": "hiphop",
+        "desc": "溫暖、人聲靠前、低頻收乾淨、高頻柔順。", "descEn": "Warm, vocal-forward, clean lows, smooth highs.",
+        "eq": [("low_shelf", 70, 2.5, 0.7), ("peak", 250, -1.5, 1.0), ("peak", 3500, 2.0, 1.0), ("high_shelf", 11000, 2.0, 0.7)],
+        "comp": {"thresh_db": -15.0, "ratio": 2.2, "attack_ms": 20, "release_ms": 130, "makeup_db": 0.5},
+        "width": 1.08, "saturation": 0.22, "deEss": 0.5, "multiband": True, "dynamics": 0.1,
+    },
+    "boombap": {
+        "label": "Old-school / Boom-bap", "g": "hiphop",
+        "desc": "復古、中頻為主、黑膠暖度、低頻收斂、偏窄、保留律動。", "descEn": "Dusty, mid-forward, vinyl warmth, tight lows, groove-preserving.",
+        "eq": [("low_shelf", 80, 1.0, 0.7), ("peak", 200, 1.5, 0.9), ("peak", 3000, 1.0, 1.0), ("high_shelf", 9000, -1.5, 0.7)],
+        "comp": {"thresh_db": -16.0, "ratio": 1.8, "attack_ms": 25, "release_ms": 160, "makeup_db": 0.3},
+        "width": 0.92, "saturation": 0.30, "multiband": False, "dynamics": -0.1,
+    },
+    "trap": {
+        "label": "Trap / 808", "g": "hiphop",
+        "desc": "巨大 808 sub、清脆 hi-hat、響、緊。", "descEn": "Huge 808 sub, crisp hats, loud and tight.",
+        "eq": [("low_shelf", 45, 3.5, 0.7), ("peak", 250, -1.5, 1.0), ("peak", 4500, 1.5, 1.0), ("high_shelf", 13000, 3.0, 0.7)],
+        "comp": {"thresh_db": -13.0, "ratio": 2.6, "attack_ms": 10, "release_ms": 100, "makeup_db": 1.0},
+        "width": 1.05, "saturation": 0.18, "deEss": 0.6, "multiband": True, "dynamics": 0.15,
+    },
+    "drill": {
+        "label": "Drill", "g": "hiphop",
+        "desc": "暗、兇、滑音 808、顆粒中頻、響。", "descEn": "Dark, aggressive, sliding 808s, gritty mids, loud.",
+        "eq": [("low_shelf", 50, 3.0, 0.7), ("peak", 400, 1.0, 1.0), ("peak", 3000, 1.5, 1.0), ("high_shelf", 10000, 1.0, 0.7)],
+        "comp": {"thresh_db": -13.0, "ratio": 2.8, "attack_ms": 8, "release_ms": 90, "makeup_db": 1.0},
+        "width": 1.0, "saturation": 0.30, "multiband": True, "dynamics": 0.1,
+    },
+    "cloud_rap": {
+        "label": "Cloud Rap / Ambient", "g": "hiphop",
+        "desc": "朦朧、空間大、高頻收斂、寬、柔。", "descEn": "Hazy, spacious, rolled-off highs, wide and soft.",
+        "eq": [("low_shelf", 80, 1.5, 0.7), ("peak", 500, 1.0, 1.0), ("high_shelf", 9000, -2.0, 0.7)],
+        "comp": {"thresh_db": -16.0, "ratio": 1.8, "attack_ms": 25, "release_ms": 160, "makeup_db": 0.3},
+        "width": 1.18, "saturation": 0.25, "multiband": False, "dynamics": 0.0,
+    },
+
+    # ── 藝人致敬風格 / Artist-inspired styles(風格參考,非官方/未獲授權)─────────
+    "juicewrld": {
+        "label": "Juice WRLD–style 暗潮 emo-rap", "g": "artist",
+        "desc": "溫暖私密、旋律感、人聲順而不刺、磁帶飽和、略暗。", "descEn": "Warm & intimate, melodic, smooth (not harsh) vocal, tape saturation, slightly dark.",
+        "eq": [("low_shelf", 75, 2.5, 0.7), ("peak", 220, 1.0, 0.9), ("peak", 3200, 1.5, 1.0), ("high_shelf", 11000, 1.5, 0.7)],
+        "comp": {"thresh_db": -15.0, "ratio": 2.2, "attack_ms": 18, "release_ms": 140, "makeup_db": 0.5},
+        "width": 1.08, "saturation": 0.28, "deEss": 0.6, "multiband": True, "dynamics": 0.1,
+    },
+    "xxxtentacion": {
+        "label": "XXXTENTACION–style lo-fi raw", "g": "artist",
+        "desc": "粗糙生猛、飽和、偏暗、中頻有衝擊、偏窄。", "descEn": "Raw & gritty, saturated, dark, punchy mids, narrow.",
+        "eq": [("low_shelf", 70, 2.0, 0.7), ("peak", 300, 1.5, 0.9), ("peak", 2500, 1.0, 1.0), ("high_shelf", 9000, -1.5, 0.7)],
+        "comp": {"thresh_db": -14.0, "ratio": 2.4, "attack_ms": 12, "release_ms": 110, "makeup_db": 0.8},
+        "width": 0.90, "saturation": 0.40, "deEss": 0.4, "multiband": True, "dynamics": 0.05,
+    },
+    "drake": {
+        "label": "Drake–style OVO clean", "g": "artist",
+        "desc": "乾淨拋光、人聲靠前、低頻緊、高頻順、略寬。", "descEn": "Clean & polished, vocal-forward, tight low end, smooth highs, wide-ish.",
+        "eq": [("low_shelf", 60, 1.5, 0.7), ("peak", 200, -1.5, 1.0), ("peak", 4000, 1.5, 1.0), ("high_shelf", 12000, 2.0, 0.7)],
+        "comp": {"thresh_db": -16.0, "ratio": 2.0, "attack_ms": 20, "release_ms": 140, "makeup_db": 0.4},
+        "width": 1.12, "saturation": 0.15, "deEss": 0.6, "multiband": True, "dynamics": 0.1,
+    },
+    "kanye": {
+        "label": "Kanye–style soulful maximalist", "g": "artist",
+        "desc": "靈魂暖度、飽和、低中飽滿、寬、有存在感。", "descEn": "Soulful warmth, saturated, full low-mids, wide and present.",
+        "eq": [("low_shelf", 70, 2.0, 0.7), ("peak", 200, 1.5, 0.9), ("peak", 3500, 1.5, 1.0), ("high_shelf", 12000, 2.0, 0.7)],
+        "comp": {"thresh_db": -15.0, "ratio": 2.2, "attack_ms": 18, "release_ms": 150, "makeup_db": 0.6},
+        "width": 1.15, "saturation": 0.32, "multiband": True, "dynamics": 0.12,
+    },
+    "travis_scott": {
+        "label": "Travis Scott–style washed rage", "g": "artist",
+        "desc": "巨大、沖刷感、重 sub、寬、氛圍高頻、響。", "descEn": "Huge, washed-out, heavy sub, wide, ambient highs, loud.",
+        "eq": [("low_shelf", 45, 3.0, 0.7), ("peak", 300, -1.0, 1.0), ("peak", 4000, 1.0, 1.0), ("high_shelf", 13000, 2.5, 0.7)],
+        "comp": {"thresh_db": -13.0, "ratio": 2.6, "attack_ms": 10, "release_ms": 110, "makeup_db": 1.0},
+        "width": 1.20, "saturation": 0.30, "multiband": True, "dynamics": 0.12,
+    },
+    "theweeknd": {
+        "label": "The Weeknd–style cinematic R&B", "g": "artist",
+        "desc": "電影感、奢華、寬、空氣明亮、順滑、低頻收斂。", "descEn": "Cinematic, lush, wide, bright air, smooth, controlled sub.",
+        "eq": [("low_shelf", 60, 1.5, 0.7), ("peak", 300, -1.0, 1.0), ("peak", 5000, 1.0, 1.0), ("high_shelf", 13000, 3.0, 0.7)],
+        "comp": {"thresh_db": -16.0, "ratio": 1.8, "attack_ms": 22, "release_ms": 170, "makeup_db": 0.4},
+        "width": 1.18, "saturation": 0.20, "deEss": 0.6, "multiband": True, "dynamics": 0.08,
+    },
+    "playboi_carti": {
+        "label": "Playboi Carti–style bright rage", "g": "artist",
+        "desc": "明亮、破音感、響、兇、高頻攻擊。", "descEn": "Bright, distorted, loud, aggressive top end.",
+        "eq": [("low_shelf", 50, 2.5, 0.7), ("peak", 500, 1.0, 1.0), ("peak", 5000, 2.0, 1.0), ("high_shelf", 14000, 3.0, 0.7)],
+        "comp": {"thresh_db": -12.0, "ratio": 2.8, "attack_ms": 8, "release_ms": 90, "makeup_db": 1.2},
+        "width": 1.0, "saturation": 0.42, "deEss": 0.3, "multiband": True, "dynamics": 0.12,
+    },
 }
+
+# 預設分組(給前端做分類選單)。key 對應 GENRE_PRESETS 裡的條目。
+_PRESET_GROUPS: list[dict] = [
+    {"key": "genre", "label": "風格 Genres", "keys": ["auto", "pop", "hiphop", "edm", "rock", "rnb", "acoustic", "ballad", "lofi"]},
+    {"key": "hiphop", "label": "嘻哈分支 Hip-Hop", "keys": ["melodic_rap", "boombap", "trap", "drill", "cloud_rap"]},
+    {"key": "artist", "label": "藝人風格 Artist styles", "keys": ["juicewrld", "xxxtentacion", "drake", "kanye", "travis_scott", "theweeknd", "playboi_carti"]},
+]
 
 # loudness → (target integrated LUFS, true-peak ceiling dBTP)
 LOUDNESS_TARGETS: dict[str, tuple[float, float]] = {
@@ -136,6 +231,27 @@ LOUDNESS_TARGETS: dict[str, tuple[float, float]] = {
 
 def genres() -> list[dict[str, str]]:
     return [{"key": k, "label": v["label"]} for k, v in GENRE_PRESETS.items()]
+
+
+def presets() -> dict:
+    """給前端的分類預設清單:groups[{key,label,presets:[{key,label,desc,descEn,character}]}]。
+    character = 預設的進階特徵摘要(寬度/飽和/壓縮),供 UI 顯示這個風格在做什麼。"""
+    def _one(k: str) -> dict:
+        p = GENRE_PRESETS.get(k, {})
+        return {
+            "key": k, "label": p.get("label", k),
+            "desc": p.get("desc", ""), "descEn": p.get("descEn", ""),
+            "character": {
+                "width": p.get("width", 1.0),
+                "saturation": p.get("saturation", None),
+                "deEss": p.get("deEss", None),
+                "multiband": p.get("multiband", None),
+                "dynamics": p.get("dynamics", 0.0),
+            },
+        }
+    return {"groups": [{"key": g["key"], "label": g["label"],
+                        "presets": [_one(k) for k in g["keys"] if k in GENRE_PRESETS]}
+                       for g in _PRESET_GROUPS]}
 
 
 def loudness_targets() -> list[str]:
@@ -648,8 +764,9 @@ def _target_curve_db(f: "np.ndarray") -> "np.ndarray":
     return base + shape
 
 
-def _target_band_levels(genre: str) -> dict[str, float]:
-    """目標頻段能量(對目標曲線在各頻段積分)+ 曲風微調(×0.6)。"""
+def _target_band_levels(genre: str, extra: Optional[dict] = None) -> dict[str, float]:
+    """目標頻段能量(對目標曲線在各頻段積分)+ 曲風微調(×0.6)+ 選用的 extra 偏移(風格/藝人
+    預設的音色傾向)。extra 讓殘差修正校正到『帶風格的目標』,而不是把所有預設都拉成同一條曲線。"""
     f = np.geomspace(20.0, 20000.0, 2048)
     tdb = _target_curve_db(f)
     plin = 10.0 ** (tdb / 10.0)  # 視為相對功率密度
@@ -659,7 +776,33 @@ def _target_band_levels(genre: str) -> dict[str, float]:
         p = _trapz(plin[m], f[m]) if np.any(m) else 1e-12
         levels[name] = 10.0 * np.log10(p + 1e-12)
     off = _GENRE_OFFSETS.get(genre, _GENRE_OFFSETS["auto"])
-    return {k: levels[k] + 0.6 * float(off.get(k, 0.0)) for k in levels}
+    ex = extra or {}
+    return {k: levels[k] + 0.6 * float(off.get(k, 0.0)) + float(ex.get(k, 0.0)) for k in levels}
+
+
+def _preset_tone_offset(preset: dict) -> dict[str, float]:
+    """把一個預設的 EQ 動作換算成 7 頻段的『音色傾向』dB(供殘差修正保留風格音色,而非抹平)。
+    shelf 影響其轉折點以下/以上的所有頻段;peak 影響最近的頻段。整體縮放 0.5(只當傾向,不全imposed)。"""
+    names = [b for b, _, _ in _BANDS]
+    centers = {b: (lo * hi) ** 0.5 for b, lo, hi in _BANDS}
+    off = {b: 0.0 for b in names}
+    for mv in preset.get("eq", []):
+        try:
+            kind, f0, g = str(mv[0]), float(mv[1]), float(mv[2])
+        except (IndexError, TypeError, ValueError):
+            continue
+        if kind == "low_shelf":
+            for b in names:
+                if centers[b] <= f0 * 1.3:
+                    off[b] += g
+        elif kind == "high_shelf":
+            for b in names:
+                if centers[b] >= f0 * 0.7:
+                    off[b] += g
+        else:  # peak → 最近的頻段(以 log 距離)
+            nb = min(names, key=lambda b: abs(np.log2(centers[b] / max(f0, 1.0))))
+            off[nb] += g
+    return {b: round(0.85 * off[b], 2) for b in names}
 
 
 def _spectral_centroid(f: "np.ndarray", pxx: "np.ndarray") -> float:
@@ -1614,28 +1757,34 @@ def _saturate(data: "np.ndarray", sr: int, *, amount: float = 0.3, asymmetry: fl
 
 
 def _residual_corrective_eq(data: "np.ndarray", sr: int, *, genre: str = "auto",
-                            strength: float = 0.6, max_band_db: float = 3.0) -> tuple["np.ndarray", dict]:
-    """在(已處理的)音訊上重新量頻段偏差,套一道溫和的殘差修正 EQ 把差距補滿(±3dB 上限,
-    *strength,避免過修/共振)。這是讓 after 分數真正提高的關鍵。回 (音訊, info)。"""
-    xa, asr = _analysis_signal(data, sr)
-    mono = np.mean(xa, axis=1)
-    f, pxx = _welch_psd(mono, asr)
-    band_db = _band_levels_db(f, pxx)
-    meas_mean = float(np.mean(list(band_db.values())))
-    tgt = _target_band_levels(genre)
+                            strength: float = 0.85, max_band_db: float = 5.0,
+                            passes: int = 2, tone_offset: Optional[dict] = None) -> tuple["np.ndarray", dict]:
+    """在(已處理的)音訊上反覆量頻段偏差,套殘差修正 EQ 把差距補到目標曲線。**這是讓 after
+    分數真正提高的關鍵**:每一輪都對「剩餘」偏差作修正(deviation-driven → 已平衡的歌只動一點點、
+    很自然;失衡的歌才會被大幅校正),最多 `passes` 輪收斂,避免單輪過修/共振。回 (音訊, info)。"""
+    out = data
+    s = float(np.clip(strength, 0.0, 1.0))
+    tgt = _target_band_levels(genre, extra=tone_offset)
     tgt_mean = float(np.mean(list(tgt.values())))
-    applied: dict[str, float] = {}
-    bands: list[tuple] = []
-    for name, _lo, _hi in _BANDS:
-        dev = (band_db[name] - meas_mean) - (tgt[name] - tgt_mean)
-        g = float(np.clip(-dev, -max_band_db, max_band_db)) * float(np.clip(strength, 0.0, 1.0))
-        g = round(g, 2)
-        applied[name] = g
-        if abs(g) > 1e-2:
-            kind, f0, q = _BAND_EQ[name]
-            bands.append((kind, f0, g, q))
-    out = _apply_eq(data, sr, bands) if bands else data
-    return out, {"applied_db": applied, "max_db": max_band_db, "strength": round(float(strength), 2)}
+    total: dict[str, float] = {b: 0.0 for b, _, _ in _BANDS}
+    for _pass in range(max(1, int(passes))):
+        xa, asr = _analysis_signal(out, sr)
+        mono = np.mean(xa, axis=1)
+        f, pxx = _welch_psd(mono, asr)
+        band_db = _band_levels_db(f, pxx)
+        meas_mean = float(np.mean(list(band_db.values())))
+        bands: list[tuple] = []
+        for name, _lo, _hi in _BANDS:
+            dev = (band_db[name] - meas_mean) - (tgt[name] - tgt_mean)
+            g = round(float(np.clip(-dev, -max_band_db, max_band_db)) * s, 2)
+            total[name] = round(total[name] + g, 2)
+            if abs(g) > 1e-2:
+                kind, f0, q = _BAND_EQ[name]
+                bands.append((kind, f0, g, q))
+        if not bands:        # 已收斂(殘差都 < 0.01dB)→ 提早結束
+            break
+        out = _apply_eq(out, sr, bands)
+    return out, {"applied_db": total, "max_db": max_band_db, "strength": round(s, 2), "passes": passes}
 
 
 def _goniometer(data: "np.ndarray", sr: int) -> dict:
@@ -2052,6 +2201,17 @@ def master(
     tgt_lufs, preset_ceiling = LOUDNESS_TARGETS.get(loudness, LOUDNESS_TARGETS["streaming"])
     ceil = float(ceiling_db) if ceiling_db is not None else preset_ceiling
 
+    # 預設驅動的「角色」:風格/藝人預設指定的進階特徵,在使用者未覆寫時作為基底 ——
+    # 這就是讓不同風格(旋律饒舌 vs Drake vs Carti)聽起來真的不同的關鍵。auto 仍可在其上微調。
+    if saturation <= 1e-3 and preset.get("saturation") is not None:
+        saturation = float(preset["saturation"])
+    if de_ess is None and de_ess_amount is None and preset.get("deEss") is not None:
+        de_ess_amount = float(preset["deEss"])
+    if multiband is None and preset.get("multiband") is not None:
+        multiband = bool(preset["multiband"])
+    if abs(float(dynamics)) <= 1e-3 and preset.get("dynamics"):
+        dynamics = float(preset["dynamics"])
+
     _emit(progress, 3.0, "讀取音訊 · Loading")
     data, sr = _load_audio(input_path)
 
@@ -2146,6 +2306,10 @@ def master(
             data = _highpass(data, sr, float(corr["low_cut_hz"]))
         if corr.get("mono_below_hz", 0) > 0:
             data = _mono_below(data, sr, float(corr["mono_below_hz"]))
+        # 風格音色:auto 修完問題後,再疊上「這個預設的 EQ 個性」(藝人/分支風格的招牌音色)。
+        # 殘差修正的目標已含預設音色傾向 → 不會把這層個性抹平。
+        if genre != "auto" and preset.get("eq"):
+            data = _apply_eq(data, sr, preset["eq"])
     else:
         _emit(progress, 22.0, f"套用曲風 EQ · {preset['label']}")
         data = _apply_eq(data, sr, preset["eq"])
@@ -2310,13 +2474,15 @@ def master(
         except Exception:
             logger.warning("諧波飽和失敗(略過,不影響輸出)", exc_info=True)
 
-    # 6) 立體聲寬度(明確 width > auto 建議 > 曲風預設)
+    # 6) 立體聲寬度(明確 width > 風格預設明確寬度 > auto 建議 > 曲風預設)
     if width is not None:
         w = float(width)
+    elif abs(float(preset.get("width", 1.0)) - 1.0) > 1e-3:
+        w = float(preset["width"])                 # 風格/藝人預設有明確寬度 → 尊重它
     elif auto and corr:
-        w = float(corr.get("width_factor", preset["width"]))
+        w = float(corr.get("width_factor", preset.get("width", 1.0)))
     else:
-        w = float(preset["width"])
+        w = float(preset.get("width", 1.0))
     data = _stereo_width(data, w)
     stages.append("width")
 
@@ -2327,7 +2493,8 @@ def master(
         _emit(progress, 70.0, "二次修正 EQ · Residual corrective EQ")
         try:
             data, meters["residual_eq"] = _residual_corrective_eq(
-                data, sr, genre=genre, strength=0.6 * trust / 0.7)
+                data, sr, genre=genre, strength=min(1.0, 0.9 * trust / 0.7), passes=2,
+                tone_offset=_preset_tone_offset(preset))
             stages.append("residual_eq")
         except Exception:
             logger.warning("二次修正 EQ 失敗(略過,不影響輸出)", exc_info=True)

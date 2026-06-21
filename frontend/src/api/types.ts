@@ -47,9 +47,28 @@ export interface Meta {
   mastering?: boolean;
   /** Mastering genre presets [{key,label}]. */
   masterGenres?: { key: string; label: string }[];
+  /** Categorised mastering presets (genres / hip-hop styles / artist styles). */
+  masterPresets?: MasterPresetGroups;
   /** Mastering loudness targets (e.g. ['streaming','balanced','social']). */
   masterLoudness?: string[];
   version: string;
+}
+
+export interface MasterPresetItem {
+  key: string;
+  label: string;
+  desc?: string;
+  descEn?: string;
+  character?: {
+    width?: number;
+    saturation?: number | null;
+    deEss?: number | null;
+    multiband?: boolean | null;
+    dynamics?: number;
+  };
+}
+export interface MasterPresetGroups {
+  groups: { key: string; label: string; presets: MasterPresetItem[] }[];
 }
 
 /* ── POST /api/jobs — params ── */

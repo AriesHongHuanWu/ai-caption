@@ -1235,6 +1235,10 @@ pub fn run() {
         // 新版後端原始碼重新複製進 WORK (保留 .venv/out)，故後端碼也會跟著更新。
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        // 下載器:opener = 在檔案總管/Finder 顯示已下載檔(reveal-in-folder);
+        // drag = 從 App 視窗原生拖出檔案到 DAW(@crabnebula/tauri-plugin-drag)。
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_drag::init())
         .manage(BackendProcess::default())
         .invoke_handler(tauri::generate_handler![
             backend_status,

@@ -105,6 +105,21 @@ export function ToolboxFlow() {
 
       {tools.length === 0 && <p className="al-toolbox__empty">{t('tools.empty')}</p>}
 
+      {/* File first: drop/choose the audio at the TOP, then pick a tool below. */}
+      {tools.length > 0 && (
+        <label className="al-master__drop al-toolbox__drop">
+          <input
+            type="file"
+            accept="audio/*,.wav,.mp3,.flac,.m4a,.aac,.ogg"
+            className="al-master__file"
+            onChange={(e) => { setFile(e.target.files?.[0] ?? null); setResult(null); setMsg(null); }}
+          />
+          <UploadCloud size={22} />
+          <span className="al-master__dropmain">{file ? file.name : t('tools.drop')}</span>
+          <span className="al-master__drophint">WAV · MP3 · FLAC · M4A</span>
+        </label>
+      )}
+
       {cats.map((cat) => (
         <section key={cat} className="al-section">
           <p className="al-toolbox__cat">{t(`tools.cat.${cat}`)}</p>
@@ -132,35 +147,7 @@ export function ToolboxFlow() {
         <section className="al-section al-toolrun">
           <p className="al-toolrun__title">{label(sel)}</p>
 
-          {sel.kind === 'fetch' ? (
-            <div className="al-toolfetch">
-              <input
-                type="url"
-                className="al-toolfetch__url"
-                placeholder={t('tools.fetch.urlPlaceholder')}
-                value={url}
-                disabled={running}
-                onChange={(e) => { setUrl(e.target.value); setMsg(null); }}
-              />
-              <label className="al-toolfetch__rights">
-                <input type="checkbox" checked={rights} disabled={running}
-                  onChange={(e) => setRights(e.target.checked)} />
-                <span>{t('tools.fetch.rights')}</span>
-              </label>
-            </div>
-          ) : (
-            <label className="al-master__drop">
-              <input
-                type="file"
-                accept="audio/*,.wav,.mp3,.flac,.m4a,.aac,.ogg"
-                className="al-master__file"
-                onChange={(e) => { setFile(e.target.files?.[0] ?? null); setResult(null); setMsg(null); }}
-              />
-              <UploadCloud size={22} />
-              <span className="al-master__dropmain">{file ? file.name : t('tools.drop')}</span>
-              <span className="al-master__drophint">WAV · MP3 · FLAC · M4A</span>
-            </label>
-          )}
+          {!file && <p className="al-toolrun__hint">⬆ {t('tools.drop')}</p>}
 
           {sel.params.length > 0 && (
             <div className="al-toolrun__params">

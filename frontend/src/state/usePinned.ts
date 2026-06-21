@@ -8,7 +8,8 @@ import { create } from 'zustand';
 import type { AppMode } from './useMode';
 
 const STORAGE_KEY = 'al-pinned-modes';
-const ALL: AppMode[] = ['song', 'video', 'clean', 'master'];
+// Keep in sync with AppMode in useMode.ts — a mode missing here is silently un-pinnable.
+const ALL: AppMode[] = ['song', 'video', 'clean', 'master', 'tools', 'download'];
 
 function initialPinned(): AppMode[] {
   try {

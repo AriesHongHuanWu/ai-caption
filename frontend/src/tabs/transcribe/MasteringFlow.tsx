@@ -26,8 +26,10 @@ import { saveBinaryUrl } from '../export/saveFile';
 import type { MasterLoudness, MasterMeta, MasterAnalysis } from '../../api/master';
 import { ApiError } from '../../api/client';
 import { useMeta } from '../../state/useMeta';
-import { useT } from '../../i18n';
+import { useMasterPresets, type CustomPreset } from '../../state/useMasterPresets';
+import { useT, useLang } from '../../i18n';
 import type { TFn } from '../../i18n';
+import { Save, X } from 'lucide-react';
 import { AnalysisPanel, ResultCompare } from './mastering/AnalysisPanel';
 import { Goniometer } from './mastering/Goniometer';
 import { GainReduction } from './mastering/GainReduction';
@@ -53,6 +55,15 @@ export function MasteringFlow() {
     ? meta.masterGenres
     : [{ key: 'auto', label: 'Auto' }];
   const genreLabel = (k: string) => genres.find((g) => g.key === k)?.label ?? k;
+  const lang = useLang();
+  const presetGroups = (meta.masterPresets?.groups && meta.masterPresets.groups.length)
+    ? meta.masterPresets.groups
+    : [{ key: 'genre', label: 'Genres', presets: genres.map((g) => ({ key: g.key, label: g.label })) }];
+  const customPresets = useMasterPresets((s) => s.presets);
+  const saveCustom = useMasterPresets((s) => s.save);
+  const removeCustom = useMasterPresets((s) => s.remove);
+  const [selectedCustom, setSelectedCustom] = useState<string | null>(null);
+  const [presetName, setPresetName] = useState('');
 
   const [file, setFile] = useState<File | null>(null);
   const [srcUrl, setSrcUrl] = useState<string | null>(null);
@@ -186,15 +197,40 @@ export function MasteringFlow() {
 
   const pickGenre = useCallback((g: string) => {
     setGenre(g);
+    setSelectedCustom(null);
     if (file) runAnalyze(file, g, autoStrength);
   }, [file, autoStrength, runAnalyze]);
+
+  // Recall a saved custom preset: restore its base style + every advanced setting.
+  const applyCustom = useCallback((cp: CustomPreset) => {
+    setSelectedCustom(cp.id);
+    setGenre(cp.genre);
+    setLoudness(cp.loudness as MasterLoudness);
+    setDynamics(cp.adv.dynamics); setWidth(cp.adv.width);
+    setEqBass(cp.adv.eqBass); setEqLowMid(cp.adv.eqLowMid);
+    setEqPresence(cp.adv.eqPresence); setEqAir(cp.adv.eqAir);
+    setCompScale(cp.adv.compScale); setCeiling(cp.adv.ceiling);
+    setAutoStrength(cp.adv.autoStrength); setShowAdv(true);
+    if (file) runAnalyze(file, cp.genre, cp.adv.autoStrength);
+  }, [file, runAnalyze]);
+
+  // Save the current style + advanced settings as a reusable custom preset.
+  const saveCurrentPreset = useCallback(() => {
+    const name = presetName.trim();
+    if (!name) return;
+    saveCustom({
+      name, genre, loudness,
+      adv: { dynamics, eqBass, eqLowMid, eqPresence, eqAir, compScale, width, ceiling, autoStrength },
+    });
+    setPresetName('');
+  }, [presetName, saveCustom, genre, loudness, dynamics, eqBass, eqLowMid, eqPresence, eqAir, compScale, width, ceiling, autoStrength]);
 
   // Re-analyze (debounced) when the strength dial settles, so the panel +
   // suggestion chips reflect the chosen aggressiveness.
   const pickStrength = useCallback((v: number) => {
     setAutoStrength(v);
     if (strengthTimer.current) clearTimeout(strengthTimer.current);
-    if (file && genre === 'auto') {
+    if (file) {
       strengthTimer.current = setTimeout(() => runAnalyze(file, genre, v), 350);
     }
   }, [file, genre, runAnalyze]);
@@ -253,7 +289,11 @@ export function MasteringFlow() {
           eqAir,
           compScale,
           ceiling,
-          auto: genre === 'auto',
+          // Always intelligent: every preset (genre / sub-genre / artist style) runs the
+          // smart corrective + residual EQ that actually fixes problems & raises the score —
+          // the chosen preset layers its *character* on top. (Previously only 'auto' did this,
+          // so picking a style gave a gentle, non-transformative master.)
+          auto: true,
           autoStrength,
           paramEq: proMode && paramBands.some((b) => b.enabled) ? JSON.stringify(toBackendBands(paramBands)) : undefined,
           adaptiveEq: adaptiveEq || undefined,
@@ -420,18 +460,59 @@ export function MasteringFlow() {
             )}
           </div>
         )}
-        <div className="al-master__genres">
-          {genres.map((g) => (
-            <button
-              key={g.key}
-              type="button"
-              className={`al-master__chip${genre === g.key ? ' al-master__chip--active' : ''}`}
-              onClick={() => pickGenre(g.key)}
-              disabled={running}
-            >
-              {g.label}
-            </button>
-          ))}
+        {presetGroups.map((grp) => (
+          <div key={grp.key} className="al-master__presetgroup">
+            <div className="al-master__presetcat">{grp.label}</div>
+            <div className="al-master__genres">
+              {grp.presets.map((p) => (
+                <button
+                  key={p.key}
+                  type="button"
+                  title={lang === 'en' ? (p.descEn ?? '') : (p.desc ?? '')}
+                  className={`al-master__chip${genre === p.key && !selectedCustom ? ' al-master__chip--active' : ''}`}
+                  onClick={() => pickGenre(p.key)}
+                  disabled={running}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* My presets — saved custom chains */}
+        {customPresets.length > 0 && (
+          <div className="al-master__presetgroup">
+            <div className="al-master__presetcat">{lang === 'en' ? 'My presets' : '我的預設'}</div>
+            <div className="al-master__genres">
+              {customPresets.map((cp) => (
+                <span key={cp.id} className={`al-master__chip al-master__chip--custom${selectedCustom === cp.id ? ' al-master__chip--active' : ''}`}>
+                  <button type="button" className="al-master__chipbtn" onClick={() => applyCustom(cp)} disabled={running}>
+                    {cp.name}
+                  </button>
+                  <button type="button" className="al-master__chipx" title={lang === 'en' ? 'Delete' : '刪除'}
+                          onClick={() => { removeCustom(cp.id); if (selectedCustom === cp.id) setSelectedCustom(null); }}>
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Save current settings as a custom preset */}
+        <div className="al-master__savepreset">
+          <input
+            type="text" className="al-master__presetname"
+            placeholder={lang === 'en' ? 'Name a preset from current settings…' : '把目前設定存成預設,取個名字…'}
+            value={presetName} maxLength={40} disabled={running}
+            onChange={(e) => setPresetName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') saveCurrentPreset(); }}
+          />
+          <button type="button" className="al-btn al-master__presetsave"
+                  disabled={!presetName.trim() || running} onClick={saveCurrentPreset}>
+            <Save size={14} /> {lang === 'en' ? 'Save' : '保存'}
+          </button>
         </div>
 
         <p className="al-master__sub">{t('master.refLabel')}</p>

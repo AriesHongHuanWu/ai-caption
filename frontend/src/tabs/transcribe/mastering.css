@@ -100,6 +100,48 @@
   color: var(--al-gold);
 }
 
+/* ── categorised preset picker ── */
+.al-master__presetgroup { margin-bottom: var(--al-space-3); }
+.al-master__presetcat {
+  font-family: var(--al-font-mono);
+  font-size: var(--al-text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--al-tracking-caps);
+  color: var(--al-ink-faint);
+  margin-bottom: 6px;
+}
+.al-master__chip--custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 0 0 4px;
+}
+.al-master__chipbtn {
+  background: none; border: none; color: inherit; cursor: pointer;
+  font-size: var(--al-text-sm); padding: 6px 4px 6px 10px;
+}
+.al-master__chipx {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; color: var(--al-ink-faint); cursor: pointer;
+  padding: 4px 8px 4px 2px; border-radius: var(--al-radius-chip);
+}
+.al-master__chipx:hover { color: var(--al-error, #d9534f); }
+.al-master__savepreset {
+  display: flex; gap: 8px; align-items: stretch; margin-top: var(--al-space-2);
+  max-width: 480px;
+}
+.al-master__presetname {
+  flex: 1; min-width: 0;
+  padding: 7px 11px;
+  border: 1px solid var(--al-hairline);
+  border-radius: var(--al-radius-ctrl);
+  background: var(--al-surface);
+  color: var(--al-ink);
+  font-size: var(--al-text-sm);
+}
+.al-master__presetname:focus { outline: none; border-color: var(--al-gold); }
+.al-master__presetsave { flex: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+
 /* ── reference picker ── */
 .al-master__reframe {
   display: inline-flex;

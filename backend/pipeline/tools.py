@@ -201,18 +201,32 @@ _ENCODE_SUBTYPE = {"wav": "PCM_24", "flac": "PCM_24", "ogg": "VORBIS", "mp3": No
 _ENCODE_EXT = {"wav": "wav", "flac": "flac", "ogg": "ogg", "mp3": "mp3"}
 
 
+_ENCODE_FORMAT = {"wav": "WAV", "flac": "FLAC", "ogg": "OGG", "mp3": "MP3"}
+
+
 def _encode(data: "np.ndarray", sr: int, path: str, fmt: str) -> None:
-    """以指定格式寫出(libsndfile 支援 wav/flac/ogg/mp3)。NaN/Inf 已在 run_tool 清過。"""
+    """以指定格式寫出(libsndfile 支援 wav/flac/ogg/mp3)。NaN/Inf 已在 run_tool 清過。
+
+    明確帶 format= —— 不靠副檔名猜(輸出路徑可能是 .bin 暫存,靠副檔名會丟
+    'unable to get format from file extension')。"""
     import soundfile as sf  # type: ignore
     fmt = (fmt or "wav").lower()
     safe = np.nan_to_num(np.clip(data, -1.0, 1.0), nan=0.0, posinf=1.0, neginf=-1.0)
+    sfmt = _ENCODE_FORMAT.get(fmt, "WAV")
     sub = _ENCODE_SUBTYPE.get(fmt)
-    if fmt == "mp3":
-        sf.write(path, safe, sr, format="MP3")
-    elif sub:
-        sf.write(path, safe, sr, subtype=sub)
-    else:
-        sf.write(path, safe, sr)
+    try:
+        if sub:
+            sf.write(path, safe, sr, format=sfmt, subtype=sub)
+        else:
+            sf.write(path, safe, sr, format=sfmt)
+    except Exception:
+        # 保險:極舊的 libsndfile 不支援 MP3 寫入(我們綁的 1.2.x 支援)→ 退回 WAV,
+        # 而不是讓整個請求 500。呼叫端會看到副檔名與內容不符,但至少拿得到音檔。
+        if fmt != "wav":
+            logger.warning("以 %s 編碼失敗,退回 WAV", fmt, exc_info=True)
+            sf.write(path, safe, sr, format="WAV", subtype="PCM_24")
+        else:
+            raise
 
 
 def _t_denoise(data: "np.ndarray", sr: int, params: dict) -> tuple["np.ndarray", int]:
@@ -348,8 +362,8 @@ _FETCH_TOOL = {
 
 
 def list_tools() -> list[dict]:
-    """給前端的工具清單(不含 fn)。"""
-    out = [_FETCH_TOOL]
+    """給前端的工具清單(不含 fn)。URL 下載已獨立成「下載器」模式,不再列在工具箱。"""
+    out: list[dict] = []
     for tid, t in TOOLS.items():
         out.append({k: v for k, v in t.items() if k != "fn"} | {"id": tid})
     return out

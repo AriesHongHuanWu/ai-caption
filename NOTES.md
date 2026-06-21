@@ -1,19 +1,25 @@
-# Local Studio v0.1.36
+# Local Studio v0.1.37
 
-⬇️ **New: YouTube / URL audio downloader** in the Toolbox — pull a track in at the best available quality, then process or master it right here.
+🎚️ **A much stronger Mastering engine + style/artist presets**, a cleaner Toolbox, and more precise song-structure analysis.
 
-### New — URL audio downloader
-A new **Download** tool at the top of the Audio Toolbox:
-- Paste a **YouTube (or other site) URL**, pick **WAV / FLAC / MP3**, and it grabs the **best-quality audio** stream and saves it.
-- Built on the widely-used open-source **yt-dlp**, decoded locally — no cloud, no account.
-- Then drop the result straight into the other Toolbox tools or the Mastering mode to clean it up, master it, or pre-process your beats.
+### Mastering — now actually transformative
+- **Fixed: mastering wasn't improving the track.** Picking a specific style used to *disable* the smart corrective chain, so you got a gentle, non-transformative master (score in ≈ score out). Now **every preset runs the intelligent corrective + residual EQ** that genuinely fixes tonal balance — the preset layers its *character* on top. On a flawed mix this moves the score dramatically; a well-balanced mix keeps its score and just takes on the style.
+- **21 presets in 3 groups:**
+  - **Genres** — Auto / Pop / Hip-Hop / EDM / Rock / R&B / Acoustic / Ballad / Lo-fi
+  - **Hip-Hop styles** — Melodic Rap / Old-school Boom-bap / Trap 808 / Drill / Cloud Rap
+  - **Artist-inspired styles** — Juice WRLD / XXXTENTACION / Drake / Kanye / Travis Scott / The Weeknd / Playboi Carti *(stylistic references — not official or endorsed)*
+- **Save your own presets** — name your current style + advanced settings and recall them on any track ("My presets").
 
-**Please use it responsibly.** This is a download tool — you must have the right to download the content (your own work, Creative Commons, royalty-free, or beats you're licensed to use). The app asks you to confirm that before each download, and it doesn't bypass any paywalls or DRM.
+### Toolbox — file first
+- The **file picker now sits at the top**; pick a tool below.
 
-> Note: the downloader needs the local engine to include `yt-dlp`. Fresh installs get it automatically; if you updated from an older version and don't see the Download tool, re-run the engine setup (Settings → repair/reinstall engine).
+### Song analysis — more precise structure
+- Verse / pre-chorus / chorus / bridge / intro / outro detection improved with timbre features (spectral centroid + flatness), prominence-based boundary picking, and an adaptive clustering threshold.
 
-### Fixed (from v0.1.35)
-- Mastering / Toolbox audio downloads now save correctly, and a UI error shows a recoverable message instead of a black screen.
+### Downloader (from v0.1.36) — hardened
+- Large video downloads now stream from disk (no out-of-memory), temp files clean up on failed downloads, and a few small correctness fixes.
+
+> Note: the **Downloader + song analysis** need the local engine to include `yt-dlp`. If you updated from an older version and the **Download** mode shows an "engine missing" notice, re-run Settings → repair/reinstall engine once. **Mastering and the Toolbox work immediately after updating** — no repair needed.
 
 Support: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
 

@@ -14,7 +14,8 @@
    ────────────────────────────────────────────────────────────────── */
 
 import { save } from '@tauri-apps/plugin-dialog';
-import { writeTextFile, writeFile } from '@tauri-apps/plugin-fs';
+import { writeTextFile, writeFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { downloadDir, join } from '@tauri-apps/api/path';
 import type { ExportFormat } from '../../api/types';
 
 interface TauriInternalsWindow {
@@ -107,14 +108,89 @@ export async function saveBinaryBlob(
   return { kind: 'download' };
 }
 
+/* ──────────────────────────────────────────────────────────────────
+   Downloader extras — persist to a known folder so the file has a real
+   on-disk PATH (needed for native drag-out + reveal-in-folder). Browser
+   has no filesystem path, so these are Tauri-only (callers feature-gate).
+   ────────────────────────────────────────────────────────────────── */
+const DL_SUBDIR = 'Local Studio';
+
+/** Folder the Downloader writes into: <Downloads>/Local Studio (created on demand). */
+async function downloadsFolder(): Promise<string> {
+  const dir = await downloadDir();
+  const folder = await join(dir, DL_SUBDIR);
+  try { await mkdir(folder, { recursive: true }); } catch { /* already exists */ }
+  return folder;
+}
+
+/** Write a Blob into <Downloads>/Local Studio and return its absolute path (Tauri only). */
+export async function saveBlobToDownloads(blob: Blob, filename: string): Promise<string> {
+  const folder = await downloadsFolder();
+  const full = await join(folder, filename);
+  await writeFile(full, new Uint8Array(await blob.arrayBuffer()));
+  return full;
+}
+
+/** Reveal (highlight) a saved file in the OS file manager. Returns false if unavailable. */
+export async function revealPath(path: string): Promise<boolean> {
+  if (!hasTauri()) return false;
+  try {
+    const { revealItemInDir } = await import('@tauri-apps/plugin-opener');
+    await revealItemInDir(path);
+    return true;
+  } catch (e) {
+    console.warn('reveal-in-folder unavailable', e);
+    return false;
+  }
+}
+
+// 1×1 transparent PNG — a valid drag image (cosmetic; the OS shows the filename).
+const DRAG_ICON_B64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAen63NgAAAAASUVORK5CYII=';
+let dragIconPath: string | null = null;
+async function ensureDragIcon(): Promise<string> {
+  if (dragIconPath) return dragIconPath;
+  const folder = await downloadsFolder();
+  const p = await join(folder, '.al-dragicon.png');
+  if (!(await exists(p))) {
+    const bin = Uint8Array.from(atob(DRAG_ICON_B64), (c) => c.charCodeAt(0));
+    await writeFile(p, bin);
+  }
+  dragIconPath = p;
+  return p;
+}
+
+/**
+ * Start a native OS drag-out of a saved file (drag straight into a DAW).
+ * Uses the third-party @crabnebula/tauri-plugin-drag; loaded lazily and
+ * fully guarded so any failure degrades to the reveal-in-folder path.
+ * Returns true if the drag started.
+ */
+export async function dragOutPath(path: string): Promise<boolean> {
+  if (!hasTauri()) return false;
+  try {
+    const { startDrag } = await import('@crabnebula/tauri-plugin-drag');
+    let icon = '';
+    try { icon = await ensureDragIcon(); } catch { /* fall back to no icon */ }
+    await startDrag({ item: [path], icon });
+    return true;
+  } catch (e) {
+    console.warn('native drag-out unavailable', e);
+    return false;
+  }
+}
+
 /** Save a backend-provided Blob (already-formatted file) via download. */
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    URL.revokeObjectURL(url); // always revoke, even if a DOM op throws
+  }
 }

@@ -40,6 +40,10 @@
   padding: var(--al-pad-panel);
 }
 .al-toolrun__title { margin: 0 0 10px; font-weight: 600; font-size: var(--al-text-md); color: var(--al-ink); }
+.al-toolrun__hint { margin: 0 0 10px; font-size: var(--al-text-sm); color: var(--al-ink-faint); }
+
+/* file-first: the shared dropzone sits at the top, above the tool grid */
+.al-toolbox__drop { margin: 0 0 16px; }
 
 /* URL downloader (fetch) */
 .al-toolfetch { display: flex; flex-direction: column; gap: 10px; }

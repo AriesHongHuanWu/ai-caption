@@ -17,6 +17,8 @@ import { CaptionBurn } from './CaptionBurn';
 import { CleanTextFlow } from './CleanTextFlow';
 import { MasteringFlow } from './MasteringFlow';
 import { ToolboxFlow } from './ToolboxFlow';
+import { DownloadFlow } from './DownloadFlow';
+import { usePendingMedia } from '../../state/usePendingMedia';
 import { useMeta } from '../../state/useMeta';
 import { useJob } from '../../state/useJob';
 import { useResultStore } from '../../state/useResultStore';
@@ -205,6 +207,18 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVideo, previewUrl]);
 
+  // Hand-off from the Downloader: when the user clicks "匯入字幕/歌詞分析",
+  // it switches mode + stashes the downloaded File here; pick it up as if dropped.
+  const pendingMedia = usePendingMedia((s) => s.pending);
+  const consumePending = usePendingMedia((s) => s.consume);
+  useEffect(() => {
+    if ((appMode === 'song' || appMode === 'video') && pendingMedia) {
+      const f = consumePending();
+      if (f) onFile(f);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appMode, pendingMedia]);
+
   const toggleStyle = (key: string) =>
     setStyleKeys((cur) => (cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]));
 
@@ -346,6 +360,12 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
   // Audio Toolbox (音訊工具箱) — a grid of small tools, self-contained.
   if (appMode === 'tools') {
     return <ToolboxFlow />;
+  }
+
+  // Downloader + Song Analyzer (下載器) — self-contained surface; hands a
+  // downloaded file off to song/video via usePendingMedia (consumed below).
+  if (appMode === 'download') {
+    return <DownloadFlow />;
   }
 
   return (

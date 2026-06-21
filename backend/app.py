@@ -148,6 +148,12 @@ except Exception as _e:  # pragma: no cover
     logger.error("無法載入 pipeline.fetch:%r — URL 下載器停用,其餘 API 正常。", _e)
     url_fetch = None  # type: ignore[assignment]
 
+try:
+    from pipeline import analyze_music as music_analyze  # type: ignore[no-redef]
+except Exception as _e:  # pragma: no cover
+    logger.error("無法載入 pipeline.analyze_music:%r — 歌曲分析停用,其餘 API 正常。", _e)
+    music_analyze = None  # type: ignore[assignment]
+
 
 def _mastering_available() -> bool:
     if mastering is None:
@@ -798,6 +804,10 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    # 跨來源(webview/dev → 127.0.0.1:8756)時,JS 預設讀不到非簡單回應標頭。
+    # 下載器要靠這些拿正確檔名/類型/標題(否則檔名退回 media.wav)。
+    expose_headers=["Content-Disposition", "X-Media-Kind", "X-Media-Ext",
+                    "X-Media-Title", "X-Media-Duration"],
 )
 
 
@@ -875,6 +885,7 @@ def api_meta() -> JSONResponse:
             "captionTemplates": caption.templates() if caption is not None else ["clean", "karaoke", "bold"],
             "mastering": _mastering_available(),
             "masterGenres": mastering.genres() if mastering is not None else [],
+            "masterPresets": mastering.presets() if mastering is not None else {"groups": []},
             "masterLoudness": mastering.loudness_targets() if mastering is not None else ["streaming", "balanced", "social"],
             "installedWhisper": _installed_whisper_sizes(),
             "version": VERSION,
@@ -2383,6 +2394,123 @@ async def api_tools_run(
     fname = f"{base}_{toolId}.{ext}"
     return Response(content=out_bytes, media_type=mime,
                     headers={"Content-Disposition": f'attachment; filename="{fname}"'})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 下載器(Downloader)+ 深度歌曲分析(Song Analysis)
+# ─────────────────────────────────────────────────────────────────────────────
+_MEDIA_MIME = {"wav": "audio/wav", "mp3": "audio/mpeg", "flac": "audio/flac", "ogg": "audio/ogg",
+               "mp4": "video/mp4", "webm": "video/webm", "mkv": "video/x-matroska", "mov": "video/quicktime"}
+
+
+def _unlink_quiet(p) -> None:
+    """安靜刪檔(不存在/被佔用都不丟例外)。"""
+    try:
+        from pathlib import Path as _P
+        pp = p if isinstance(p, _P) else _P(str(p))
+        if pp.exists():
+            pp.unlink()
+    except OSError:
+        pass
+
+
+@app.get("/api/download/status")
+async def api_download_status() -> JSONResponse:
+    """下載器/分析能力探測(讓前端優雅隱藏不可用的功能)。"""
+    return JSONResponse({
+        "fetchAvailable": bool(url_fetch is not None and url_fetch.is_available()),
+        "analyzeAvailable": bool(music_analyze is not None and music_analyze.is_available()),
+    })
+
+
+@app.post("/api/download/probe")
+async def api_download_probe(url: str = Form(...)) -> JSONResponse:
+    """探測 URL 的標題/時長與可用格式(音訊一律可;影片列出漸進式,需合併的高解析標不支援)。"""
+    if url_fetch is None or not url_fetch.is_available():
+        raise HTTPException(status_code=503, detail="下載器不可用(yt-dlp 未安裝)")
+    try:
+        info = await run_in_threadpool(url_fetch.probe, url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:  # noqa: BLE001
+        logger.error("URL 探測失敗:%s\n%s", e, traceback.format_exc())
+        raise HTTPException(status_code=502, detail=f"無法讀取此網址:{e}") from e
+    return JSONResponse(info)
+
+
+@app.post("/api/download/fetch")
+async def api_download_fetch(
+    url: str = Form(...),
+    kind: str = Form("audio"),
+    outputFormat: str = Form("wav"),
+    sourceFormatId: str = Form(""),
+) -> Response:
+    """下載 URL 媒體(音訊或影片)→ 回位元組。使用者須對內容擁有權利(前端已要求確認);
+    本端點只抓公開串流、不繞過 DRM/付費牆。"""
+    if url_fetch is None or not url_fetch.is_available():
+        raise HTTPException(status_code=503, detail="下載器不可用(yt-dlp 未安裝)")
+    k = (kind or "audio").lower()
+    uid = uuid.uuid4().hex
+    # 影片副檔名要等下載後才知道(看來源容器);先用暫定,下載後依回傳 ext 命名。
+    tmp = UPLOAD_DIR / f"fetchout_{uid}.bin"
+    from functools import partial
+    try:
+        meta = await run_in_threadpool(partial(
+            url_fetch.fetch_media, url, str(tmp), kind=k,
+            output_format=(outputFormat or "wav").lower(),
+            source_format_id=(sourceFormatId or None)))
+    except ValueError as e:
+        _unlink_quiet(tmp)
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:  # noqa: BLE001
+        _unlink_quiet(tmp)        # 下載中途失敗 → 清掉半成品暫存,別洩漏
+        logger.error("URL 下載失敗:%s\n%s", e, traceback.format_exc())
+        raise HTTPException(status_code=502, detail=f"下載失敗:{e}") from e
+
+    ext = str(meta.get("ext", "wav")).lower()
+    import re as _re
+    from urllib.parse import quote as _quote
+    from starlette.background import BackgroundTask
+    title = str(meta.get("title", "media"))
+    safe_title = _re.sub(r'[^\w\-. ]', '_', title)[:80] or "media"
+    mime = _MEDIA_MIME.get(ext, "application/octet-stream")
+    # 串流回傳(FileResponse 邊讀邊送)而非整個讀進記憶體 —— 影片可達數 GB,read_bytes 會 OOM。
+    # BackgroundTask 在回應送完後才刪暫存。
+    return FileResponse(str(tmp), media_type=mime, background=BackgroundTask(_unlink_quiet, tmp), headers={
+        "Content-Disposition": f'attachment; filename="{safe_title}.{ext}"',
+        "X-Media-Kind": str(meta.get("kind", k)),
+        "X-Media-Ext": ext,
+        "X-Media-Title": _quote(title),
+        "X-Media-Duration": str(meta.get("duration", 0)),
+    })
+
+
+@app.post("/api/analyze/song")
+async def api_analyze_song(audio: UploadFile = File(...)) -> JSONResponse:
+    """深度歌曲分析:調性 / BPM / 曲式結構 / EQ 分布 / 曲風 / 元素 / 人聲混音建議。"""
+    if music_analyze is None or not music_analyze.is_available():
+        raise HTTPException(status_code=503, detail="歌曲分析不可用(缺 scipy)")
+    uid = uuid.uuid4().hex
+    tin = UPLOAD_DIR / f"songin_{uid}{_safe_upload_suffix(audio.filename)}"
+    try:
+        raw = await audio.read()
+        if not raw:
+            raise HTTPException(status_code=400, detail="上傳的音檔是空的")
+        tin.write_bytes(raw)
+        result = await run_in_threadpool(music_analyze.analyze_song, str(tin))
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        logger.error("歌曲分析失敗:%s\n%s", e, traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"分析失敗:{e}") from e
+    finally:
+        await audio.close()
+        try:
+            if tin.exists():
+                tin.unlink()
+        except OSError:
+            pass
+    return JSONResponse({"analysis": result})
 
 
 # ─────────────────────────────────────────────────────────────────────────────

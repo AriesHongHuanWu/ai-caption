@@ -1,6 +1,6 @@
 [package]
 name = "autolyrics"
-version = "0.1.36"
+version = "0.1.37"
 description = "Ai Caption — local AI captioning + word-level lyrics engine (desktop shell)"
 authors = ["AutoLyrics"]
 license = "MIT"
@@ -41,6 +41,11 @@ tauri-plugin-fs = "2"
 # 與前端 @tauri-apps/plugin-updater ^2.10.1 對齊。
 tauri-plugin-updater = "2.10"
 tauri-plugin-process = "2"
+# 下載器:官方 opener(在檔案總管顯示已下載檔)+ 第三方 drag(從視窗原生拖出檔案到 DAW)。
+# 兩者皆 MIT/Apache,license-clean。前端透過 @tauri-apps/plugin-opener /
+# @crabnebula/tauri-plugin-drag 的 JS 綁定呼叫。
+tauri-plugin-opener = "2"
+tauri-plugin-drag = "2.1"
 
 # Windows-only: Job Object APIs to guarantee the backend child is killed
 # when the parent dies abnormally (Task Manager / taskkill /F / crash),

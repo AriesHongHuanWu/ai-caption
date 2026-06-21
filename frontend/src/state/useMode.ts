@@ -19,12 +19,12 @@
 
 import { create } from 'zustand';
 
-export type AppMode = 'song' | 'video' | 'clean' | 'master' | 'tools';
+export type AppMode = 'song' | 'video' | 'clean' | 'master' | 'tools' | 'download';
 
 const STORAGE_KEY = 'al-appmode';
 
 /** The cycle order used by toggle() (next-in-ring). */
-const MODE_ORDER: AppMode[] = ['song', 'video', 'clean', 'master', 'tools'];
+const MODE_ORDER: AppMode[] = ['song', 'video', 'clean', 'master', 'tools', 'download'];
 
 /** localStorage 'al-appmode' ?? 'song'. */
 function initialMode(): AppMode {
