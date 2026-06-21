@@ -177,6 +177,24 @@ jobs:
           chmod +x scripts/fetch-portable-python.sh
           ./scripts/fetch-portable-python.sh
 
+      # Release notes come from NOTES.md (repo root) so the in-app updater dialog
+      # (which reads latest.json's `notes`, written by tauri-action from releaseBody)
+      # shows the REAL changelog — not a hardcoded generic string. Runs on every OS
+      # leg; all read the same NOTES.md so the body is identical across the matrix.
+      - name: Read release notes from NOTES.md
+        id: notes
+        shell: bash
+        run: |
+          if [ -f NOTES.md ]; then
+            {
+              echo "body<<__NOTES_EOF__"
+              cat NOTES.md
+              echo "__NOTES_EOF__"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "body=See the release assets to download and install." >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build, sign, and publish (tauri-action)
         uses: tauri-apps/tauri-action@v0
         env:
@@ -224,7 +242,9 @@ jobs:
           # Reuse the pushed tag (or the dispatch input). Don't use __VERSION__.
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
           releaseName: "Ai Caption ${{ github.event.inputs.tag || github.ref_name }}"
-          releaseBody: "See assets to download and install. Ai Caption sets up its local Python engine (and CUDA torch where an NVIDIA GPU is present) on first launch."
+          # Real changelog from NOTES.md (see the "Read release notes" step above),
+          # so latest.json's `notes` → the in-app updater shows what's actually new.
+          releaseBody: ${{ steps.notes.outputs.body }}
           # Draft so all 4 legs can write the same release/latest.json without a
           # half-finished release going live. PUBLISH manually once every leg is
           # green — publishing flips it to "Latest", which the updater endpoint
