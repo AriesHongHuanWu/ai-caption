@@ -1,6 +1,6 @@
 # Local Studio v0.1.43
 
-✨ **More Visualizer templates + Projects gather your masters.**
+✨ **Visualizer goes big — 13 templates (incl. 3D) + custom effects, and Projects gather your masters.**
 
 ### Visualizer — 9 templates now
 Five new high-quality templates joined the four from v0.1.42:
@@ -10,6 +10,14 @@ Five new high-quality templates joined the four from v0.1.42:
 - **Frequency terrain** — a scrolling pseudo-3D landscape shaped by the spectrum.
 - **Spectrum bloom** — a symmetric radial mandala from the spectrum.
 
+
+
+### 🧊 3D templates (new)
+Four **real 3D** templates (rotation + perspective) join the 2D ones:
+- **3D wireframe** — a rotating icosahedron that pulses and distorts with the spectrum.
+- **3D particle sphere** — a rotating sphere of points that bulges to the audio.
+- **3D tunnel** — fly through depth rings, faster on louder sections.
+- **3D terrain grid** — a tilted 3D landscape rippling to the spectrum.
 
 ### Custom effects — layer on any template
 New toggleable post-effects that work over *every* template and bake into the export: **Mirror / Kaleidoscope**, **Vignette**, **film **Grain****, and a **Beat flash**. Stack them with the colors, sensitivity, shake and glow.

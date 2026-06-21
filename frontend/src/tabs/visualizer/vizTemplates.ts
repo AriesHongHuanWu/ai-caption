@@ -325,6 +325,125 @@ const bloom: VizTemplate = {
   },
 };
 
+// ── 3D templates — real rotation + perspective projection, drawn in
+//    Canvas2D (no WebGL dep; composites + exports like everything else).
+function proj3d(x: number, y: number, z: number, rx: number, ry: number, w: number, h: number, zoom: number): [number, number, number] {
+  const cyr = Math.cos(ry), syr = Math.sin(ry);
+  let X = x * cyr - z * syr; let Z = x * syr + z * cyr;
+  const cxr = Math.cos(rx), sxr = Math.sin(rx);
+  const Y = y * cxr - Z * sxr; Z = y * sxr + Z * cxr;
+  const zc = Z + 4.2;                                   // camera distance
+  const s = zoom / Math.max(0.2, zc);
+  return [w / 2 + X * s, h / 2 + Y * s, s];
+}
+
+const PHI = (1 + Math.sqrt(5)) / 2;
+const ICO_V: number[][] = [
+  [-1, PHI, 0], [1, PHI, 0], [-1, -PHI, 0], [1, -PHI, 0],
+  [0, -1, PHI], [0, 1, PHI], [0, -1, -PHI], [0, 1, -PHI],
+  [PHI, 0, -1], [PHI, 0, 1], [-PHI, 0, -1], [-PHI, 0, 1],
+];
+const ICO_E: number[][] = [
+  [0, 11], [0, 5], [0, 1], [0, 7], [0, 10], [1, 5], [1, 7], [1, 8], [1, 9], [2, 3],
+  [2, 4], [2, 6], [2, 10], [2, 11], [3, 4], [3, 6], [3, 8], [3, 9], [4, 5], [4, 9],
+  [4, 11], [5, 9], [5, 11], [6, 7], [6, 8], [6, 10], [7, 8], [7, 10], [8, 9], [10, 11],
+];
+
+const wire3d: VizTemplate = {
+  key: 'wire3d', label: '3D 線框體', labelEn: '3D wireframe',
+  draw: (f) => {
+    const { ctx, w, h, freq, params } = f;
+    const rx = f.t * 0.4, ry = f.t * 0.6;
+    const zoom = Math.min(w, h) * 0.42 * (1 + f.bass * 0.4 * params.sensitivity);
+    const pts = ICO_V.map((v, i) => {
+      const d = 0.55 * (1 + (freq[(i * 7) % freq.length] / 255) * 0.5 * params.sensitivity);
+      return proj3d(v[0] * d, v[1] * d, v[2] * d, rx, ry, w, h, zoom);
+    });
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = rgba(params.accent, 0.85); ctx.lineWidth = Math.max(1.5, w / 700);
+    ctx.shadowColor = params.accent; ctx.shadowBlur = 14 * params.glow;
+    for (const [a, b] of ICO_E) { ctx.beginPath(); ctx.moveTo(pts[a][0], pts[a][1]); ctx.lineTo(pts[b][0], pts[b][1]); ctx.stroke(); }
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = mix(params.accent, '#ffffff', 0.4);
+    for (const p of pts) { ctx.beginPath(); ctx.arc(p[0], p[1], 2.5 + f.bass * 3, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalCompositeOperation = 'source-over';
+  },
+};
+
+let spherePts: [number, number, number][] = [];
+function ensureSphere(n: number) {
+  if (spherePts.length === n) return;
+  spherePts = []; const ga = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < n; i++) { const y = 1 - (i / (n - 1)) * 2; const r = Math.sqrt(Math.max(0, 1 - y * y)); const th = ga * i; spherePts.push([Math.cos(th) * r, y, Math.sin(th) * r]); }
+}
+const sphere3d: VizTemplate = {
+  key: 'sphere3d', label: '3D 粒子球', labelEn: '3D particle sphere',
+  draw: (f) => {
+    const { ctx, w, h, freq, params } = f; ensureSphere(380);
+    const rx = f.t * 0.3, ry = f.t * 0.45; const zoom = Math.min(w, h) * 0.4;
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < spherePts.length; i++) {
+      const [sx, sy, sz] = spherePts[i];
+      const disp = 1 + (freq[(i * 3) % freq.length] / 255) * 0.8 * params.sensitivity + f.bass * 0.25;
+      const [px, py, sc] = proj3d(sx * disp, sy * disp, sz * disp, rx, ry, w, h, zoom);
+      ctx.fillStyle = rgba(disp > 1.4 ? params.accent : params.accent2, 0.85);
+      ctx.beginPath(); ctx.arc(px, py, Math.max(0.7, 1 + sc / zoom * 3), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  },
+};
+
+const tunnel3d: VizTemplate = {
+  key: 'tunnel3d', label: '3D 隧道', labelEn: '3D tunnel',
+  draw: (f) => {
+    const { ctx, w, h, freq, params } = f;
+    const zoom = Math.min(w, h) * 0.5;
+    const RINGS = 20, SEG = 44, SP = 1.0;
+    const cam = f.t * (1.5 + f.level * 3 * params.sensitivity);
+    ctx.globalCompositeOperation = 'lighter';
+    for (let r = 0; r < RINGS; r++) {
+      let z = (r * SP - cam) % (RINGS * SP); if (z < 0) z += RINGS * SP;
+      const rad = 1.7 + (freq[(r * 5) % freq.length] / 255) * 0.5 * params.sensitivity;
+      const wob = f.t * 0.3;
+      ctx.beginPath();
+      for (let s = 0; s <= SEG; s++) {
+        const a = (s / SEG) * Math.PI * 2;
+        const [px, py] = proj3d(Math.cos(a + wob) * rad, Math.sin(a + wob) * rad, z, 0, 0, w, h, zoom);
+        if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      const fade = Math.max(0, 1 - z / (RINGS * SP));
+      ctx.strokeStyle = rgba(r % 2 ? params.accent : params.accent2, fade * 0.85);
+      ctx.lineWidth = Math.max(1, fade * 3.5);
+      ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  },
+};
+
+const grid3d: VizTemplate = {
+  key: 'grid3d', label: '3D 地形', labelEn: '3D terrain grid',
+  draw: (f) => {
+    const { ctx, w, h, freq, params } = f;
+    const zoom = Math.min(w, h) * 0.5; const rx = 0.55, ry = Math.sin(f.t * 0.2) * 0.2;
+    const GX = 22, GZ = 14;
+    ctx.globalCompositeOperation = 'lighter';
+    for (let gz = 0; gz < GZ; gz++) {
+      ctx.beginPath();
+      for (let gx = 0; gx < GX; gx++) {
+        const sx = (gx - GX / 2) * 0.34;
+        const sz = (gz - GZ / 2) * 0.34;
+        const hy = (freq[(gx * 3 + gz) % freq.length] / 255) * 0.9 * params.sensitivity;
+        const [px, py] = proj3d(sx, 0.8 - hy, sz, rx, ry, w, h, zoom);
+        if (gx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = rgba(mix(params.accent2, params.accent, gz / GZ), 0.6);
+      ctx.lineWidth = Math.max(1, w / 1100);
+      ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  },
+};
+
 // ── Post-effects layer — applies on top of any template, baked into the
 //    bitmap (so it exports). Mirror / kaleidoscope, vignette, grain, flash.
 export interface VizEffects {
@@ -367,6 +486,9 @@ export function applyEffects(
   }
 }
 
-export const TEMPLATES: VizTemplate[] = [radial, bars, ribbon, field, ringsT, objectT, starfield, terrain, bloom];
+export const TEMPLATES: VizTemplate[] = [
+  radial, bars, ribbon, field, ringsT, objectT, starfield, terrain, bloom,
+  wire3d, sphere3d, tunnel3d, grid3d,
+];
 
-export function resetTemplateState(): void { particles = []; rings = []; stars = []; terrainRows = []; }
+export function resetTemplateState(): void { particles = []; rings = []; stars = []; terrainRows = []; spherePts = []; }
