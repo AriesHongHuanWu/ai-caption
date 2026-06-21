@@ -9,7 +9,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff, Volume2, VolumeX, Trash2, Lock, Unlock, Film, Music2, Image as ImageIcon, Type, Square, ChevronUp, ChevronDown } from 'lucide-react';
 import { useEditor, docDuration } from './useEditor';
 import { getPeaks, onWaveformReady } from './waveform';
-import type { Clip, ClipKind } from './types';
+import { makeClip, DEFAULTS } from './types';
+import type { Clip, ClipKind, Track } from './types';
 
 /** Audio waveform drawn inside an audio/video clip on the timeline. */
 function ClipWave({ src, inPoint, dur, speed, srcDuration, width }: { src: string; inPoint: number; dur: number; speed: number; srcDuration: number; width: number }) {
@@ -59,6 +60,7 @@ export function Timeline({ pxPerSec, onSeek, cursorRef, tool }: Props) {
   const trimClip = useEditor((s) => s.trimClip);
   const splitClip = useEditor((s) => s.splitClip);
   const removeMarker = useEditor((s) => s.removeMarker);
+  const addClip = useEditor((s) => s.addClip);
   const toggleTrack = useEditor((s) => s.toggleTrack);
   const removeTrack = useEditor((s) => s.removeTrack);
   const renameTrack = useEditor((s) => s.renameTrack);
@@ -135,6 +137,19 @@ export function Timeline({ pxPerSec, onSeek, cursorRef, tool }: Props) {
     onSeek(Math.max(0, (e.clientX - rect.left) / pxPerSec));
   };
 
+  const onDropAsset = (e: React.DragEvent, tr: Track) => {
+    const raw = e.dataTransfer.getData('application/al-asset');
+    if (!raw) return;
+    e.preventDefault();
+    let a: { kind: ClipKind; name: string; src: string; srcDuration: number; duration: number };
+    try { a = JSON.parse(raw); } catch { return; }
+    const wantKind = a.kind === 'audio' ? 'audio' : 'visual';
+    if (tr.kind !== wantKind || tr.locked) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const t = Math.max(0, snapTime((e.clientX - rect.left) / pxPerSec, ''));
+    addClip(tr.id, makeClip(a.kind, { name: a.name, src: a.src, srcDuration: a.srcDuration, duration: a.kind === 'image' ? DEFAULTS.imageStill : a.duration, start: t }));
+  };
+
   const step = pxPerSec < 14 ? 10 : pxPerSec < 30 ? 5 : pxPerSec < 70 ? 2 : 1;
   const ticks: number[] = [];
   for (let s = 0; s <= dur + 4; s += step) ticks.push(s);
@@ -156,7 +171,10 @@ export function Timeline({ pxPerSec, onSeek, cursorRef, tool }: Props) {
           {doc.tracks.map((tr) => (
             <div key={tr.id} className={`al-cut__lane al-cut__lane--${tr.kind}`}>
               <div className="al-cut__lanebg" data-trackid={tr.id} data-kind={tr.kind}
-                   onMouseDown={(e) => { if (e.target === e.currentTarget) { select(null); seekAt(e, e.currentTarget); } }}>
+                   onMouseDown={(e) => { if (e.target === e.currentTarget) { select(null); seekAt(e, e.currentTarget); } }}
+                   onDragOver={(e) => { if (e.dataTransfer.types.includes('application/al-asset')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; (e.currentTarget as HTMLElement).classList.add('is-drop'); } }}
+                   onDragLeave={(e) => (e.currentTarget as HTMLElement).classList.remove('is-drop')}
+                   onDrop={(e) => { (e.currentTarget as HTMLElement).classList.remove('is-drop'); onDropAsset(e, tr); }}>
                 {tr.clips.map((c) => {
                   const Icon = KIND_ICON[c.kind];
                   const sel = c.id === selectedId;

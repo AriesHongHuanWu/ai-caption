@@ -14,7 +14,7 @@ import { usePlayback } from './usePlayback';
 import { useShortcuts } from './useShortcuts';
 import { Timeline } from './Timeline';
 import { Inspector } from './Inspector';
-import { AssetBin } from './AssetBin';
+import { LibraryPanel } from './LibraryPanel';
 import { PreviewOverlay } from './PreviewOverlay';
 import { AddToProject } from '../catalog/AddToProject';
 import './cut.css';
@@ -127,7 +127,7 @@ export function CutFlow() {
       </div>
 
       <div className="al-cut__main">
-        <aside className="al-cut__side"><AssetBin en={en} getTime={pb.getTime} /></aside>
+        <aside className="al-cut__side"><LibraryPanel en={en} getTime={pb.getTime} /></aside>
 
         <section className="al-cut__stage">
           <div className="al-cut__canvaswrap" data-aspect={aspect}>

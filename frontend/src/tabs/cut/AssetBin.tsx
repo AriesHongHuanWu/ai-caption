@@ -151,7 +151,9 @@ export function AssetBin({ en, getTime }: Props) {
           const Icon = KIND_ICON[a.kind as keyof typeof KIND_ICON] ?? Film;
           return (
             <div key={a.id} className="al-cut__asset">
-              <button type="button" className="al-cut__assetadd" onClick={() => addAsset(a)} title={en ? 'Add at playhead' : '加到播放頭'}>
+              <button type="button" className="al-cut__assetadd" draggable
+                onDragStart={(e) => { e.dataTransfer.setData('application/al-asset', JSON.stringify({ kind: a.kind, name: a.name, src: a.src, srcDuration: a.duration, duration: a.duration })); e.dataTransfer.effectAllowed = 'copy'; }}
+                onClick={() => addAsset(a)} title={en ? 'Drag to timeline or click to add at playhead' : '拖到時間軸,或點擊加到播放頭'}>
                 <Icon size={14} /><span className="al-cut__assetname">{a.name}</span><span className="al-cut__assetdur">{a.duration ? `${a.duration.toFixed(1)}s` : ''}</span><Plus size={13} className="al-cut__assetplus" />
               </button>
               <button type="button" className="al-cut__assetx" onClick={() => removeAsset(a.id)} title="remove"><X size={12} /></button>
