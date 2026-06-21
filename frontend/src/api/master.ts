@@ -13,7 +13,7 @@
 
 import { apiUrl, ApiError, API_BASE } from './client';
 
-export type MasterLoudness = 'streaming' | 'balanced' | 'social';
+export type MasterLoudness = 'streaming' | 'balanced' | 'social' | 'apple' | 'club';
 export type MasterJobStatusValue = 'queued' | 'running' | 'done' | 'error';
 
 // ── Intelligent analysis types (smart auto-mastering) ──────────────────────
@@ -183,6 +183,8 @@ export interface MasterMeta {
   inputPeakDb: number;
   outputPeakDb: number;
   ceilingDb: number;
+  /** Delivery compliance vs the chosen platform target (LUFS + true-peak). */
+  compliance?: { platform: string; lufsOk: boolean; peakOk: boolean; pass: boolean };
   /** Loudness-matched A/B: the original rendered at the master's loudness. */
   matchedLufs?: number | null;
   matchGainDb?: number;

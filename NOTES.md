@@ -1,21 +1,17 @@
-# Local Studio v0.1.39
+# Local Studio v0.1.40
 
-🎹🎤 **Turning analysis into action** — the first step of making Local Studio a complete end-to-end production suite. Two new things that build on the song analyzer:
+🎯 **Per-platform delivery + compliance check** — master straight to a platform's spec and *know* it's release-ready.
 
-### Compose tools — from "what key" to "what to play"
-When you analyze a track, it now hands you what to **write and play over it**:
-- The **scale** + all **diatonic chords** (triads and 7ths) for the detected key.
-- **Common progressions** spelled out in your key (Pop, Emo/Trap, ii–V–I, Andalusian…).
-- **Borrowed chords** + the **relative** major/minor.
-- A one-click **metronome click track** at the detected BPM.
+The Mastering loudness target now offers the real platform specs:
+- **Spotify / YouTube / TikTok** (−14 LUFS)
+- **Apple Music** (−16 LUFS)
+- **Balanced** (−12 LUFS)
+- **SoundCloud / Loud** (−9 LUFS)
+- **Club / DJ** (−7 LUFS)
 
-### One-click Vocal Chain — a radio vocal in one button
-New **🎤 Vocal** tool in the Toolbox: drop a vocal, pick a **style** (Pop / Hip-Hop / R&B / Rock / Acoustic / Lo-fi) and it auto-applies the whole chain the analyzer recommends —
-**HPF → subtractive EQ → de-ess → compression → presence/air → saturation → reverb + tempo-style delay** — with intensity and space dials. Turns the vocal-mix *advice* into an actual processed file.
+…each with the correct true-peak ceiling. After mastering, the result shows a **✓ "Meets delivery spec"** badge when the output lands within ±0.8 LU of the target *and* the true-peak is under the ceiling — so you can deliver with confidence instead of guessing.
 
-So now: download a beat → analyze (key/BPM/structure/EQ **+ chords + click**) → run your vocal through the matching chain. More of the workflow (mix → master → deliver → visuals) is coming.
-
-Everything from v0.1.38 is included (Downloader own category + decluttered layout, file-first Toolbox, stronger mastering + 21 presets).
+Everything from v0.1.39 is included (Compose tools — scale/chords/progressions/click, and the one-click Vocal Chain).
 
 Support: ☕ [Ko-fi](https://ko-fi.com/arieswu) · [PayPal](https://paypal.me/Arieshonghuan) · [GitHub Sponsors](https://github.com/sponsors/AriesHongHuanWu).
 

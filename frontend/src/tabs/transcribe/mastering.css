@@ -100,6 +100,21 @@
   color: var(--al-gold);
 }
 
+/* ── delivery compliance badge ── */
+.al-master__compliance {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: var(--al-space-2); padding: 8px 14px;
+  border-radius: var(--al-radius-ctrl); font-size: var(--al-text-sm);
+}
+.al-master__compliance.is-ok {
+  border: 1px solid color-mix(in srgb, var(--al-green, #5fc77e) 55%, transparent);
+  background: var(--al-green-glow, rgba(95,199,126,.12)); color: var(--al-green, #5fc77e);
+}
+.al-master__compliance.is-warn {
+  border: 1px solid var(--al-amber, #d8a657);
+  background: var(--al-amber-glow, rgba(216,166,87,.12)); color: var(--al-amber, #d8a657);
+}
+
 /* ── categorised preset picker ── */
 .al-master__presetgroup { margin-bottom: var(--al-space-3); }
 .al-master__presetcat {

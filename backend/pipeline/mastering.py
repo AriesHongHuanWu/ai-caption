@@ -223,9 +223,13 @@ _PRESET_GROUPS: list[dict] = [
 
 # loudness → (target integrated LUFS, true-peak ceiling dBTP)
 LOUDNESS_TARGETS: dict[str, tuple[float, float]] = {
+    # 通用(向後相容)
     "streaming": (-14.0, -1.0),
     "balanced": (-12.0, -1.0),
     "social": (-9.0, -1.0),
+    # 各平台交付規格(integrated LUFS, true-peak dBTP ceiling)
+    "apple": (-16.0, -1.0),       # Apple Music / Sound Check
+    "club": (-7.0, -0.5),         # Club / DJ play(很響、留多點 ISP margin)
 }
 
 
@@ -2562,6 +2566,13 @@ def master(
         "inputPeakDb": round(in_peak, 2),
         "outputPeakDb": round(out_peak, 2),
         "ceilingDb": round(ceil, 2),
+        # 交付合規:輸出響度落在目標 ±0.8 LU、且真峰未超過天花板 → 通過該平台規格。
+        "compliance": {
+            "platform": loudness,
+            "lufsOk": bool(abs(out_lufs - tgt_lufs) <= 0.8),
+            "peakOk": bool(out_peak <= ceil + 0.1),
+            "pass": bool(abs(out_lufs - tgt_lufs) <= 0.8 and out_peak <= ceil + 0.1),
+        },
         "matchedLufs": matched_lufs,
         "matchGainDb": match_gain_db,
         "hasMatched": matched_lufs is not None,

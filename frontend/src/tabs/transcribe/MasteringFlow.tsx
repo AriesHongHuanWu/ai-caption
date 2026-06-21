@@ -30,7 +30,7 @@ import { useMeta } from '../../state/useMeta';
 import { useMasterPresets, type CustomPreset } from '../../state/useMasterPresets';
 import { useT, useLang } from '../../i18n';
 import type { TFn } from '../../i18n';
-import { Save, X } from 'lucide-react';
+import { Save, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { AnalysisPanel, ResultCompare } from './mastering/AnalysisPanel';
 import { Goniometer } from './mastering/Goniometer';
 import { GainReduction } from './mastering/GainReduction';
@@ -43,11 +43,13 @@ type Phase = 'idle' | 'running' | 'done' | 'error';
 
 const LOUDNESS: { key: MasterLoudness; lufs: string }[] = [
   { key: 'streaming', lufs: '−14 LUFS' },
+  { key: 'apple', lufs: '−16 LUFS' },
   { key: 'balanced', lufs: '−12 LUFS' },
   { key: 'social', lufs: '−9 LUFS' },
+  { key: 'club', lufs: '−7 LUFS' },
 ];
 
-const TARGET_LUFS: Record<string, number> = { streaming: -14, balanced: -12, social: -9 };
+const TARGET_LUFS: Record<string, number> = { streaming: -14, apple: -16, balanced: -12, social: -9, club: -7 };
 
 export function MasteringFlow() {
   const t = useT();
@@ -870,6 +872,17 @@ export function MasteringFlow() {
                 <Stat label={t('master.stat.peak')} value={`${resultMeta.outputPeakDb} dB`} sub={`≤ ${resultMeta.ceilingDb}`} />
                 <Stat label={t('master.stat.gain')} value={`${(resultMeta.outputLufs - resultMeta.inputLufs >= 0 ? '+' : '')}${(resultMeta.outputLufs - resultMeta.inputLufs).toFixed(1)} dB`} sub={t('master.stat.gainSub')} />
                 <Stat label={t('master.stat.source')} value={resultMeta.referenceUsed ? t('master.stat.reference') : (genres.find((g) => g.key === resultMeta.genre)?.label ?? resultMeta.genre)} sub="" />
+              </div>
+            )}
+
+            {resultMeta?.compliance && (
+              <div className={`al-master__compliance${resultMeta.compliance.pass ? ' is-ok' : ' is-warn'}`}>
+                {resultMeta.compliance.pass ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+                <span>
+                  {resultMeta.compliance.pass ? t('master.compliance.pass') : t('master.compliance.fail')}
+                  {' · '}{t(`master.loud.${resultMeta.compliance.platform}`)}
+                  {' · '}{resultMeta.outputLufs} LUFS / {resultMeta.outputPeakDb} dBTP
+                </span>
               </div>
             )}
 
