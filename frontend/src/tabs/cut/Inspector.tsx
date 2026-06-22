@@ -71,9 +71,10 @@ export function Inspector({ en, onSplit, getTime }: Props) {
   const hasAudio = c.kind === 'video' || c.kind === 'audio';
   const transformable = isMedia || c.kind === 'text' || c.kind === 'shape';
 
+  const isAdjust = c.kind === 'adjust';
   const tabs: Tab[] = [];
-  if (transformable) tabs.push('transform');
-  if (isMedia) tabs.push('look');
+  if (transformable || isAdjust) tabs.push('transform');
+  if (isMedia || isAdjust) tabs.push('look');
   if (isMedia || c.kind === 'text') tabs.push('motion');
   if (hasAudio) tabs.push('audio');
   if (c.kind === 'text') tabs.push('text');

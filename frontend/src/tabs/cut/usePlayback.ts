@@ -165,7 +165,7 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
     const seen = new Set<string>();
     for (const tr of doc.tracks) {
       for (const c of tr.clips) {
-        if (c.kind === 'text' || c.kind === 'shape') continue;
+        if (c.kind === 'text' || c.kind === 'shape' || c.kind === 'adjust') continue;
         seen.add(c.id);
         const cur = pool.current.get(c.id);
         if (!cur || cur.src !== (c.src ?? '')) {
@@ -183,7 +183,7 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
     for (const tr of doc.tracks) {
       const trackMuted = tr.kind === 'audio' && tr.muted;
       for (const c of tr.clips) {
-        if (c.kind === 'text' || c.kind === 'shape') continue;
+        if (c.kind === 'text' || c.kind === 'shape' || c.kind === 'adjust') continue;
         const e = pool.current.get(c.id);
         if (!e || !e.el) continue;
         const active = t >= c.start && t < c.start + c.duration;
@@ -389,6 +389,24 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
     ctx.restore();
   }, []);
 
+  // Adjustment layer: re-draw the whole frame through a filter (grades everything below).
+  const applyAdjustment = useCallback((ctx: CanvasRenderingContext2D, c: Clip, W: number, H: number) => {
+    const o = off.current;
+    if (!o) return;
+    if (o.width !== W) o.width = W;
+    if (o.height !== H) o.height = H;
+    const octx = o.getContext('2d');
+    if (!octx) return;
+    octx.clearRect(0, 0, W, H);
+    octx.drawImage(ctx.canvas, 0, 0);
+    ctx.save();
+    ctx.globalAlpha = clamp(c.opacity, 0, 1);
+    ctx.globalCompositeOperation = c.opacity >= 0.999 ? 'copy' : 'source-over';
+    ctx.filter = buildFilter(c.filters, 0, 0);
+    ctx.drawImage(o, 0, 0);
+    ctx.restore();
+  }, []);
+
   const composite = useCallback((doc: EditDoc) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -408,16 +426,23 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
       for (const c of visual[i].clips) {
         if (t < c.start || t >= c.start + c.duration) continue;
         if (c.kind === 'shape') drawShape(ctx, c, t - c.start, W, H);
-        else drawMedia(ctx, c, t - c.start, W, H);
+        else if (c.kind === 'video' || c.kind === 'image') drawMedia(ctx, c, t - c.start, W, H);
+      }
+    }
+    // adjustment layers: grade the whole composited frame (after media, before text)
+    for (let i = visual.length - 1; i >= 0; i--) {
+      for (const c of visual[i].clips) {
+        if (c.kind === 'adjust' && t >= c.start && t < c.start + c.duration) applyAdjustment(ctx, c, W, H);
       }
     }
     ctx.globalCompositeOperation = 'source-over';
+    ctx.filter = 'none';
     for (const tr of doc.tracks) {
       if (tr.kind !== 'text' || tr.hidden) continue;
       for (const c of tr.clips) if (t >= c.start && t < c.start + c.duration) drawText(ctx, c, t - c.start, W, H);
     }
     ctx.filter = 'none';
-  }, [canvasRef, drawMedia, drawShape, drawText]);
+  }, [canvasRef, drawMedia, drawShape, drawText, applyAdjustment]);
 
   // Seek every active VIDEO clip to its source time at t and wait for the
   // frames to be ready — so an offline render is frame-accurate.
@@ -531,6 +556,7 @@ export function usePlayback({ canvasRef, poolRef, cursorRef, pxPerSec, onExporte
     const c = clip;
     const W = st.doc.width; const H = st.doc.height;
     const t = tRef.current;
+    if (c.kind === 'adjust') return null; // full-frame grade, no handles
     const visible = t >= c.start && t < c.start + c.duration;
     const trf = transformAt(c, t - c.start);
     if (c.kind === 'text') {

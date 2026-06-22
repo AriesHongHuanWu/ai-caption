@@ -23,6 +23,10 @@ const FX: { key: string; zh: string; en: string; patch: Partial<Clip> }[] = [
   { key: 'handheld', zh: '手持晃動', en: 'Handheld', patch: { shake: { mode: 'handheld', amount: 0.45, speed: 1.3 } } },
   { key: 'quake', zh: '地震', en: 'Earthquake', patch: { shake: { mode: 'earthquake', amount: 0.5, speed: 1.5 } } },
   { key: 'bounce', zh: '彈跳', en: 'Bounce', patch: { shake: { mode: 'bounce', amount: 0.5, speed: 1.2 } } },
+  { key: 'vhsfx', zh: 'VHS 故障', en: 'VHS glitch', patch: { glitch: 0.4, scan: 0.55 } },
+  { key: 'mirror', zh: '柔焦', en: 'Soft blur', patch: { filters: { brightness: 1.08, contrast: 0.92, saturate: 1.1, hue: 0, blur: 2.5, sepia: 0, grayscale: 0, invert: 0 } } },
+  { key: 'circle', zh: '圓形遮罩', en: 'Circle mask', patch: { mask: 'circle' } },
+  { key: 'rounded', zh: '圓角遮罩', en: 'Rounded mask', patch: { mask: 'rounded' } },
 ];
 
 export function LibraryPanel({ en, getTime }: Props) {
@@ -37,6 +41,13 @@ export function LibraryPanel({ en, getTime }: Props) {
   const applyFilters = (f: Partial<Clip['filters']>) => { if (sel && isMediaSel) useEditor.getState().updateFilters(sel.id, f); };
   const applyClip = (patch: Partial<Clip>) => { if (sel) useEditor.getState().updateClip(sel.id, patch); };
   const applyTrans = (type: string) => { if (sel) { const st = useEditor.getState(); st.setTransition(sel.id, 'transIn', { type: type as Clip['transIn']['type'], dur: 0.6 }); st.setTransition(sel.id, 'transOut', { type: type as Clip['transOut']['type'], dur: 0.6 }); } };
+
+  const addAdjustment = () => {
+    const st = useEditor.getState();
+    const clip = makeClip('adjust', { name: en ? 'Adjustment' : '調整層', start: Math.max(0, getTime()) });
+    st.addClipNewTrack('visual', clip);
+    st.select(clip.id);
+  };
 
   const addStyledText = (over: Partial<Clip>) => {
     const st = useEditor.getState();
@@ -89,7 +100,8 @@ export function LibraryPanel({ en, getTime }: Props) {
 
         {tab === 'filter' && (
           <>
-            <p className="al-cut__libhint">{en ? 'Drag onto a clip, or select a clip and click.' : '拖到片段上,或選片段後點擊。'}</p>
+            <button type="button" className="al-btn al-btn--ghost al-btn--sm al-cut__adjbtn" onClick={addAdjustment}><Aperture size={13} /> {en ? '+ Adjustment layer' : '+ 調整層(套用到下方片段)'}</button>
+            <p className="al-cut__libhint">{en ? 'Drag onto a clip, or select a clip and click. Looks also apply to an adjustment layer.' : '拖到片段上,或選片段後點擊;也可套到調整層。'}</p>
             <div className="al-cut__libgrid">
               {LOOKS.map((l) => (
                 <button key={l.key} type="button" className="al-cut__libcard" draggable

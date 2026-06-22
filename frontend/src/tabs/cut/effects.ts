@@ -34,6 +34,14 @@ export const LOOKS: { key: string; label: string; en: string; f: Partial<Filters
   { key: 'noir', label: '暗黑', en: 'Noir', f: { grayscale: 1, contrast: 1.35, brightness: 0.9 } },
   { key: 'fade', label: '褪色', en: 'Faded', f: { saturate: 0.75, contrast: 0.9, brightness: 1.08, sepia: 0.12 } },
   { key: 'vhs', label: 'VHS', en: 'VHS', f: { saturate: 1.3, hue: 6, contrast: 1.1, invert: 0 } },
+  { key: 'tealorange', label: '青橙', en: 'Teal-Orange', f: { saturate: 1.25, contrast: 1.12, hue: -6, brightness: 1.02 } },
+  { key: 'pastel', label: '粉彩', en: 'Pastel', f: { saturate: 0.85, brightness: 1.08, contrast: 0.92 } },
+  { key: 'moody', label: '陰鬱', en: 'Moody', f: { saturate: 0.8, contrast: 1.18, brightness: 0.92, sepia: 0.06 } },
+  { key: 'sunset', label: '夕陽', en: 'Sunset', f: { saturate: 1.3, sepia: 0.3, hue: -12, brightness: 1.05 } },
+  { key: 'matrix', label: '駭客', en: 'Matrix', f: { saturate: 1.4, hue: 90, contrast: 1.15, brightness: 0.95 } },
+  { key: 'dreamy', label: '夢幻', en: 'Dreamy', f: { saturate: 1.1, brightness: 1.1, contrast: 0.9, blur: 0.6 } },
+  { key: 'crisp', label: '清晰', en: 'Crisp', f: { contrast: 1.2, saturate: 1.15, brightness: 1 } },
+  { key: 'cyber', label: '賽博', en: 'Cyberpunk', f: { saturate: 1.5, hue: 20, contrast: 1.2, brightness: 0.98 } },
   { key: 'invert', label: '反相', en: 'Invert', f: { invert: 1 } },
 ];
 
@@ -93,6 +101,9 @@ export const TEXT_PRESETS: { key: string; label: string; en: string; over: Parti
   { key: 'title', label: '大標', en: 'Title', over: { stroke: 0, box: 0, shadow: 0.6, color: '#ffffff', grad: false, bold: true, fontSize: 96, letterSpacing: 1, posY: 0.5 } },
   { key: 'gold', label: '金漸層', en: 'Gold', over: { stroke: 2, strokeColor: '#2a1c00', box: 0, shadow: 0.45, color: '#ffe39a', grad: true, gradColor: '#b9852f', bold: true, fontSize: 64 } },
   { key: 'glow', label: '霓虹', en: 'Glow', over: { stroke: 0, box: 0, shadow: 1, color: '#a8f0ff', grad: true, gradColor: '#7a5cff', bold: true, fontSize: 60 } },
+  { key: 'pop', label: '彈跳黃', en: 'Pop', over: { stroke: 4, strokeColor: '#000000', box: 0, shadow: 0.2, color: '#ffd34e', bold: true, fontSize: 72 } },
+  { key: 'shadowbox', label: '陰影框', en: 'Shadow bar', over: { stroke: 0, box: 0.7, shadow: 0.3, color: '#ffffff', bold: true, fontSize: 50 } },
+  { key: 'minimal', label: '極簡', en: 'Minimal', over: { stroke: 0, box: 0, shadow: 0.25, color: '#ffffff', bold: false, letterSpacing: 3, fontSize: 54 } },
 ];
 
 /** Interpolate the animatable transform at clip-local time `t`. */

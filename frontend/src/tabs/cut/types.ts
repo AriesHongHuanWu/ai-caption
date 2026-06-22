@@ -9,7 +9,7 @@
    transitions, and rich text styling/animation.
    ────────────────────────────────────────────────────────────────── */
 
-export type ClipKind = 'video' | 'image' | 'audio' | 'text' | 'shape';
+export type ClipKind = 'video' | 'image' | 'audio' | 'text' | 'shape' | 'adjust';
 export type TrackKind = 'visual' | 'audio' | 'text';
 export type TextAlign = 'left' | 'center' | 'right';
 export type ShapeType = 'rect' | 'ellipse' | 'line';
@@ -176,7 +176,7 @@ export function makeClip(kind: ClipKind, over: Partial<Clip>): Clip {
     name: over.name ?? kind,
     src: over.src,
     start: over.start ?? 0,
-    duration: over.duration ?? (kind === 'image' ? DEFAULTS.imageStill : kind === 'text' ? DEFAULTS.textDur : kind === 'shape' ? DEFAULTS.shapeDur : 1),
+    duration: over.duration ?? (kind === 'image' ? DEFAULTS.imageStill : kind === 'text' ? DEFAULTS.textDur : kind === 'shape' || kind === 'adjust' ? DEFAULTS.shapeDur : 1),
     inPoint: over.inPoint ?? 0,
     srcDuration: over.srcDuration ?? 0,
     x: over.x ?? 0,

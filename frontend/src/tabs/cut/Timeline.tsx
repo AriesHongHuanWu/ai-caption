@@ -6,7 +6,7 @@
    ────────────────────────────────────────────────────────────────── */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Eye, EyeOff, Volume2, VolumeX, Trash2, Lock, Unlock, Film, Music2, Image as ImageIcon, Type, Square, ChevronUp, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, Volume2, VolumeX, Trash2, Lock, Unlock, Film, Music2, Image as ImageIcon, Type, Square, ChevronUp, ChevronDown, Aperture } from 'lucide-react';
 import { useEditor, docDuration } from './useEditor';
 import { getPeaks, onWaveformReady } from './waveform';
 import { makeClip, DEFAULTS } from './types';
@@ -40,7 +40,7 @@ function ClipWave({ src, inPoint, dur, speed, srcDuration, width }: { src: strin
   return <canvas ref={ref} className="al-cut__wave" />;
 }
 
-const KIND_ICON: Record<ClipKind, typeof Film> = { video: Film, image: ImageIcon, audio: Music2, text: Type, shape: Square };
+const KIND_ICON: Record<ClipKind, typeof Film> = { video: Film, image: ImageIcon, audio: Music2, text: Type, shape: Square, adjust: Aperture };
 
 interface Props {
   pxPerSec: number;
@@ -178,6 +178,21 @@ export function Timeline({ pxPerSec, onSeek, cursorRef, tool, en }: Props) {
     st.select(c.id);
   };
 
+  // drop a transition onto the cut between two adjacent clips → apply to both
+  const onDropCut = (e: React.DragEvent, aId: string, bId: string) => {
+    const raw = e.dataTransfer.getData('application/al-fx');
+    if (!raw) return;
+    e.preventDefault();
+    e.stopPropagation();
+    let fx: { kind: string; type?: string };
+    try { fx = JSON.parse(raw); } catch { return; }
+    if (fx.kind !== 'trans' || !fx.type) return;
+    const st = useEditor.getState();
+    st.setTransition(aId, 'transOut', { type: fx.type as Clip['transOut']['type'], dur: 0.6 });
+    st.setTransition(bId, 'transIn', { type: fx.type as Clip['transIn']['type'], dur: 0.6 });
+    st.select(bId);
+  };
+
   // drop onto the empty strip below the tracks → auto-create a track for it
   const onDropNewTrack = (e: React.DragEvent) => {
     const raw = e.dataTransfer.getData('application/al-asset');
@@ -239,6 +254,24 @@ export function Timeline({ pxPerSec, onSeek, cursorRef, tool, en }: Props) {
                     </div>
                   );
                 })}
+                {/* transition handles on the cut between adjacent clips */}
+                {(() => {
+                  const sorted = [...tr.clips].sort((a, b) => a.start - b.start);
+                  const out: React.ReactNode[] = [];
+                  for (let i = 0; i < sorted.length - 1; i++) {
+                    const A = sorted[i]; const B = sorted[i + 1];
+                    if (Math.abs(B.start - (A.start + A.duration)) > 0.08) continue;
+                    const set = A.transOut.type !== 'none' || B.transIn.type !== 'none';
+                    out.push(
+                      <span key={`cut-${A.id}`} className={`al-cut__cut${set ? ' is-set' : ''}`} style={{ left: (A.start + A.duration) * pxPerSec }}
+                        title={en ? 'Drop a transition here' : '把轉場拖到接縫上'}
+                        onDragOver={(e) => { if (e.dataTransfer.types.includes('application/al-fx')) { e.preventDefault(); e.stopPropagation(); (e.currentTarget as HTMLElement).classList.add('is-drop'); } }}
+                        onDragLeave={(e) => (e.currentTarget as HTMLElement).classList.remove('is-drop')}
+                        onDrop={(e) => { (e.currentTarget as HTMLElement).classList.remove('is-drop'); onDropCut(e, A.id, B.id); }} />,
+                    );
+                  }
+                  return out;
+                })()}
               </div>
             </div>
           ))}

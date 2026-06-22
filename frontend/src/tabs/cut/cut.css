@@ -295,3 +295,11 @@
 .al-cut__fxchip { display: inline-flex; align-items: center; gap: 3px; padding: 3px 3px 3px 8px; border-radius: 6px; font-size: 11px; border: 1px solid var(--al-gold, #d8a657); color: var(--al-gold, #d8a657); background: rgba(216,166,87,.08); }
 .al-cut__fxchip button { border: none; background: transparent; color: var(--al-gold, #d8a657); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; }
 .al-cut__fxchip button:hover { color: var(--al-error, #e06c75); }
+
+/* ── v0.2.0: adjustment layer + transitions on the cut ─────────── */
+.al-cut__adjbtn { width: 100%; justify-content: center; border-color: var(--al-gold, #d8a657) !important; color: var(--al-gold, #d8a657) !important; }
+.al-cut__cut { position: absolute; top: 9px; height: 28px; width: 16px; margin-left: -8px; z-index: 4; cursor: copy; border-radius: 4px; background: rgba(255,255,255,.07); border: 1px solid transparent; }
+.al-cut__cut::before { content: '⋈'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--al-text-dim, #9aa0ab); }
+.al-cut__cut.is-set { background: rgba(216,166,87,.25); }
+.al-cut__cut.is-set::before { color: var(--al-gold, #d8a657); }
+.al-cut__cut:hover, .al-cut__cut.is-drop { border-color: var(--al-gold, #d8a657); }
