@@ -20,7 +20,7 @@ import { ToolboxFlow } from './ToolboxFlow';
 import { DownloadFlow } from './DownloadFlow';
 import { CatalogFlow } from '../catalog/CatalogFlow';
 import { VisualizerFlow } from '../visualizer/VisualizerFlow';
-import { CutFlow } from '../cut/CutFlow';
+import { EditorBetaGate } from '../cut/EditorBetaGate';
 import { usePendingMedia } from '../../state/usePendingMedia';
 import { useMeta } from '../../state/useMeta';
 import { useJob } from '../../state/useJob';
@@ -381,9 +381,9 @@ export function TranscribeTab({ onOpenEditor }: TranscribeTabProps) {
     return <VisualizerFlow />;
   }
 
-  // Editor (剪輯室) — self-contained multitrack NLE: bin + preview + timeline.
+  // Editor (剪輯室) — gated behind a beta code while it is rebuilt.
   if (appMode === 'cut') {
-    return <CutFlow />;
+    return <EditorBetaGate />;
   }
 
   return (
