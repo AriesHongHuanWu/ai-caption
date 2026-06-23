@@ -1992,6 +1992,12 @@ def _run_master_job(
             residual_eq=opts.get("residual_eq"),
             param_eq=opts.get("param_eq"),
             adaptive_eq=opts.get("adaptive_eq"),
+            trim_start=opts.get("trim_start", 0.0),
+            trim_end=opts.get("trim_end"),
+            fade_in=opts.get("fade_in", 0.0),
+            fade_out=opts.get("fade_out", 0.0),
+            lowpass_hz=opts.get("lowpass_hz"),
+            highpass_hz=opts.get("highpass_hz"),
             progress=progress,
         )
         with _MASTER_JOBS_LOCK:
@@ -2049,6 +2055,12 @@ async def api_master(
     automationEq: Optional[str] = Form(None),
     stemRebalance: Optional[str] = Form(None),
     performance: Optional[bool] = Form(None),
+    trimStart: Optional[float] = Form(None),
+    trimEnd: Optional[float] = Form(None),
+    fadeIn: Optional[float] = Form(None),
+    fadeOut: Optional[float] = Form(None),
+    lowpassHz: Optional[float] = Form(None),
+    highpassHz: Optional[float] = Form(None),
 ) -> JSONResponse:
     """建立母帶工作。multipart:audio=混音檔,genre,loudness,選用 reference=參考曲,
     以及選用的進階參數(width/dynamics/eq*/compScale/ceiling)。
@@ -2088,6 +2100,12 @@ async def api_master(
         "automation_eq": _parse_automation_eq(automationEq),
         "stem_rebalance": _parse_stem_rebalance(stemRebalance),
         "performance": bool(performance) if performance is not None else None,
+        "trim_start": _f(trimStart, 0.0, 36000.0) or 0.0,
+        "trim_end": _f(trimEnd, 0.0, 36000.0),
+        "fade_in": _f(fadeIn, 0.0, 30.0) or 0.0,
+        "fade_out": _f(fadeOut, 0.0, 30.0) or 0.0,
+        "lowpass_hz": _f(lowpassHz, 200.0, 22000.0),
+        "highpass_hz": _f(highpassHz, 10.0, 2000.0),
     }
 
     valid_genres = [g["key"] for g in mastering.genres()] if mastering is not None else ["auto"]  # type: ignore[union-attr]

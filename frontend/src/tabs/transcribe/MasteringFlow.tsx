@@ -83,6 +83,9 @@ export function MasteringFlow() {
   // Defaults ON when the machine has no GPU (a strong "low-power laptop" signal).
   const [performance, setPerformance] = useState(() => !meta.gpu);
 
+  // Pre-master FX (multi-select, applied before the chain): crop / fades / hi-lo-pass.
+  const [preFx, setPreFx] = useState({ trim: false, trimStart: 0, trimEnd: 0, fadeIn: 0, fadeOut: 0, lp: false, lpHz: 16000, hp: false, hpHz: 30 });
+
   // Pro mode: a fully-parametric EQ (per-band phase + Mid/Side/L/R routing).
   const [proMode, setProMode] = useState(false);
   const [paramBands, setParamBands] = useState<EqBand[]>([]);
@@ -308,6 +311,12 @@ export function MasteringFlow() {
             ? JSON.stringify({ enabled: true, gains: stemGains })
             : undefined,
           performance: performance || undefined,
+          trimStart: preFx.trim ? preFx.trimStart : undefined,
+          trimEnd: preFx.trim && preFx.trimEnd > preFx.trimStart ? preFx.trimEnd : undefined,
+          fadeIn: preFx.fadeIn || undefined,
+          fadeOut: preFx.fadeOut || undefined,
+          lowpassHz: preFx.lp ? preFx.lpHz : undefined,
+          highpassHz: preFx.hp ? preFx.hpHz : undefined,
         });
         if (stoppedRef.current) return;
         pollTimer.current = setTimeout(() => void poll(jobId), POLL_MS);
@@ -319,7 +328,7 @@ export function MasteringFlow() {
         setPhase('error');
       }
     })();
-  }, [file, genre, loudness, reference, dynamics, width, eqBass, eqLowMid, eqPresence, eqAir, compScale, ceiling, autoStrength, proMode, paramBands, adaptiveEq, mbEnabled, mbCrossovers, mbBands, autoEnabled, autoLanes, stemEnabled, stemGains, performance, poll, t]);
+  }, [file, genre, loudness, reference, dynamics, width, eqBass, eqLowMid, eqPresence, eqAir, compScale, ceiling, autoStrength, proMode, paramBands, adaptiveEq, mbEnabled, mbCrossovers, mbBands, autoEnabled, autoLanes, stemEnabled, stemGains, performance, preFx, poll, t]);
 
   // Three-way A/B/C: upload an external master → loudness-match it to OUR
   // master's output LUFS → add as the C source for an original/ours/theirs shoot-out.
@@ -615,6 +624,38 @@ export function MasteringFlow() {
             <Slider label={t('master.adv.comp')} value={compScale} onChange={setCompScale} min={0} max={2} step={0.05} unit="×" disabled={running} />
             <Slider label={t('master.adv.width')} value={width} onChange={setWidth} min={0.5} max={1.5} step={0.05} unit="×" disabled={running} />
             <Slider label={t('master.adv.ceiling')} value={ceiling} onChange={setCeiling} min={-6} max={0} step={0.1} unit="dBTP" disabled={running} />
+            <p className="al-master__advgroup">前處理 · Pre-master FX</p>
+            <label className="al-master__switch">
+              <input type="checkbox" checked={preFx.trim} onChange={(e) => setPreFx((p) => ({ ...p, trim: e.target.checked }))} disabled={running} />
+              <span className="al-master__switchbody">
+                <span className="al-master__switchtitle">裁剪歌曲 · Trim</span>
+                <span className="al-master__switchhint">只母帶選取的片段 · master only a section</span>
+              </span>
+            </label>
+            {preFx.trim && (
+              <>
+                <Slider label="起點 · Start" value={preFx.trimStart} onChange={(v) => setPreFx((p) => ({ ...p, trimStart: v }))} min={0} max={600} step={0.5} unit="s" disabled={running} />
+                <Slider label="終點 · End" value={preFx.trimEnd} onChange={(v) => setPreFx((p) => ({ ...p, trimEnd: v }))} min={0} max={600} step={0.5} unit="s" disabled={running} />
+              </>
+            )}
+            <Slider label="淡入 · Fade in" value={preFx.fadeIn} onChange={(v) => setPreFx((p) => ({ ...p, fadeIn: v }))} min={0} max={10} step={0.1} unit="s" disabled={running} />
+            <Slider label="淡出 · Fade out" value={preFx.fadeOut} onChange={(v) => setPreFx((p) => ({ ...p, fadeOut: v }))} min={0} max={10} step={0.1} unit="s" disabled={running} />
+            <label className="al-master__switch">
+              <input type="checkbox" checked={preFx.hp} onChange={(e) => setPreFx((p) => ({ ...p, hp: e.target.checked }))} disabled={running} />
+              <span className="al-master__switchbody">
+                <span className="al-master__switchtitle">高通 · High-pass</span>
+                <span className="al-master__switchhint">切除低頻轟鳴 · cut sub rumble</span>
+              </span>
+            </label>
+            {preFx.hp && <Slider label="高通 · HP" value={preFx.hpHz} onChange={(v) => setPreFx((p) => ({ ...p, hpHz: v }))} min={10} max={300} step={1} unit="Hz" disabled={running} />}
+            <label className="al-master__switch">
+              <input type="checkbox" checked={preFx.lp} onChange={(e) => setPreFx((p) => ({ ...p, lp: e.target.checked }))} disabled={running} />
+              <span className="al-master__switchbody">
+                <span className="al-master__switchtitle">低通 · Low-pass</span>
+                <span className="al-master__switchhint">柔化高頻 · soften highs</span>
+              </span>
+            </label>
+            {preFx.lp && <Slider label="低通 · LP" value={preFx.lpHz} onChange={(v) => setPreFx((p) => ({ ...p, lpHz: v }))} min={2000} max={20000} step={100} unit="Hz" disabled={running} />}
             <p className="al-master__advgroup">{t('master.adv.perfGroup')}</p>
             <label className="al-master__switch">
               <input type="checkbox" checked={performance} onChange={(e) => setPerformance(e.target.checked)} disabled={running} />

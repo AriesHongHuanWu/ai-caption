@@ -251,6 +251,13 @@ export interface MasterAdvanced {
   stemRebalance?: string;
   /** Performance mode (small laptops): lighter analysis + oversampling, faster master. */
   performance?: boolean;
+  /** Pre-master FX (applied before the chain). */
+  trimStart?: number; // crop start (s)
+  trimEnd?: number; // crop end (s)
+  fadeIn?: number; // fade-in (s)
+  fadeOut?: number; // fade-out (s)
+  lowpassHz?: number; // low-pass cutoff (Hz)
+  highpassHz?: number; // high-pass cutoff (Hz)
 }
 
 /** POST /api/master — spawn the background mastering job. */
@@ -283,6 +290,12 @@ export async function createMasterJob(
     add('autoStrength', a.autoStrength);
     add('deEssAmount', a.deEssAmount);
     add('saturation', a.saturation);
+    add('trimStart', a.trimStart);
+    add('trimEnd', a.trimEnd);
+    add('fadeIn', a.fadeIn);
+    add('fadeOut', a.fadeOut);
+    add('lowpassHz', a.lowpassHz);
+    add('highpassHz', a.highpassHz);
     if (a.auto) form.append('auto', 'true');
     if (a.deEss !== undefined) form.append('deEss', String(a.deEss));
     if (a.multiband !== undefined) form.append('multiband', String(a.multiband));

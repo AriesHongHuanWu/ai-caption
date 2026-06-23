@@ -2154,6 +2154,45 @@ def _apply_param_eq(data: "np.ndarray", sr: int, raw_bands: list) -> "np.ndarray
 # --------------------------------------------------------------------------- #
 # 主流程
 # --------------------------------------------------------------------------- #
+def _pre_master_fx(
+    data,
+    sr: int,
+    *,
+    trim_start: float = 0.0,
+    trim_end: Optional[float] = None,
+    fade_in: float = 0.0,
+    fade_out: float = 0.0,
+    lowpass_hz: Optional[float] = None,
+    highpass_hz: Optional[float] = None,
+):
+    """Pre-master processing applied BEFORE the mastering chain: crop the song,
+    high-/low-pass filter, and fade in/out. `data` is (n, 2) float64 stereo."""
+    n = int(data.shape[0])
+    a = max(0, int(round(max(0.0, float(trim_start)) * sr)))
+    b = int(round(float(trim_end) * sr)) if (trim_end is not None and float(trim_end) > 0) else n
+    b = min(n, max(a + 1, b))
+    if a > 0 or b < n:
+        data = np.ascontiguousarray(data[a:b])
+    if highpass_hz and float(highpass_hz) > 20:
+        sos = sps.butter(4, min(float(highpass_hz) / (sr / 2.0), 0.99), btype="high", output="sos")
+        for ch in range(data.shape[1]):
+            data[:, ch] = sps.sosfilt(sos, data[:, ch])
+    if lowpass_hz and float(lowpass_hz) < (sr / 2.0 - 100):
+        sos = sps.butter(4, min(float(lowpass_hz) / (sr / 2.0), 0.99), btype="low", output="sos")
+        for ch in range(data.shape[1]):
+            data[:, ch] = sps.sosfilt(sos, data[:, ch])
+    nn = int(data.shape[0])
+    if fade_in and float(fade_in) > 0:
+        k = min(nn, int(round(float(fade_in) * sr)))
+        if k > 1:
+            data[:k] *= np.linspace(0.0, 1.0, k)[:, None]
+    if fade_out and float(fade_out) > 0:
+        k = min(nn, int(round(float(fade_out) * sr)))
+        if k > 1:
+            data[nn - k:] *= np.linspace(1.0, 0.0, k)[:, None]
+    return data
+
+
 def master(
     input_path: str,
     output_path: str,
@@ -2180,6 +2219,12 @@ def master(
     automation_eq: Optional[list] = None,
     stem_rebalance: Optional[dict] = None,
     performance: bool = False,
+    trim_start: float = 0.0,
+    trim_end: Optional[float] = None,
+    fade_in: float = 0.0,
+    fade_out: float = 0.0,
+    lowpass_hz: Optional[float] = None,
+    highpass_hz: Optional[float] = None,
     matched_output_path: Optional[str] = None,
     analyze_result: bool = True,
     progress: Optional[ProgressFn] = None,
@@ -2218,6 +2263,15 @@ def master(
 
     _emit(progress, 3.0, "讀取音訊 · Loading")
     data, sr = _load_audio(input_path)
+
+    # Pre-master FX (applied before the chain): crop / hi-lo-pass / fades.
+    if trim_start or trim_end or fade_in or fade_out or lowpass_hz or highpass_hz:
+        data = _pre_master_fx(
+            data, sr,
+            trim_start=trim_start, trim_end=trim_end,
+            fade_in=fade_in, fade_out=fade_out,
+            lowpass_hz=lowpass_hz, highpass_hz=highpass_hz,
+        )
 
     # AI 分軌重新平衡(Pro):Demucs 拆 4 軌 → 各自套增益 → 重新混合,再進母帶鏈。
     # 失敗/不可用 → 優雅降級為不分軌(用原始混音)。
